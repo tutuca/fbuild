@@ -9,9 +9,28 @@
 
 # Check if python is installed
 if [ ! "$(which python)" ]; then
-    echo "error: Python was not found, please install python to continue"
-    echo "info: Python is required for the FuDePan environment"
-    exit 1
+    echo "warning: Python was not found, need to install python to continue"
+    echo "info: 'sudo apt-get install python' should do the job, do you want"
+    echo "      me to do it? (your password will be required)"
+    read -p "Install (y/n)?" REPLY
+    if [ "$REPLY" = "y" ]; then
+        sudo apt-get install python
+    else
+        exit 1
+    fi
+fi
+
+# Check if scons is installed
+if [ ! "$(which scons)" ]; then
+    echo "warning: scons was not found, need to install scons to continue"
+    echo "info: 'sudo apt-get install scons' should do the job, do you want"
+    echo "      me to do it? (your password will be required)"
+    read -p "Install (y/n)?" REPLY
+    if [ "$REPLY" = "y" ]; then
+        sudo apt-get install scons
+    else
+        exit 1
+    fi
 fi
 
 # jump to env.py
