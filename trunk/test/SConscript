@@ -1,0 +1,9 @@
+Import ('env')
+
+name = 'test'
+src = env.Glob('*.cc')
+inc = env.Dir('.')
+dep = []
+
+env.CreateProgram(name, src)
+

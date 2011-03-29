@@ -1,0 +1,44 @@
+# FuDePan boilerplate required here
+
+import os
+import sys
+import SCons
+
+WS_PATH = os.getcwd()
+
+BUILD_SCRIPTS_DIR = os.path.join(WS_PATH, "buildscripts")
+sys.path.append(BUILD_SCRIPTS_DIR)
+
+# Add parallelism to the build system
+from multiprocessing import cpu_count
+SetOption('num_jobs', cpu_count() + 1)
+
+env = Environment()
+Export('env')
+
+# Add variables, this variables can be introduced through a file or
+# can be introduced via command line
+vars = Variables('SConfig')
+vars.AddVariables(
+    PathVariable(
+        'BUILD_DIR',
+        'build directory',
+        os.path.join(WS_PATH, "build"),
+        PathVariable.PathIsDirCreate))
+vars.AddVariables(
+    PathVariable(
+        'INSTALL_DIR',
+        'install directory',
+        os.path.join(WS_PATH, "install"),
+        PathVariable.PathIsDirCreate))
+
+vars.Update(env)
+
+from SCons.Script.SConscript import SConsEnvironment # just do this once
+from component import CreateProgram
+SConsEnvironment.CreateProgram = CreateProgram
+
+# walk all the paths looking for SConscript files
+from walker import WalkDirsForSConscript
+WalkDirsForSConscript(env, topdir=WS_PATH)
+
