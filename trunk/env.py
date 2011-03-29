@@ -6,5 +6,6 @@ import sys
 BUILD_SCRIPTS_DIR = os.path.join(os.getcwd(), "buildscripts")
 sys.path.append(BUILD_SCRIPTS_DIR)
 
-print 'Welcome to the FuDePan console environment'
+from termcolor import cprint
+cprint('Welcome to the FuDePan console environment','green', None, ['bold'])
 

@@ -35,12 +35,12 @@ vars.AddVariables(
 vars.Update(env)
 
 from termcolor import colored
-env['CCOMSTR'] = colored('[compiling] ', 'cyan') + '$TARGET'
-env['CXXCOMSTR'] = colored('[compiling] ', 'cyan') + '$TARGET'
-env['LINKCOMSTR'] = colored('[linking] ', 'green') + '$TARGET'
-env['RANLIBCOMSTR'] = colored('[indexing] ', 'blue') + '$TARGET'
-env['ARCOMSTR'] = colored('[archiving] ', 'blue') + '$TARGET'
-env['INSTALLSTR'] =  colored('[installing] ', 'yellow') + '$TARGET'
+env['CCOMSTR'] = colored('[compiling] ', 'cyan', None, ['bold']) + '$TARGET'
+env['CXXCOMSTR'] = colored('[compiling] ', 'cyan', None, ['bold']) + '$TARGET'
+env['LINKCOMSTR'] = colored('[linking] ', 'green', None, ['bold']) + '$TARGET'
+env['RANLIBCOMSTR'] = colored('[indexing] ', 'blue', None, ['bold']) + '$TARGET'
+env['ARCOMSTR'] = colored('[archiving] ', 'blue', None, ['bold']) + '$TARGET'
+env['INSTALLSTR'] =  colored('[installing] ', 'yellow', None, ['bold']) + '$TARGET'
 
 from SCons.Script.SConscript import SConsEnvironment # just do this once
 from component import CreateProgram
