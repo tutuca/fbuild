@@ -3,7 +3,7 @@ Import ('env')
 name = 'testshared'
 src = env.Glob('*.cpp')
 inc = env.Dir('.')
-dep = []
+deps = []
 
 env.CreateSharedLibrary(name, src)
 

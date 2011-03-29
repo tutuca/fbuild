@@ -3,7 +3,8 @@ Import ('env')
 name = 'testprogram'
 src = env.Glob('*.cc')
 inc = env.Dir('.')
-dep = []
+deps = ['teststatic']
 
-env.CreateProgram(name, src)
+env.CreateProgram(name, src, deps)
 
+    

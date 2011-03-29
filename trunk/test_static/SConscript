@@ -3,7 +3,7 @@ Import ('env')
 name = 'teststatic'
 src = env.Glob('*.cpp')
 inc = env.Dir('.')
-dep = []
+deps = []
 
 env.CreateStaticLibrary(name, src)
 
