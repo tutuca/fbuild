@@ -7,4 +7,9 @@ def CreateProgram(env, name, src):
     program = env.Program(name, src)
     env.Install(env['INSTALL_DIR'], program)
 
+def CreateStaticLibrary(env, name, src):
+    lib = env.Library(name, src)
 
+def CreateSharedLibrary(env, name, src):
+    dlib = env.SharedLibrary(name, src)
+    env.Install(env['INSTALL_DIR'], dlib)

@@ -1,0 +1,9 @@
+Import ('env')
+
+name = 'testshared'
+src = env.Glob('*.cpp')
+inc = env.Dir('.')
+dep = []
+
+env.CreateSharedLibrary(name, src)
+

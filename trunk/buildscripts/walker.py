@@ -4,7 +4,8 @@ import fnmatch
 import os
 
 def WalkDirsForSConscript(env, topdir):
-    matches = []
     for root, dirnames, filenames in os.walk(topdir):
         for filename in fnmatch.filter(filenames, 'SConscript'):
-            env.SConscript(os.path.join(root, filename), variant_dir=env['BUILD_DIR'], duplicate=0, exports='env')
+            (headPath,tailPath)=os.path.split(root)
+            variantPath = os.path.join(env['BUILD_DIR'], tailPath)
+            env.SConscript(os.path.join(root, filename), variant_dir=variantPath, duplicate=0, exports='env')

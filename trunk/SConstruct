@@ -45,6 +45,10 @@ env['INSTALLSTR'] =  colored('[installing] ', 'yellow') + '$TARGET'
 from SCons.Script.SConscript import SConsEnvironment # just do this once
 from component import CreateProgram
 SConsEnvironment.CreateProgram = CreateProgram
+from component import CreateStaticLibrary
+SConsEnvironment.CreateStaticLibrary = CreateStaticLibrary
+from component import CreateSharedLibrary
+SConsEnvironment.CreateSharedLibrary = CreateSharedLibrary
 
 # walk all the paths looking for SConscript files
 from walker import WalkDirsForSConscript
