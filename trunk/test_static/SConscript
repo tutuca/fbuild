@@ -1,9 +1,12 @@
+import SCons.Script.SConscript
 Import ('env')
 
 name = 'teststatic'
-src = env.Glob('*.cpp')
 inc = env.Dir('.')
+src = env.Glob('*.cpp')
 deps = []
 
-env.CreateStaticLibrary(name, src)
+env.CreateStaticLibrary(name, inc, src, deps)
+
+    
 

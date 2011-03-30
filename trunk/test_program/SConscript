@@ -1,10 +1,10 @@
+import SCons.Script.SConscript
 Import ('env')
 
 name = 'testprogram'
-src = env.Glob('*.cc')
 inc = env.Dir('.')
-deps = ['teststatic']
+src = env.Glob('*.cc')
+deps = ['teststatic','testshared']
 
-env.CreateProgram(name, src, deps)
+env.CreateProgram(name, inc, src, deps)
 
-    

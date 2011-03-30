@@ -32,17 +32,29 @@ vars.AddVariables(
         os.path.join(WS_PATH, "install"),
         PathVariable.PathIsDirCreate))
 
+env.Append( LINKFLAGS = Split('-z origin') )
+env.Append( RPATH = os.path.join(WS_PATH, "install"))
+
 vars.Update(env)
 
-from termcolor import colored
-env['CCOMSTR'] = colored('[compiling] ', 'cyan', None, ['bold']) + '$TARGET'
-env['CXXCOMSTR'] = colored('[compiling] ', 'cyan', None, ['bold']) + '$TARGET'
-env['LINKCOMSTR'] = colored('[linking] ', 'green', None, ['bold']) + '$TARGET'
-env['RANLIBCOMSTR'] = colored('[indexing] ', 'blue', None, ['bold']) + '$TARGET'
-env['ARCOMSTR'] = colored('[archiving] ', 'blue', None, ['bold']) + '$TARGET'
-env['INSTALLSTR'] =  colored('[installing] ', 'yellow', None, ['bold']) + '$TARGET'
+env.Decider( 'MD5-timestamp' )
+env.SConsignFile()
 
-from SCons.Script.SConscript import SConsEnvironment # just do this once
+import termcolor
+env['CXXCOMSTR'] = termcolor.compile_source_message
+env['CCCOMSTR'] = termcolor.compile_source_message
+env['SHCCCOMSTR'] = termcolor.compile_shared_source_message
+env['SHCXXCOMSTR'] = termcolor.compile_shared_source_message
+env['ARCOMSTR'] = termcolor.link_library_message
+env['RANLIBCOMSTR'] = termcolor.ranlib_library_message
+env['SHLINKCOMSTR'] = termcolor.link_shared_library_message
+env['LINKCOMSTR'] = termcolor.link_program_message
+env['JARCOMSTR'] = termcolor.java_library_message
+env['JAVACCOMSTR'] = termcolor.compile_source_message
+
+from SCons.Script.SConscript import SConsEnvironment
+from component import AddComponent
+SConsEnvironment.AddComponent = AddComponent
 from component import CreateProgram
 SConsEnvironment.CreateProgram = CreateProgram
 from component import CreateStaticLibrary
@@ -51,6 +63,6 @@ from component import CreateSharedLibrary
 SConsEnvironment.CreateSharedLibrary = CreateSharedLibrary
 
 # walk all the paths looking for SConscript files
-from walker import WalkDirsForSConscript
-WalkDirsForSConscript(env, topdir=WS_PATH)
+from component import WalkDirsForComponents
+WalkDirsForComponents(env, topdir=WS_PATH)
 

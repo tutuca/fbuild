@@ -10,3 +10,5 @@ TODO:
 - add pretty fast functionality (decider is timestamp based instead of MD5)
   * Section 6.1.2 http://www.scons.org/doc/production/HTML/scons-user/c824.html
 
+http://www.scons.org/wiki/WgetSourceCode
+

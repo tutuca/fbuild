@@ -1,9 +1,10 @@
+import SCons.Script.SConscript
 Import ('env')
 
 name = 'testshared'
-src = env.Glob('*.cpp')
 inc = env.Dir('.')
+src = env.Glob('*.cpp')
 deps = []
 
-env.CreateSharedLibrary(name, src)
+env.CreateSharedLibrary(name, inc, src, deps)
 
