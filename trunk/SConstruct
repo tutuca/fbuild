@@ -12,7 +12,7 @@ Export('env')
 WS_PATH = env.Dir('#').abspath
 
 # Add the script paths so is easier to find the py modules
-BUILD_SCRIPTS_DIR = os.path.join(WS_PATH, "buildscripts")
+BUILD_SCRIPTS_DIR = os.path.join(WS_PATH, "site_scons")
 sys.path.append(BUILD_SCRIPTS_DIR)
 
 # SCons configuration options
@@ -42,6 +42,7 @@ vars.Update(env)
 # else, you only need to pass INSTALL_DIR parameter to 
 # scons to deploy it somewhere else
 env.Append( RPATH = env['INSTALL_DIR'] )
+env['ENV']['LD_LIBRARY_PATH'] = env['INSTALL_DIR']
 
 # Some environment tunnings so this runs faster
 env.Decider( 'MD5-timestamp' )
@@ -53,28 +54,30 @@ import platform
 if arch == '64bit' and binType == 'ELF':
     env['CXXFLAGS'] = '-fPIC'
 
-# Color pretty printing
-import termcolor
-env['CXXCOMSTR'] = termcolor.compile_source_message
-env['CCCOMSTR'] = termcolor.compile_source_message
-env['SHCCCOMSTR'] = termcolor.compile_source_message
-env['SHCXXCOMSTR'] = termcolor.compile_source_message
-env['ARCOMSTR'] = termcolor.link_library_message
-env['RANLIBCOMSTR'] = termcolor.ranlib_library_message
-env['SHLINKCOMSTR'] = termcolor.link_shared_library_message
-env['LINKCOMSTR'] = termcolor.link_program_message
-env['INSTALLSTR'] =  termcolor.install_message
-
 # Wrapper functions to build target types
 from SCons.Script.SConscript import SConsEnvironment
-from component import CreateProgram
-SConsEnvironment.CreateProgram = CreateProgram
-from component import CreateStaticLibrary
-SConsEnvironment.CreateStaticLibrary = CreateStaticLibrary
-from component import CreateSharedLibrary
-SConsEnvironment.CreateSharedLibrary = CreateSharedLibrary
+import component
+SConsEnvironment.CreateProgram = component.CreateProgram
+SConsEnvironment.CreateStaticLibrary = component.CreateStaticLibrary
+SConsEnvironment.CreateSharedLibrary = component.CreateSharedLibrary
+
+# Register builders
+# Register tools
+env.Tool('doxygen')
+env.Tool('makebuilder')
+
+# Add Qt
+import qtutil
+# /usr/include/qt4/
+env.Tool('qt')
+qtutil.addQtComponents(env)
+
+# Color pretty printing
+import termcolor
+if ARGUMENTS.get('VERBOSE') != '1':
+    termcolor.prettyMessages(env)
 
 # Walk over the tree finding components
 from component import WalkDirsForComponents
 WalkDirsForComponents(env, topdir=WS_PATH)
-
+   

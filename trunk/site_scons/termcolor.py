@@ -22,4 +22,22 @@ link_library_message = '%s[linking static] $TARGET%s' % (colors['cyan'], colors[
 link_shared_library_message = '%s[linking shared] $TARGET%s' % (colors['cyan'], colors['end'])
 ranlib_library_message = '%s[indexing] $TARGET%s' % (colors['purple'], colors['end'])
 install_message = '%s[installing] $SOURCE => $TARGET%s' % (colors['green'], colors['end'])
+qtuic_message = '%s[uic] $SOURCE%s' % (colors['blue'], colors['end'])
+qtmoc_message = '%s[moc] $SOURCE%s' % (colors['blue'], colors['end'])
 
+def prettyMessages(env):
+    env['CCCOMSTR'] = compile_source_message
+    env['CXXCOMSTR'] = compile_source_message
+    env['SHCCCOMSTR'] = compile_source_message
+    env['SHCXXCOMSTR'] = compile_source_message
+    env['ARCOMSTR'] = link_library_message
+    env['RANLIBCOMSTR'] = ranlib_library_message
+    env['SHLINKCOMSTR'] = link_shared_library_message
+    env['LINKCOMSTR'] = link_program_message
+    env['INSTALLSTR'] =  install_message
+    env['QT_UICCOMSTR'] = qtuic_message
+    #env['QT_RCCCOMSTR'] = rcc
+    env['QT_MOCFROMHCOMSTR'] = qtmoc_message
+    env['QT_MOCFROMCXXCOMSTR'] = qtmoc_message
+    #env['QT_LUPDATECOMSTR'] = ts
+    #env['QT_LRELEASECOMSTR'] = qm

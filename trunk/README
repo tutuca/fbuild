@@ -1,1 +1,23 @@
 Run ./env.sh
+
+To build everything:
+scons
+
+To clean everything:
+scons -c
+
+To create a doxygen component
+env.Doxygen("Doxyfile")
+
+To integrate a make project into scons, here is what to put in the SConscript file:
+# Define the sources for the make build, so SCons can track dependencies
+# (or just set source=None to have SCons run make all the time and
+# let make track dependencies).
+src = Glob('foo-1.2.3/*.c')
+
+# Run make inside the foo-1.2.3/ directory
+foolib = env.Make(source = src,
+                  target = [ 'foo-1.2.3/.libs/libfoo.a',
+                             'foo-1.2.3/.libs/libfoo.so' ],
+                  MakePath = Dir('foo-1.2.3'))
+
