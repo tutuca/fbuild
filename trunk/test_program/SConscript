@@ -4,7 +4,7 @@ Import ('env')
 name = 'testprogram'
 inc = env.Dir('.')
 src = env.Glob('*.cc')
-deps = ['teststatic','testshared']
+deps = ['testshared']
 
 env.CreateProgram(name, inc, src, deps)
 

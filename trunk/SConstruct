@@ -4,17 +4,21 @@ import os
 import sys
 import SCons
 
-WS_PATH = os.getcwd()
+env = Environment()
+Export('env')
 
+# Get the scons root path, this can be tricky because 
+# scons can be ran with the -v option
+WS_PATH = env.Dir('#').abspath
+
+# Add the script paths so is easier to find the py modules
 BUILD_SCRIPTS_DIR = os.path.join(WS_PATH, "buildscripts")
 sys.path.append(BUILD_SCRIPTS_DIR)
 
+# SCons configuration options
 # Add parallelism to the build system
 from multiprocessing import cpu_count
 SetOption('num_jobs', cpu_count() + 1)
-
-env = Environment()
-Export('env')
 
 # Add variables, this variables can be introduced through a file or
 # can be introduced via command line
@@ -31,30 +35,38 @@ vars.AddVariables(
         'install directory',
         os.path.join(WS_PATH, "install"),
         PathVariable.PathIsDirCreate))
-
-env.Append( LINKFLAGS = Split('-z origin') )
-env.Append( RPATH = os.path.join(WS_PATH, "install"))
-
 vars.Update(env)
 
+# Resolve the rpath so everything works smooth from
+# the install dir. This makes easier to deploy somewhere
+# else, you only need to pass INSTALL_DIR parameter to 
+# scons to deploy it somewhere else
+env.Append( RPATH = env['INSTALL_DIR'] )
+
+# Some environment tunnings so this runs faster
 env.Decider( 'MD5-timestamp' )
 env.SConsignFile()
 
+# Linker options
+import platform
+(arch,binType) = platform.architecture()
+if arch == '64bit' and binType == 'ELF':
+    env['CXXFLAGS'] = '-fPIC'
+
+# Color pretty printing
 import termcolor
 env['CXXCOMSTR'] = termcolor.compile_source_message
 env['CCCOMSTR'] = termcolor.compile_source_message
-env['SHCCCOMSTR'] = termcolor.compile_shared_source_message
-env['SHCXXCOMSTR'] = termcolor.compile_shared_source_message
+env['SHCCCOMSTR'] = termcolor.compile_source_message
+env['SHCXXCOMSTR'] = termcolor.compile_source_message
 env['ARCOMSTR'] = termcolor.link_library_message
 env['RANLIBCOMSTR'] = termcolor.ranlib_library_message
 env['SHLINKCOMSTR'] = termcolor.link_shared_library_message
 env['LINKCOMSTR'] = termcolor.link_program_message
-env['JARCOMSTR'] = termcolor.java_library_message
-env['JAVACCOMSTR'] = termcolor.compile_source_message
+env['INSTALLSTR'] =  termcolor.install_message
 
+# Wrapper functions to build target types
 from SCons.Script.SConscript import SConsEnvironment
-from component import AddComponent
-SConsEnvironment.AddComponent = AddComponent
 from component import CreateProgram
 SConsEnvironment.CreateProgram = CreateProgram
 from component import CreateStaticLibrary
@@ -62,7 +74,7 @@ SConsEnvironment.CreateStaticLibrary = CreateStaticLibrary
 from component import CreateSharedLibrary
 SConsEnvironment.CreateSharedLibrary = CreateSharedLibrary
 
-# walk all the paths looking for SConscript files
+# Walk over the tree finding components
 from component import WalkDirsForComponents
 WalkDirsForComponents(env, topdir=WS_PATH)
 
