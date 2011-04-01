@@ -7,14 +7,6 @@ import SCons
 env = Environment()
 Export('env')
 
-# Get the scons root path, this can be tricky because 
-# scons can be ran with the -v option
-WS_PATH = env.Dir('#').abspath
-
-# Add the script paths so is easier to find the py modules
-BUILD_SCRIPTS_DIR = os.path.join(WS_PATH, "site_scons")
-sys.path.append(BUILD_SCRIPTS_DIR)
-
 # SCons configuration options
 # Add parallelism to the build system
 from multiprocessing import cpu_count
@@ -23,19 +15,36 @@ SetOption('num_jobs', cpu_count() + 1)
 # Add variables, this variables can be introduced through a file or
 # can be introduced via command line
 vars = Variables('SConfig')
+# Get the scons root path, this can be tricky because 
+# scons can be ran with the -v option
+vars.AddVariables(
+    PathVariable(
+        'WS_DIR',
+        'workspace directory',
+        env.Dir('#').abspath,
+        PathVariable.PathIsDirCreate))
 vars.AddVariables(
     PathVariable(
         'BUILD_DIR',
         'build directory',
-        os.path.join(WS_PATH, "build"),
+        os.path.join(env.Dir('#').abspath, "build"),
         PathVariable.PathIsDirCreate))
 vars.AddVariables(
     PathVariable(
         'INSTALL_DIR',
         'install directory',
-        os.path.join(WS_PATH, "install"),
+        os.path.join(env.Dir('#').abspath, "install"),
+        PathVariable.PathIsDirCreate))
+vars.AddVariables(
+    PathVariable(
+        'BUILD_SCRIPTS_DIR',
+        'site_scons directory',
+        os.path.join(env.Dir('#').abspath, "site_scons"),
         PathVariable.PathIsDirCreate))
 vars.Update(env)
+
+# Add the script paths so is easier to find the py modules
+sys.path.append(env['BUILD_SCRIPTS_DIR'])
 
 # Resolve the rpath so everything works smooth from
 # the install dir. This makes easier to deploy somewhere
@@ -69,7 +78,6 @@ env.Tool('makebuilder')
 
 # Add Qt
 import qtutil
-# /usr/include/qt4/
 env.Tool('qt')
 qtutil.addQtComponents(env)
 
@@ -80,5 +88,5 @@ if ARGUMENTS.get('VERBOSE') != '1':
 
 # Walk over the tree finding components
 from component import WalkDirsForComponents
-WalkDirsForComponents(env, topdir=WS_PATH)
-   
+WalkDirsForComponents(env, topdir=env['WS_DIR'])
+

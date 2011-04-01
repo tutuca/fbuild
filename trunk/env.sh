@@ -33,6 +33,19 @@ if [ ! "$(which scons)" ]; then
     fi
 fi
 
+# Check if scons is installed
+if [ ! "$(which moc)" ]; then
+    echo "warning: qt was not found, qt is not required to continue"
+    echo "info: 'sudo apt-get install qt4-dev-tools' should do the job, do you want"
+    echo "      me to do it? (your password will be required)"
+    read -p "Install (y/n)?" REPLY
+    if [ "$REPLY" = "y" ]; then
+        sudo apt-get install qt4-dev-tools
+    else
+        exit 1
+    fi
+fi
+
 # jump to env.py
 python env.py
 

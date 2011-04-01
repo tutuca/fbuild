@@ -1,4 +1,3 @@
-import SCons.Script.SConscript
 Import ('env')
 
 name = 'testshared'

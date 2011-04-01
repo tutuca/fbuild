@@ -25,6 +25,9 @@ install_message = '%s[installing] $SOURCE => $TARGET%s' % (colors['green'], colo
 qtuic_message = '%s[uic] $SOURCE%s' % (colors['blue'], colors['end'])
 qtmoc_message = '%s[moc] $SOURCE%s' % (colors['blue'], colors['end'])
 
+def cprint(msg,color):
+    print '%s%s%s' % (colors[color], msg, colors['end'])
+    
 def prettyMessages(env):
     env['CCCOMSTR'] = compile_source_message
     env['CXXCOMSTR'] = compile_source_message
