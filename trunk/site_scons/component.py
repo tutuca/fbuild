@@ -9,29 +9,27 @@ lastAddedComponent = None
 isPreProcessing = False
 
 class Component(object):
-    def __init__(self, name, buildDir, incDirs, deps, isQt):
+    def __init__(self, name, buildDir, incDirs, deps):
         global components
         self.name = name
         self.buildDir = buildDir
         self.incDirs = incDirs
         self.deps = deps
-        self.isQt = isQt
     def __hash__(self):
         self.name.__hash__()
     def __eq__(self,other):
         return self.name == other
 
-def AddComponent(env, name, incDirs, deps, isHook = False, isQt = False):
+# Empty build dir means that this is a header only library
+def AddComponent(env, name, incDirs, deps, buildDir = ''):
     global components
     global lastAddedComponent
     if components.has_key(name) and components[name] is not None:
         raise Exception('Component already defined: %s' % name)
     # TODO: should I detect circular dependencies? scons already
-    # do that at a library level
-    buildDir = ''
-    if not isHook:
-        buildDir = os.path.join(env['BUILD_DIR'], name)
-    lastAddedComponent = Component(name, buildDir, incDirs, deps, isQt)
+    # do that at a library level. There are multiple level of
+    # depencencies
+    lastAddedComponent = Component(name, buildDir, incDirs, deps)
     components[name] = lastAddedComponent
     
 # These three functions could be only one to avoid two recursive iterations
@@ -43,7 +41,8 @@ def GetIncludePaths(env, deps):
         comp = components[dep]
         if comp is None:
             raise Exception('Component %s depends on undefined component %s' % (name, dep) )
-        incpaths.append(comp.incDirs)
+        if comp.incDirs != '':
+            incpaths.append(comp.incDirs)
         recursiveReturn = GetIncludePaths(env, comp.deps)
         if len(recursiveReturn) > 0:
             incpaths.append( recursiveReturn )
@@ -55,46 +54,36 @@ def GetLibPaths(env, deps):
         comp = components[dep]
         if comp is None:
             raise Exception('Component %s depends on undefined component %s' % (name, dep) )
-        libpaths.append(comp.buildDir)
+        if comp.buildDir != '':
+            libpaths.append(comp.buildDir)
         recursiveReturn = GetLibPaths(env, comp.deps)
         if len(recursiveReturn) > 0:
             libpaths.append( recursiveReturn )
     return libpaths
     
-def GetQtModulesFromDeps(env, deps):
-    qtmodules = []
-    for dep in deps:
-        comp = components[dep]
-        if comp is None:
-            raise Exception('Component %s depends on undefined component %s' % (name, dep) )
-        if comp.isQt:
-            qtmodules.append( comp.name )
-        recursiveReturn = GetQtModulesFromDeps(env, comp.deps)
-        if len(recursiveReturn) > 0:
-            qtmodules.append( recursiveReturn )
-    return qtmodules
-    
-
-def CreateProgram(env, name, inc, src, deps, ui=''):
+# it has deps because it can pull other libraries
+def CreateHeaderOnlyLibrary(env, name, inc, deps):
     if isPreProcessing == True:
         AddComponent(env, name, inc, deps)
+
+def CreateProgram(env, name, inc, src, deps):
+    if isPreProcessing == True:
+        buildDir = os.path.join(env['BUILD_DIR'], name)
+        AddComponent(env, name, inc, deps, buildDir)
     else: 
         incpaths = GetIncludePaths(env, deps)
         incpaths.append(inc.get_abspath())
         libpaths = GetLibPaths(env, deps)
-        qtmodules = GetQtModulesFromDeps(env, deps)
-        if len(qtmodules) > 0:
-            env.EnableQtModules(qtmodules)
-        # I live this commented because scons is detecting automatically
-        # the required ui
-        #if ui != '':
-        #    env.Uic(ui)
         program = env.Program(name, src, CPPPATH=incpaths, LIBS=deps, LIBPATH=libpaths)
         install_program = env.Install(env['INSTALL_DIR'], program)
 
 def CreateStaticLibrary(env, name, inc, src, deps):
     if isPreProcessing == True:
-        AddComponent(env, name, inc, deps)
+        buildDir = os.path.join(env['BUILD_DIR'], name)
+        AddComponent(env, name, inc, deps, buildDir)
+        # For static libraries we will make a version header only
+        # of the lib so a component can depend on this one in a light way
+        CreateHeaderOnlyLibrary(env, name + ':include', inc, deps)
     else:
         incpaths = GetIncludePaths(env, deps)
         incpaths.append(inc.get_abspath())
@@ -103,7 +92,11 @@ def CreateStaticLibrary(env, name, inc, src, deps):
 
 def CreateSharedLibrary(env, name, inc, src, deps):
     if isPreProcessing == True:
-        AddComponent(env, name, inc, deps)
+        buildDir = os.path.join(env['BUILD_DIR'], name)
+        AddComponent(env, name, inc, deps, buildDir)
+        # For shared libraries we will make a version header only
+        # of the lib so a component can depend on this one in a light way
+        CreateHeaderOnlyLibrary(env, name + ':include', inc, deps)
     else:
         incpaths = GetIncludePaths(env, deps)
         incpaths.append(inc.get_abspath())

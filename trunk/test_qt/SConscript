@@ -4,7 +4,7 @@ name = 'testqt'
 inc = env.Dir('.')
 src = env.Glob('*.cpp')
 deps = ['QtCore','QtGui']
-ui = env.Glob('*.ui')
+#ui = env.Glob('*.ui')
 
-env.CreateProgram(name, inc, src, deps, ui)
+env.CreateProgram(name, inc, src, deps)
 

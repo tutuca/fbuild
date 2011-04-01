@@ -60,6 +60,7 @@ import component
 SConsEnvironment.CreateProgram = component.CreateProgram
 SConsEnvironment.CreateStaticLibrary = component.CreateStaticLibrary
 SConsEnvironment.CreateSharedLibrary = component.CreateSharedLibrary
+SConsEnvironment.CreateHeaderOnlyLibrary = component.CreateHeaderOnlyLibrary
 
 # Register builders
 # Register tools
