@@ -1,12 +1,11 @@
 import os
 import sys
 import glob
-import component
 
 def addQtComponents(env):
     # This is a base component, it will include the qt base include path
     QT_INCLUDE_ROOT = os.path.join( env['QTDIR'], 'include', 'qt4')
-    component.AddComponent(env, 'QtInc', env.Dir(QT_INCLUDE_ROOT), [])
+    env.AddComponent('QtInc', env.Dir(QT_INCLUDE_ROOT), [])
     validModules = [
         'QtCore',
         'QtGui',
@@ -33,5 +32,5 @@ def addQtComponents(env):
         'QtMultimedia',
         ]
     for module in validModules:
-        component.AddComponent(env, module, env.Dir(os.path.join(QT_INCLUDE_ROOT,module)), ['QtInc'], '', True)
+        env.AddComponent(module, env.Dir(os.path.join(QT_INCLUDE_ROOT,module)), ['QtInc'], '', True)
 

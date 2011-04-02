@@ -32,7 +32,13 @@ def AddComponent(env, name, incDirs, deps, buildDir = '', forceLib = False):
     global components
     global lastAddedComponent
     global downloadedDepencencies
-    inputComponent = Component(name, incDirs, deps, buildDir, forceLib)
+    incs = []
+    if type(incDirs).__name__ == 'Dir':
+        incs.append( incDirs.abspath )
+    else:
+        for incDir in incDirs:
+            incs.append( incDir.abspath )
+    inputComponent = Component(name, incs, deps, buildDir, forceLib)
     if components.has_key(name) and components[name] is not None:
         existentComponent = components[name]
         if existentComponent.eq(inputComponent):
@@ -84,9 +90,23 @@ def CreateProgram(env, name, inc, src, deps):
     else: 
         (incpaths,libpaths,libs) = GetDependenciesPaths(env, deps)
         incpaths.append(inc.get_abspath())
-        program = env.Program(name, src, CPPPATH=incpaths, LIBS=libs, LIBPATH=libpaths)
-        install_program = env.Install(env['INSTALL_DIR'], program)
+        hlibEnv = env.Clone()
+        program = hlibEnv.Program(name, src, CPPPATH=incpaths, LIBS=libs, LIBPATH=libpaths)
+        install_program = hlibEnv.Install(env['INSTALL_DIR'], program)
 
+def CreateTest(env, name, inc, src, deps):
+    name = name + ':test'
+    if isPreProcessing == True:
+        buildDir = os.path.join(env['BUILD_DIR'], name)
+        AddComponent(env, name, inc, deps, buildDir)
+    else: 
+        (incpaths,libpaths,libs) = GetDependenciesPaths(env, deps)
+        incpaths.append(inc.get_abspath())
+        testEnv = env.Clone()
+        test = testEnv.Program(name, src, CPPPATH=incpaths, LIBS=libs, LIBPATH=libpaths)
+        # Run test
+        env.Test( name + '.passed', test)
+        
 def CreateStaticLibrary(env, name, inc, src, deps):
     if isPreProcessing == True:
         buildDir = os.path.join(env['BUILD_DIR'], name)
@@ -96,8 +116,9 @@ def CreateStaticLibrary(env, name, inc, src, deps):
         AddComponent(env, name, inc, deps, buildDir)
     else:
         (incpaths,libpaths,libs) = GetDependenciesPaths(env, deps)
-        incpaths.append(inc.get_abspath())
-        lib = env.Library(name, src, CPPPATH=incpaths)
+        incpaths.append(inc)
+        libEnv = env.Clone()
+        lib = libEnv.Library(name, src, CPPPATH=incpaths)
 
 def CreateSharedLibrary(env, name, inc, src, deps):
     if isPreProcessing == True:
@@ -108,11 +129,12 @@ def CreateSharedLibrary(env, name, inc, src, deps):
         AddComponent(env, name, inc, deps, buildDir)
     else:
         (incpaths,libpaths,libs) = GetDependenciesPaths(env, deps)
-        incpaths.append(inc.get_abspath())
-        dlib = env.SharedLibrary(name, src, CPPPATH=incpaths, LIBS=libs, LIBPATH=libpaths)
-        install_dlib = env.Install(env['INSTALL_DIR'], dlib)
+        incpaths.append(inc)
+        dlibEnv = env.Clone()
+        dlib = dlibEnv.SharedLibrary(name, src, CPPPATH=incpaths, LIBS=libs, LIBPATH=libpaths)
+        install_dlib = dlibEnv.Install(env['INSTALL_DIR'], dlib)
 
-def WalkDirsForComponents(env, topdir):
+def WalkDirsForComponents(env, topdir, ignore):
     global isPreProcessing
     global downloadedDepencencies
     sconsPaths = []
@@ -125,9 +147,10 @@ def WalkDirsForComponents(env, topdir):
     isPreProcessing = True
     # Step 1: populate all the components
     for root, dirnames, filenames in os.walk(topdir):
-        for filename in fnmatch.filter(filenames, 'SConscript'):
-            pathname = os.path.join(root, filename)
-            env.SConscript(pathname, exports='env')
+        if ignore.count(os.path.relpath(root,env.Dir('#').abspath)) == 0:
+            for filename in fnmatch.filter(filenames, 'SConscript'):
+                pathname = os.path.join(root, filename)
+                env.SConscript(pathname, exports='env')
             
     # Step 2: verify downloadable dependencies            
     downloadedDepencencies = True
@@ -135,10 +158,12 @@ def WalkDirsForComponents(env, topdir):
         downloadedDepencencies = False
         del sconsPaths[:]
         for root, dirnames, filenames in os.walk(topdir):
-            for filename in fnmatch.filter(filenames, 'SConscript'):
-                pathname = os.path.join(root, filename)
-                env.SConscript(pathname, exports='env')
-                sconsPaths.append( (root,lastAddedComponent.name) )
+            if ignore.count(os.path.relpath(root,env.Dir('#').abspath)) == 0:
+                for filename in fnmatch.filter(filenames, 'SConscript'):
+                    pathname = os.path.join(root, filename)
+                    env.SConscript(pathname, exports='env')
+                    sconsPaths.append( (root,lastAddedComponent.name) )
+                
     # Step 3: real SConscript walk
     isPreProcessing = False
     for (sconsPath,componentName) in sconsPaths:

@@ -1,0 +1,8 @@
+Import ('env')
+
+name = 'gtest'
+inc = env.Dir('.'), env.Dir('include')
+src = ['src/gtest-all.cc']
+deps = []
+
+env.CreateStaticLibrary(name, inc, src, deps)
