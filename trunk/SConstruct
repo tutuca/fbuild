@@ -99,5 +99,12 @@ if ARGUMENTS.get('VERBOSE') != '1':
 
 # Walk over the tree finding components
 from component import WalkDirsForComponents
-WalkDirsForComponents(env, topdir = env['WS_DIR'], ignore = ['gmock/scons'])
+WalkDirsForComponents(env, topdir = env['WS_DIR'], 
+                      ignore = [
+                               'gmock/scons',
+                               'buildtest/test_program',
+                               'buildtest/test_qt',
+                               'buildtest/test_shared',
+                               'buildtest/test_static',
+                               ])
 
