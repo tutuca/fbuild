@@ -44,7 +44,7 @@ def AddComponent(env, name, incDirs, deps, buildDir = '', forceLib = False):
         # We are in the Step 2 of the walk, lets detect that
         # all dependencies are there
         for dep in deps:
-            #print 'Parsing dependency %s' % dep
+            #print('Parsing dependency %s' % dep)
             if not components.has_key(dep) or components[dep] is None:
                 found = downloadDependency(env,dep)
                 if found:
@@ -53,11 +53,11 @@ def AddComponent(env, name, incDirs, deps, buildDir = '', forceLib = False):
                 elif not downloadedDependencies:
                    raise Exception('Could not found dependency %s of component %s' % (dep,name))          
     if not downloadedDependencies:
-        #print 'Added component: %s' % name               
+        #print('Added component: %s' % name)               
         lastAddedComponent = inputComponent 
         components[name] = lastAddedComponent
     #else:
-        #print 'Some dependency was downloaded for component: %s' % name
+        #print('Some dependency was downloaded for component: %s' % name)
     
 def GetDependenciesPaths(env, deps):
     incpaths = []
@@ -146,7 +146,7 @@ def WalkDirsForComponents(env, topdir, ignore):
     
     isPreProcessing = True
     # Step 1: populate all the components
-    #print 'Step 1'
+    #print('Step 1')
     for root, dirnames, filenames in os.walk(topdir):
         if ignore.count(os.path.relpath(root,env.Dir('#').abspath)) == 0:
             for filename in fnmatch.filter(filenames, 'SConscript'):
@@ -154,11 +154,11 @@ def WalkDirsForComponents(env, topdir, ignore):
                 env.SConscript(pathname, exports='env')
             
     # Step 2: verify downloadable dependencies            
-    #print 'Step 2'
+    #print('Step 2')
     downloadedDependencies = True
     sconsPaths = []
     while downloadedDependencies:
-        #print 'Step 2-a'
+        #print('Step 2-a')
         downloadedDependencies = False
         isDetectingDependencies = True
         del sconsPaths[:]
@@ -176,7 +176,7 @@ def WalkDirsForComponents(env, topdir, ignore):
             
         # if something was downloaded, we need to reparse it
         if downloadedDependencies:
-            #print 'Step 2-b'
+            #print('Step 2-b')
             del sconsPaths[:]
             downloadedDependencies = False
             isDetectingDependencies = False
@@ -189,7 +189,7 @@ def WalkDirsForComponents(env, topdir, ignore):
             downloadedDependencies = True
            
     # Step 3: real SConscript walk
-    #print 'Step 3'
+    #print('Step 3')
     isDetectingDependencies = False
     isPreProcessing = False
     for (sconsPath,componentName) in sconsPaths:
