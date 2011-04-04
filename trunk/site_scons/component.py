@@ -8,7 +8,8 @@ from dependencies import downloadDependency
 components = {}
 lastAddedComponent = None
 isPreProcessing = False
-downloadedDepencencies = False
+isDetectingDependencies = False
+downloadedDependencies = False
 
 class Component(object):
     def __init__(self, name, incDirs, deps, buildDir, forceLib):
@@ -31,30 +32,32 @@ class Component(object):
 def AddComponent(env, name, incDirs, deps, buildDir = '', forceLib = False):
     global components
     global lastAddedComponent
-    global downloadedDepencencies
+    global downloadedDependencies
     incs = []
     if type(incDirs).__name__ == 'Dir':
         incs.append( incDirs.abspath )
     else:
-        for incDir in incDirs:
+        for incDir in incDirs:  
             incs.append( incDir.abspath )
     inputComponent = Component(name, incs, deps, buildDir, forceLib)
-    if components.has_key(name) and components[name] is not None:
-        existentComponent = components[name]
-        if existentComponent.eq(inputComponent):
-            # We are in the Step 2 of the walk, lets detect thta
-            # all dependencies are there
-            for dep in deps:
-                if not components.has_key(dep) or components[dep] is None:
-                    found = downloadDependency(env,dep)
-                    if found:
-                        downloadedDepencencies = True
-                    else:
-                        raise Exception('Could not found dependency %s of component %s' % (dep,name))                         
-        else:
-            raise Exception('Component already defined with different values: %s' % name)
-    lastAddedComponent = inputComponent 
-    components[name] = lastAddedComponent
+    if isDetectingDependencies:
+        # We are in the Step 2 of the walk, lets detect that
+        # all dependencies are there
+        for dep in deps:
+            #print 'Parsing dependency %s' % dep
+            if not components.has_key(dep) or components[dep] is None:
+                found = downloadDependency(env,dep)
+                if found:
+                   downloadedDependencies = True
+                   break
+                elif not downloadedDependencies:
+                   raise Exception('Could not found dependency %s of component %s' % (dep,name))          
+    if not downloadedDependencies:
+        #print 'Added component: %s' % name               
+        lastAddedComponent = inputComponent 
+        components[name] = lastAddedComponent
+    #else:
+        #print 'Some dependency was downloaded for component: %s' % name
     
 def GetDependenciesPaths(env, deps):
     incpaths = []
@@ -134,18 +137,16 @@ def CreateSharedLibrary(env, name, inc, src, deps):
         dlib = dlibEnv.SharedLibrary(name, src, CPPPATH=incpaths, LIBS=libs, LIBPATH=libpaths)
         install_dlib = dlibEnv.Install(env['INSTALL_DIR'], dlib)
 
+class BreakIt(Exception): pass
+
 def WalkDirsForComponents(env, topdir, ignore):
     global isPreProcessing
-    global downloadedDepencencies
-    sconsPaths = []
-    # We are doing two passes, pass one is to fill
-    # the component definition, pass two is the actual
-    # SConscript walk. In order to get the component info,
-    # the global variable isPreProcessing is used
-    # To do the second step faster, we use the sconsPaths
-    # variable
+    global isDetectingDependencies
+    global downloadedDependencies
+    
     isPreProcessing = True
     # Step 1: populate all the components
+    #print 'Step 1'
     for root, dirnames, filenames in os.walk(topdir):
         if ignore.count(os.path.relpath(root,env.Dir('#').abspath)) == 0:
             for filename in fnmatch.filter(filenames, 'SConscript'):
@@ -153,18 +154,43 @@ def WalkDirsForComponents(env, topdir, ignore):
                 env.SConscript(pathname, exports='env')
             
     # Step 2: verify downloadable dependencies            
-    downloadedDepencencies = True
-    while downloadedDepencencies:
-        downloadedDepencencies = False
+    #print 'Step 2'
+    downloadedDependencies = True
+    sconsPaths = []
+    while downloadedDependencies:
+        #print 'Step 2-a'
+        downloadedDependencies = False
+        isDetectingDependencies = True
         del sconsPaths[:]
-        for root, dirnames, filenames in os.walk(topdir):
-            if ignore.count(os.path.relpath(root,env.Dir('#').abspath)) == 0:
-                for filename in fnmatch.filter(filenames, 'SConscript'):
-                    pathname = os.path.join(root, filename)
-                    env.SConscript(pathname, exports='env')
-                    sconsPaths.append( (root,lastAddedComponent.name) )
-                
+        try:
+            for root, dirnames, filenames in os.walk(topdir):
+                if ignore.count(os.path.relpath(root,env.Dir('#').abspath)) == 0:
+                    for filename in fnmatch.filter(filenames, 'SConscript'):
+                        pathname = os.path.join(root, filename)
+                        env.SConscript(pathname, exports='env')
+                        sconsPaths.append( (root,lastAddedComponent.name) )
+                        if downloadedDependencies:
+                            raise BreakIt
+        except BreakIt:
+            pass
+            
+        # if something was downloaded, we need to reparse it
+        if downloadedDependencies:
+            #print 'Step 2-b'
+            del sconsPaths[:]
+            downloadedDependencies = False
+            isDetectingDependencies = False
+            for root, dirnames, filenames in os.walk(topdir):
+                if ignore.count(os.path.relpath(root,env.Dir('#').abspath)) == 0:
+                    for filename in fnmatch.filter(filenames, 'SConscript'):
+                        pathname = os.path.join(root, filename)
+                        env.SConscript(pathname, exports='env')
+                        sconsPaths.append( (root,lastAddedComponent.name) )
+            downloadedDependencies = True
+           
     # Step 3: real SConscript walk
+    #print 'Step 3'
+    isDetectingDependencies = False
     isPreProcessing = False
     for (sconsPath,componentName) in sconsPaths:
         variantPath = os.path.join(env['BUILD_DIR'], componentName)

@@ -3,4 +3,3 @@ biopp|svn|http://biopp.googlecode.com/svn/trunk|
 feca|hg|https://feca.googlecode.com/hg|
 gtest|svn|http://googletest.googlecode.com/svn/tags/release-1.5.0|cp #/site_scons/gtestSConscript #/gtest/SConscript
 gmock|svn|http://googlemock.googlecode.com/svn/tags/release-1.5.0|cp #/site_scons/gmockSConscript #/gmock/SConscript
-

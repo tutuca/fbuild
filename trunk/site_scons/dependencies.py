@@ -3,32 +3,33 @@
 import os.path
 import sys
 import subprocess
+from termcolor import cprint
 
 def HgGetDownload(target, source):
-    print '[hg] checkout %s => %s' % (source,target)
+    cprint('[hg] checkout %s => %s' % (source,target),'purple')
     rc = subprocess.call(['hg', 'clone', source, target])
     if rc != 0 :
-        print "hg failed to retrieve target %s from %s" % (target,source)
-        print "error: %s" % rc
+        cprint('hg failed to retrieve target %s from %s' % (target,source),'red')
+        cprint('error: %s' % rc, 'red')
         return False
     return True
 
 def SVNGetDownload(target, source):
-    print '[svn] checkout %s => %s' % (source,target)
+    cprint('[svn] checkout %s => %s' % (source,target),'purple')
     rc = subprocess.call(['svn', 'checkout', source, target])
     if rc != 0 :
-        print "svn failed to retrieve target %s from %s" % (target,source)
-        print "error: %s" % rc
+        cprint('svn failed to retrieve target %s from %s' % (target,source), 'red')
+        cprint('error: %s' % rc, 'red')
         return False
     return True
 
 
 def WGetDownload(target, source):
-    print '[wget] %s => %s' % (source,target)
+    cprint('[wget] %s => %s' % (source,target), 'purple')
     rc = subprocess.call(['wget', source])
     if rc != 0 :
-       print "wget failed to retrieve target %s from %s" % (target,source)
-       print "error: %s" % rc
+       cprint('wget failed to retrieve target %s from %s' % (target,source), 'red')
+       cprint('error: %s' % rc, 'red')
        return False
     return True
 
@@ -39,14 +40,12 @@ def downloadDependency(env,name):
     for line in f:
         (compname, repoType, url, executeAfter) = line.split('|')
         executeAfter = executeAfter.rstrip()
-        print '%s, %s, %s' % (compname, repoType, url)
-        print 'dep: %s' % name  
         if compname == name:
-            print 'found dep: %s' % compname
             compTarget = os.path.join(env['WS_DIR'],compname)
             # ask the user if he wants to download it
-            print 'I found the dependency %s located at %s' % (name,url)
-            userResponse = raw_input('Do you want me to download it? ')
+            cprint('I found the dependency %s located at %s' % (name,url),'blue')
+            cprint('Do you want me to download it? ','blue')
+            userResponse = raw_input()
             userResponse = userResponse.lower()
             if userResponse == 'y' or userResponse == 'yes' or userResponse == 'yeap' or userResponse == 'ok' or userResponse == 'yeah':
                 result = False
@@ -62,11 +61,11 @@ def downloadDependency(env,name):
                    found = True
                    if executeAfter != '':
                        executeAfter = executeAfter.replace('#',env.Dir('#').abspath)
-                       print 'About to execute: %s' % executeAfter
+                       cprint('About to execute: %s' % executeAfter, 'purple')
                        rc = subprocess.call(executeAfter.split(' '))
                        if rc != 0 :
-                           print 'failed to execute post command: %s' % executeAfter
-                           print 'error: %s' % rc
+                           cprint('failed to execute post command: %s' % executeAfter, 'red')
+                           cprint('error: %s' % rc, 'red')
                            return False
             break
     f.close()
