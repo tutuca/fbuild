@@ -87,6 +87,8 @@ env.Append(BUILDERS = {'Test' :  bld})
 import qtutil
 env.Tool('qt')
 qtutil.addQtComponents(env)
+import boostutil
+boostutil.addBoostComponents(env)
 
 # Add OS Components
 import linux
@@ -96,6 +98,10 @@ linux.addOSComponents(env)
 import termcolor
 if ARGUMENTS.get('VERBOSE') != '1':
     termcolor.prettyMessages(env)
+
+# Optional sets
+env.AppendUnique(CPPFLAGS = ['-Dmiddleware=ana'])
+env.AppendUnique(CPPFLAGS = ['-Dapps=ON'])
 
 # Walk over the tree finding components
 from component import WalkDirsForComponents
