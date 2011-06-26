@@ -25,6 +25,11 @@ AddOption('--effective',
           action='store_true',
           help='Sets the effective C++ mode',
           default=False)
+AddOption('--gprofile',
+          dest='gprofile',
+          action='store_true',
+          help='Sets the -pg flag to enable gprof',
+          default=False)
 
 # Add variables, this variables can be introduced through a file or
 # can be introduced via command line

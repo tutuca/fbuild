@@ -27,6 +27,8 @@ def loadLinuxCompilerOptions(env):
 		env.Append(CPPDEFINES = ['NDEBUG'])
 	if env.GetOption('effective'):
 		env.Append(CXXFLAGS = '-Weffc++', CFLAGS = '-Weffc++')
+	if env.GetOption('gprofile'):
+		env.Append(CXXFLAGS = '-pg', CFLAGS = '-pg')
 
 def loadCompilerOptions(env):
     (arch,binType) = platform.architecture()
