@@ -5,7 +5,6 @@ TODO:
   + sudo apt-get install mercurial
   * see what if the linux version doesnt have apt-get
   * builders: http://www.scons.org/doc/production/HTML/scons-user/c3496.html
-- add -fPIC for 64bits compilations
 - add optional targets
 - add pretty fast functionality (decider is timestamp based instead of MD5)
   * Section 6.1.2 http://www.scons.org/doc/production/HTML/scons-user/c824.html
@@ -13,12 +12,13 @@ TODO:
 http://www.scons.org/wiki/WgetSourceCode
 
 soporte para reglas (ej: un modo para correr g++ con -Weffc++, otro para valgrind, otro para unittest, otro para profiling, coverage, etc.
-modo normal (sin especificar nada): compila, usando -Wall -Wextra -pedantic etc
-modo debug: agrega el flag -ggdb3
-modo Effective C++: agrega el flag -Weffc++
+
 modo profiling: compila para gprof
 modo coverage: compila para gcov
 modo doxygen: en vez del compilador, llama a doxygen
 modo cppcheck: en vez del compilador, llama a cppcheck
 (opcional: que esté comentado) modo tesis: compila los fuentes de latex
 modo help: muestra los targets de arriba
+
+- http://www.scons.org/doc/production/HTML/scons-user.html#sect-command-line-targets
+

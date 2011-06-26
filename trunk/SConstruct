@@ -12,6 +12,20 @@ Export('env')
 from multiprocessing import cpu_count
 SetOption('num_jobs', cpu_count() + 1)
 
+# Add options
+AddOption('--type',
+          dest='type', 
+          type='string',
+          nargs=1,
+          action='store',
+          help='type of build, options: dbg (default), opt',
+          default='debug')
+AddOption('--effective',
+		  dest='effective',
+          action='store_true',
+          help='Sets the effective C++ mode',
+          default=False)
+
 # Add variables, this variables can be introduced through a file or
 # can be introduced via command line
 vars = Variables('SConfig')
@@ -46,22 +60,17 @@ vars.Update(env)
 # Add the script paths so is easier to find the py modules
 sys.path.append(env['BUILD_SCRIPTS_DIR'])
 
-# Resolve the rpath so everything works smooth from
-# the install dir. This makes easier to deploy somewhere
-# else, you only need to pass INSTALL_DIR parameter to 
-# scons to deploy it somewhere else
-env.Append( RPATH = env['INSTALL_DIR'] )
-env['ENV']['LD_LIBRARY_PATH'] = env['INSTALL_DIR']
-
 # Some environment tunnings so this runs faster
 env.Decider( 'MD5-timestamp' )
 env.SConsignFile()
 
+# Compiler options
+import compiler
+compiler.loadCompilerOptions(env)
+
 # Linker options
-import platform
-(arch,binType) = platform.architecture()
-if arch == '64bit' and binType == 'ELF':
-    env['CXXFLAGS'] = '-fPIC'
+import linker
+linker.loadLinkOptions(env)
 
 # Wrapper functions to build target types
 from SCons.Script.SConscript import SConsEnvironment
