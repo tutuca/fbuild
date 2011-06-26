@@ -29,6 +29,12 @@ def loadLinuxCompilerOptions(env):
 		env.Append(CXXFLAGS = '-Weffc++', CFLAGS = '-Weffc++')
 	if env.GetOption('gprofile'):
 		env.Append(CXXFLAGS = '-pg', CFLAGS = '-pg')
+	if env.GetOption('gcoverage'):
+		gprofFlags = [
+				'-fprofile-arcs',
+				'-ftest-coverage'
+			]
+		env.Append(CXXFLAGS = gprofFlags, CFLAGS = gprofFlags)
 
 def loadCompilerOptions(env):
     (arch,binType) = platform.architecture()

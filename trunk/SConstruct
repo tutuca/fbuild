@@ -1,6 +1,7 @@
 # FuDePan boilerplate required here
 
 import os
+import platform
 import sys
 import SCons
 
@@ -20,16 +21,25 @@ AddOption('--type',
           action='store',
           help='type of build, options: dbg (default), opt',
           default='debug')
-AddOption('--effective',
-		  dest='effective',
-          action='store_true',
-          help='Sets the effective C++ mode',
-          default=False)
-AddOption('--gprofile',
-          dest='gprofile',
-          action='store_true',
-          help='Sets the -pg flag to enable gprof',
-          default=False)
+
+(arch,binType) = platform.architecture()
+# Specific linux options
+if binType == 'ELF':
+	AddOption('--effective',
+			  dest='effective',
+	          action='store_true',
+	          help='Sets the effective C++ mode',
+	          default=False)
+	AddOption('--gprofile',
+	          dest='gprofile',
+	          action='store_true',
+	          help='Sets the -pg flag to enable gprof',
+	          default=False)
+	AddOption('--gcoverage',
+	          dest='gcoverage',
+	          action='store_true',
+	          help='Sets the required flags to enable gcov',
+	          default=False)
 
 # Add variables, this variables can be introduced through a file or
 # can be introduced via command line
