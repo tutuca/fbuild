@@ -1,0 +1,5 @@
+trunk/build
+trunk/install
+
+syntax: re
+^.*\.pyc$

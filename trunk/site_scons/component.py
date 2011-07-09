@@ -37,8 +37,7 @@ def AddComponent(env, name, incDirs, deps, buildDir = '', forceLib = False):
     if type(incDirs).__name__ == 'Dir':
         incs.append( incDirs.abspath )
     else:
-        for incDir in incDirs:  
-            incs.append( incDir.abspath )
+        map(lambda incDir: incs.append(incDir.abspath), incDirs)
     inputComponent = Component(name, incs, deps, buildDir, forceLib)
     if isDetectingDependencies:
         # We are in the Step 2 of the walk, lets detect that
@@ -48,6 +47,7 @@ def AddComponent(env, name, incDirs, deps, buildDir = '', forceLib = False):
             if not components.has_key(dep) or components[dep] is None:
                 found = downloadDependency(env,dep)
                 if found:
+                   components[dep] = inputComponent
                    downloadedDependencies = True
                    break
                 elif not downloadedDependencies:

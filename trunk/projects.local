@@ -1,0 +1,6 @@
+mili:
+{
+    type: `SVN`,
+    url: "https://mili.googlecode.com/svn/trunk",
+    username: "hugo.arregui@gmail.com"
+}
