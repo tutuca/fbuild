@@ -49,3 +49,15 @@ getoptpp:
     type: `SVN`,
     url: "http://prot-filer.googlecode.com/svn/trunk/"
 }
+
+xdrfile:
+{
+    type: `WGET`,
+    url: "ftp://ftp.gromacs.org/pub/contrib/xdrfile-1.1.tar.gz"
+    executeAfter: ["mkdir xdrfile2",
+                   "tar zxvf #/xdrfile/xdrfile-1.1.tar.gz -C #/xdrfile2",
+                   "rm -r #/xdrfile", 
+                   "mv #/xdrfile2/xdrfile-1.1b #/xdrfile",
+                   "cp #/site_scons/external/xdrfileSConscript #/xdrfile/SConscript"]
+
+}

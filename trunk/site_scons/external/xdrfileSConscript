@@ -1,0 +1,7 @@
+Import ('env')
+
+name = 'xdrfile'
+inc = env.Dir('.')
+deps = []
+
+env.CreateHeaderOnlyLibrary(name, inc, deps)

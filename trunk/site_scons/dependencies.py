@@ -6,11 +6,12 @@ import subprocess
 from termcolor import cprint
 
 class BasePrjDownload(object):
-    def __init__(self, env, config):
-        self.name = config.path
+    def __init__(self, name, env, config):
+        self.name = name
         self.url = config.url
         self.executeAfter = config.get("executeAfter")
         self.env = env
+        self.username = config.get("username")
 
     def download(self, target):
         s = self.fetch(target) and self.afterFetch()
@@ -20,19 +21,23 @@ class BasePrjDownload(object):
 
     def afterFetch(self):
         if self.executeAfter:
-            executeAfter = self.executeAfter.replace('#', self.env.Dir('#').abspath)
-            cprint('About to execute: %s' % executeAfter, 'purple')
-            rc = subprocess.call(executeAfter.split(' '))
-            if rc != 0 :
-                cprint('failed to execute post command: %s' % executeAfter, 'red')
-                cprint('error: %s' % rc, 'red')
-                return False
+            cmds = [self.executeAfter] if isinstance(self.executeAfter, str) else self.executeAfter
+            for cmd in cmds:
+                if not self.executeCmd(cmd):
+                    return False
         return True
+                
+    def executeCmd(self, cmd):
+        cmd = cmd.replace('#', self.env.Dir('#').abspath)
+        cprint('About to execute: %s' % cmd, 'purple')
+        rc = subprocess.call(cmd.split(' '))
+        success = rc == 0
+        if not success:
+            cprint('failed to execute post command: %s' % cmd, 'red')
+            cprint('error: %s' % rc, 'red')
+        return success
 
 class HG(BasePrjDownload):
-    def __init__(self, env, config):
-        super(HG, self).__init__(env, config)
-
     def fetch(self, target):
         cprint('[hg] checkout %s => %s' % (self.url, target), 'purple')
         rc = subprocess.call(['hg', 'clone', self.url, target])
@@ -43,12 +48,10 @@ class HG(BasePrjDownload):
         return True
 
 class SVN(BasePrjDownload):
-    def __init__(self, env, config):
-        super(SVN, self).__init__(env, config)
-
     def fetch(self, target):
         cprint('[svn] checkout %s => %s' % (self.url, target), 'purple')
-        rc = subprocess.call(['svn', 'checkout', self.url, target])
+        cmd = ['svn', 'checkout'] + (['--username', self.username] if self.username else []) +  [self.url, target]
+        rc = subprocess.call(cmd)
         if rc != 0 :
             cprint('svn failed to retrieve target %s from %s' % (target, self.url), 'red')
             cprint('error: %s' % rc, 'red')
@@ -56,12 +59,9 @@ class SVN(BasePrjDownload):
         return True
 
 class WGET(BasePrjDownload):
-    def __init__(self, env, config):
-        super(WGET, self).__init__(env, config)
-
     def fetch(self, target):
         cprint('[wget] %s => %s' % (self.url, target), 'purple')
-        rc = subprocess.call(['wget', self.url])
+        rc = subprocess.call(['wget', self.url, '-P', target])
         if rc != 0 :
            cprint('wget failed to retrieve target %s from %s' % (target, self.url), 'red')
            cprint('error: %s' % rc, 'red')
@@ -90,5 +90,5 @@ def findLoadableDependencies(env):
         localCfg = Config(localCfgPath)
         localCfg.addNamespace(sys.modules[SVN.__module__])
         ConfigMerger(lambda local, cfg, key: "overwrite").merge(cfg, localCfg)
-    return dict([(prj, prjCfg.type(env, prjCfg)) for prj, prjCfg in cfg.iteritems()])
+    return dict([(prj, prjCfg.type(prj, env, prjCfg)) for prj, prjCfg in cfg.iteritems()])
 

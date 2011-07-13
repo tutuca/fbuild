@@ -53,7 +53,7 @@ class Component(object):
 # it has deps because it can pull other libraries
 def CreateHeaderOnlyLibrary(env, name, inc, deps):
     if isPreProcessing == True:
-        _addComponent(env, name, Component(name, inc, deps, []))
+        _addComponent(env, name, Component(name, inc, deps))
 
 def CreateProgram(env, name, inc, src, deps):
     if isPreProcessing == True:
@@ -79,10 +79,11 @@ def CreateTest(env, name, inc, src, deps):
 def CreateStaticLibrary(env, name, inc, src, deps):
     if isPreProcessing == True:
         buildDir = os.path.join(env['BUILD_DIR'], name)
-        _addComponent(env, name, Component(name + ':include', inc, deps, buildDir))
+        CreateHeaderOnlyLibrary(env, name + ':include', inc, deps)
+        _addComponent(env, name, Component(name, inc, deps, buildDir))
     else:
         (incpaths,libpaths,libs) = GetDependenciesPaths(env, deps)
-        incpaths.extend(inc)
+        incpaths.extend(_buildPathList(inc, lambda d: d.abspath))
         libEnv = env.Clone()
         libEnv.Library(name, src, CPPPATH=incpaths)
 
@@ -94,7 +95,7 @@ def CreateSharedLibrary(env, name, inc, src, deps):
         _addComponent(env, name, Component(name + ':include', inc, deps, buildDir))
     else:
         (incpaths,libpaths,libs) = GetDependenciesPaths(env, deps)
-        incpaths.extend(inc)
+        incpaths.extend(_buildPathList(inc, lambda d: d.abspath))
         dlibEnv = env.Clone()
         dlib = dlibEnv.SharedLibrary(name, src, CPPPATH=incpaths, LIBS=libs, LIBPATH=libpaths)
         dlibEnv.Install(env['INSTALL_DIR'], dlib)
