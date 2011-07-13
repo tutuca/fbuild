@@ -13,7 +13,10 @@ class BasePrjDownload(object):
         self.env = env
 
     def download(self, target):
-        return self.fetch(target) and self.afterFetch()
+        s = self.fetch(target) and self.afterFetch()
+        if s:
+            self.target = target
+        return s
 
     def afterFetch(self):
         if self.executeAfter:
@@ -65,23 +68,19 @@ class WGET(BasePrjDownload):
            return False
         return True
 
-def downloadDependency(env, name):
-    cfg = _loadConfig(env)
-    cfg.addNamespace(sys.modules[SVN.__module__])
-    prjs = dict([(prj, prjCfg.type(env, prjCfg)) for prj, prjCfg in cfg.iteritems()])
-    prj = prjs.get(name)
-    if prj:
+def downloadDependency(env, dep):
+    if dep:
         ## ask the user if he wants to download it
-        cprint('I found the dependency %s located at %s' % (name, prj.url), 'blue')
+        cprint('I found the dependency %s located at %s' % (dep.name, dep.url), 'blue')
         cprint('Do you want me to download it? ', 'blue')
         userResponse = raw_input()
         userResponse = userResponse.lower()
         if userResponse in ['y', 'yes', 'yeap', 'ok', 'yeah']:
-            compTarget = os.path.join(env['WS_DIR'], name)
-            return prj.download(compTarget)
+            compTarget = os.path.join(env['WS_DIR'], dep.name)
+            return dep.download(compTarget)
     return False
 
-def _loadConfig(env):
+def findLoadableDependencies(env):
     from config import Config, ConfigMerger
     cfg = Config(os.path.join(env['WS_DIR'], 'projects'))
     cfg.addNamespace(sys.modules[SVN.__module__])
@@ -91,5 +90,5 @@ def _loadConfig(env):
         localCfg = Config(localCfgPath)
         localCfg.addNamespace(sys.modules[SVN.__module__])
         ConfigMerger(lambda local, cfg, key: "overwrite").merge(cfg, localCfg)
-    return cfg
+    return dict([(prj, prjCfg.type(env, prjCfg)) for prj, prjCfg in cfg.iteritems()])
 

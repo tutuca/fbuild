@@ -138,3 +138,9 @@ WalkDirsForComponents(env, topdir = env['WS_DIR'],
                                'buildtest/test_static',
                                ])
 
+component.initializeDependencies(env)
+
+targets = COMMAND_LINE_TARGETS or component.components
+
+for target in list(targets): #make a copy
+    component.process(env, target)
