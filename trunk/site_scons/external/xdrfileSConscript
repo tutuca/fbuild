@@ -4,4 +4,5 @@ name = 'xdrfile'
 inc = env.Dir('.')
 deps = []
 
-env.CreateHeaderOnlyLibrary(name, inc, deps)
+env.AddComponent(name, [], [], '', True)
+

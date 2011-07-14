@@ -58,6 +58,7 @@ xdrfile:
                    "tar zxvf #/xdrfile/xdrfile-1.1.tar.gz -C #/xdrfile2",
                    "rm -r #/xdrfile", 
                    "mv #/xdrfile2/xdrfile-1.1b #/xdrfile",
+                   "rmdir xdrfile2",
                    "cp #/site_scons/external/xdrfileSConscript #/xdrfile/SConscript"]
 
 }
