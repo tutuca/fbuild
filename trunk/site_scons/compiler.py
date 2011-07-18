@@ -3,9 +3,9 @@ import platform
 def loadLinuxCompilerOptions(env):
 	# common options
 	commonFlags = [
-        #'-Wall',
-        #'-Wextra',
-        #'-pedantic'
+        '-Wall',
+        '-Wextra',
+        '-pedantic'
 		]
 	env.Append(CXXFLAGS = commonFlags, CFLAGS = commonFlags)
 	# Options for 64bit archs
