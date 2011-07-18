@@ -73,8 +73,10 @@ def CreateTest(env, name, inc, src, deps):
     else:
         (incpaths,libpaths,libs) = GetDependenciesPaths(env, deps)
         testEnv = env.Clone()
+        global components
+        testEnv.PrependENVPath('LD_LIBRARY_PATH', components[name].buildDir)
         test = testEnv.Program(name, src, CPPPATH=incpaths, LIBS=libs, LIBPATH=libpaths)
-        env.Test(name + '.passed', test)
+        testEnv.Test(name + '.passed', test)
         
 def CreateStaticLibrary(env, name, inc, src, deps):
     if isPreProcessing == True:
