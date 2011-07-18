@@ -1,5 +1,6 @@
 Import ('env')
 
+env.Replace(CXXFLAGS=[], CFLAGS=[])
 name = 'gmock'
 inc = env.Dir('#/gmock/gtest'), env.Dir('#/gmock/gtest/include'), env.Dir('#/gmock'), env.Dir('#/gmock/include')
 src = ['gtest/src/gtest-all.cc','src/gmock-all.cc']
