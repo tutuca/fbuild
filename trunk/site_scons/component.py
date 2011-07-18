@@ -10,7 +10,6 @@ isPreProcessing = False
 SConscriptFiles = {}
 components = {}
 downloadableDependencies = []
-CXXFLAGS = ['-Wall', '-Wextra', '-pedantic']
 
 def GetDependenciesPaths(env, deps):
     incpaths = []
@@ -56,18 +55,17 @@ def CreateHeaderOnlyLibrary(env, name, inc, deps):
     if isPreProcessing == True:
         _addComponent(env, name, Component(name, inc, deps))
 
-def CreateProgram(env, name, inc, src, deps, CXXFLAGS=CXXFLAGS):
+def CreateProgram(env, name, inc, src, deps):
     if isPreProcessing == True:
         buildDir = os.path.join(env['BUILD_DIR'], name)
         _addComponent(env, name, Component(name, inc, deps, buildDir))
     else:
         (incpaths,libpaths,libs) = GetDependenciesPaths(env, deps)
         hlibEnv = env.Clone()
-        hlibEnv.Append(CXXFLAGS=CXXFLAGS, CFLAGS=CXXFLAGS)
         program = hlibEnv.Program(name, src, CPPPATH=incpaths, LIBS=libs, LIBPATH=libpaths)
         hlibEnv.Install(env['INSTALL_DIR'], program)
 
-def CreateTest(env, name, inc, src, deps, CXXFLAGS=CXXFLAGS):
+def CreateTest(env, name, inc, src, deps):
     if isPreProcessing == True:
         name = name + ':test'
         buildDir = os.path.join(env['BUILD_DIR'], name)
@@ -75,11 +73,10 @@ def CreateTest(env, name, inc, src, deps, CXXFLAGS=CXXFLAGS):
     else:
         (incpaths,libpaths,libs) = GetDependenciesPaths(env, deps)
         testEnv = env.Clone()
-        testEnv.Append(CXXFLAGS=CXXFLAGS, CFLAGS=CXXFLAGS)
         test = testEnv.Program(name, src, CPPPATH=incpaths, LIBS=libs, LIBPATH=libpaths)
         env.Test(name + '.passed', test)
         
-def CreateStaticLibrary(env, name, inc, src, deps, CXXFLAGS=CXXFLAGS):
+def CreateStaticLibrary(env, name, inc, src, deps):
     if isPreProcessing == True:
         buildDir = os.path.join(env['BUILD_DIR'], name)
         CreateHeaderOnlyLibrary(env, name + ':include', inc, deps)
@@ -88,12 +85,11 @@ def CreateStaticLibrary(env, name, inc, src, deps, CXXFLAGS=CXXFLAGS):
         (incpaths,libpaths,libs) = GetDependenciesPaths(env, deps)
         incpaths.extend(_buildPathList(inc, lambda d: d.abspath))
         libEnv = env.Clone()
-        libEnv.Append(CXXFLAGS=CXXFLAGS, CFLAGS=CXXFLAGS)
         libEnv.Library(name, src, CPPPATH=incpaths)
 
 # For static libraries we will make a version header only
 # of the lib so a component can depend on this one in a light way
-def CreateSharedLibrary(env, name, inc, src, deps, CXXFLAGS=CXXFLAGS):
+def CreateSharedLibrary(env, name, inc, src, deps):
     if isPreProcessing == True:
         buildDir = os.path.join(env['BUILD_DIR'], name)
         _addComponent(env, name, Component(name + ':include', inc, deps, buildDir))
@@ -101,7 +97,6 @@ def CreateSharedLibrary(env, name, inc, src, deps, CXXFLAGS=CXXFLAGS):
         (incpaths,libpaths,libs) = GetDependenciesPaths(env, deps)
         incpaths.extend(_buildPathList(inc, lambda d: d.abspath))
         dlibEnv = env.Clone()
-        dlibEnv.Append(CXXFLAGS=CXXFLAGS, CFLAGS=CXXFLAGS)
         dlib = dlibEnv.SharedLibrary(name, src, CPPPATH=incpaths, LIBS=libs, LIBPATH=libpaths)
         dlibEnv.Install(env['INSTALL_DIR'], dlib)
 

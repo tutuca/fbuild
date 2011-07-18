@@ -1,11 +1,17 @@
 import platform
 
 def loadLinuxCompilerOptions(env):
-    # common options
-    #Options for 64bit archs
-    (arch,binType) = platform.architecture()
-    if arch == '64bit':
-        env.Append(CXXFLAGS = '-fPIC', CFLAGS = '-fPIC')
+	# common options
+	commonFlags = [
+        #'-Wall',
+        #'-Wextra',
+        #'-pedantic'
+		]
+	env.Append(CXXFLAGS = commonFlags, CFLAGS = commonFlags)
+	# Options for 64bit archs
+	(arch,binType) = platform.architecture()
+	if arch == '64bit':
+		env.Append(CXXFLAGS = '-fPIC', CFLAGS = '-fPIC')
 	# build type options
 	if env.GetOption('type') == 'dbg':
 		dbgFlags = [

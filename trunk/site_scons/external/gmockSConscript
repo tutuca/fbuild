@@ -5,12 +5,12 @@ inc = env.Dir('#/gmock/gtest'), env.Dir('#/gmock/gtest/include'), env.Dir('#/gmo
 src = ['gtest/src/gtest-all.cc','src/gmock-all.cc']
 deps = ['pthread']
 
-env.CreateStaticLibrary(name, inc, src, deps, CXXFLAGS=[])
+env.CreateStaticLibrary(name, inc, src, deps)
 
 name = 'gtest_main'
 inc = env.Dir('#/gmock/gtest'), env.Dir('#/gmock/gtest/include'), env.Dir('#/gmock'), env.Dir('#/gmock/include')
 src = ['gtest/src/gtest_main.cc']
 deps = []
 
-env.CreateStaticLibrary(name, inc, src, deps, CXXFLAGS=[])
+env.CreateStaticLibrary(name, inc, src, deps)
 
