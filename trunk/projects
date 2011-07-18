@@ -1,6 +1,64 @@
-mili|svn|http://mili.googlecode.com/svn/trunk|
-biopp|svn|http://biopp.googlecode.com/svn/trunk|
-feca|hg|https://feca.googlecode.com/hg|
-gtest|svn|http://googletest.googlecode.com/svn/tags/release-1.5.0|cp #/site_scons/external/gtestSConscript #/gtest/SConscript
-gmock|svn|http://googlemock.googlecode.com/svn/tags/release-1.5.0|cp #/site_scons/external/gmockSConscript #/gmock/SConscript
-getoptpp|svn|http://getoptpp.googlecode.com/svn/trunk|cp #/site_scons/external/getoptppSConscript #/getoptpp/SConscript
+mili:
+{
+    type: `SVN`,
+    url: "http://mili.googlecode.com/svn/trunk"
+}
+
+biopp:
+{
+    type: `SVN`,
+    url: "http://biopp.googlecode.com/svn/trunk"
+}
+
+feca:
+{
+    type: `HG`,
+    url: "https://feca.googlecode.com/hg"
+}
+
+gtest:
+{
+    type: `SVN`,
+    url: "http://googletest.googlecode.com/svn/tags/release-1.5.0",
+    executeAfter: "cp #/site_scons/external/gtestSConscript #/gtest/SConscript"
+}
+
+gmock:
+{
+    type: `SVN`,
+    url: "http://googlemock.googlecode.com/svn/tags/release-1.5.0",
+    executeAfter: "cp #/site_scons/external/gmockSConscript #/gmock/SConscript"
+}
+
+getoptpp:
+{
+    type: `SVN`,
+    url: "http://getoptpp.googlecode.com/svn/trunk",
+    executeAfter: "cp #/site_scons/external/getoptppSConscript #/getoptpp/SConscript"
+}
+
+"stl-debug":
+{
+    type: `SVN`,
+    url: "http://stl-debug.googlecode.com/svn/trunk/",
+    executeAfter: "cp #/site_scons/external/stlDebugSConscript #/stl-debug/SConscript"
+}
+
+"prot-filer":
+{
+    type: `SVN`,
+    url: "http://prot-filer.googlecode.com/svn/trunk/"
+}
+
+xdrfile:
+{
+    type: `WGET`,
+    url: "ftp://ftp.gromacs.org/pub/contrib/xdrfile-1.1.tar.gz"
+    executeAfter: ["mkdir xdrfile2",
+                   "tar zxvf #/xdrfile/xdrfile-1.1.tar.gz -C #/xdrfile2",
+                   "rm -r #/xdrfile", 
+                   "mv #/xdrfile2/xdrfile-1.1b #/xdrfile",
+                   "rmdir xdrfile2",
+                   "cp #/site_scons/external/xdrfileSConscript #/xdrfile/SConscript"]
+
+}

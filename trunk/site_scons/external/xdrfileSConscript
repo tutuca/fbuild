@@ -1,0 +1,8 @@
+Import ('env')
+
+name = 'xdrfile'
+inc = env.Dir('.')
+deps = []
+
+env.AddComponent(name, [], [], '', True)
+

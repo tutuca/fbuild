@@ -1,0 +1,14 @@
+trunk/build
+trunk/install
+trunk/mili
+trunk/prot-filer
+trunk/backbones-generator
+trunk/biopp
+trunk/getoptpp
+trunk/gmock
+trunk/feca
+trunk/xdrfile
+
+
+syntax: re
+^.*\.pyc$

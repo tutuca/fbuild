@@ -3,7 +3,7 @@ import platform
 def loadLinuxCompilerOptions(env):
 	# common options
 	commonFlags = [
-    	'-Wall',
+        '-Wall',
         '-Wextra',
         '-pedantic'
 		]
