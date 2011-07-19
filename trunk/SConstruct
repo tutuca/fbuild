@@ -140,7 +140,7 @@ WalkDirsForComponents(env, topdir = env['WS_DIR'],
 
 component.initializeDependencies(env)
 
-targets = COMMAND_LINE_TARGETS or component.components
+targets = dict([(t, component.components.get(t)) for t in COMMAND_LINE_TARGETS]) or component.components
 
 for target in list(targets): #make a copy
-    component.process(env, target)
+    component.run(env, target)
