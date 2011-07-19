@@ -71,11 +71,12 @@ def CreateTest(env, name, inc, src, deps):
         buildDir = os.path.join(env['BUILD_DIR'], name)
         _addComponent(env, name, Component(name, inc, deps, buildDir))
     else:
-        name = name + ':test'
         (incpaths,libpaths,libs) = GetDependenciesPaths(env, deps)
         testEnv = env.Clone()
         global components
         testEnv.PrependENVPath('LD_LIBRARY_PATH', components[name].buildDir)
+        testEnv.Append( RPATH = ':' + components[name].buildDir )
+        name = name + ':test'
         test = testEnv.Program(name, src, CPPPATH=incpaths, LIBS=libs, LIBPATH=libpaths)
         testEnv.Test(name + '.passed', test)
         
