@@ -71,6 +71,7 @@ def CreateTest(env, name, inc, src, deps):
         buildDir = os.path.join(env['BUILD_DIR'], name)
         _addComponent(env, name, Component(name, inc, deps, buildDir))
     else:
+        name = name + ':test'
         (incpaths,libpaths,libs) = GetDependenciesPaths(env, deps)
         testEnv = env.Clone()
         global components
@@ -94,7 +95,8 @@ def CreateStaticLibrary(env, name, inc, src, deps):
 def CreateSharedLibrary(env, name, inc, src, deps):
     if isPreProcessing == True:
         buildDir = os.path.join(env['BUILD_DIR'], name)
-        _addComponent(env, name, Component(name + ':include', inc, deps, buildDir))
+        CreateHeaderOnlyLibrary(env, name + ':include', inc, deps)
+        _addComponent(env, name, Component(name, inc, deps, buildDir))
     else:
         (incpaths,libpaths,libs) = GetDependenciesPaths(env, deps)
         incpaths.extend(_buildPathList(inc, lambda d: d.abspath))
@@ -114,13 +116,19 @@ def WalkDirsForComponents(env, topdir, ignore):
         if ignore.count(os.path.relpath(root, env.Dir('#').abspath)) == 0:
             for filename in fnmatch.filter(filenames, 'SConscript'):
                 pathname = os.path.join(root, filename)
-                _pre_process(env, pathname)
+                _pre_process_component(env, pathname)
 
 def initializeDependencies(env):
     global downloadableDependencies 
     downloadableDependencies = findLoadableDependencies(env)
 
-def process(env, target):
+def run(env, target):
+    global components
+    _process(env, target)
+    if components.has_key(target + ':test'):
+        _process(env, target + ':test')
+
+def _process(env, target):
     global components
     global downloadableDependencies
     component = components.get(target)
@@ -133,15 +141,15 @@ def process(env, target):
                     if not os.path.exists(pathname):
                         raise Exception('Could not found SConscript for: %s' % dep)
                     else:
-                        _pre_process(env, pathname)
+                        _pre_process_component(env, pathname)
                 else:
                     raise Exception('Could not found dependency: %s' % dep)
-            process(env, dep)
+            _process(env, dep)
         _process_component(env, component)
     else:
         raise Exception('Could not found target: %s' % target)
 
-def _pre_process(env, sconscriptPath):
+def _pre_process_component(env, sconscriptPath):
     global isPreProcessing
     isPreProcessing = True
     env.SConscript(sconscriptPath, exports='env')
@@ -150,8 +158,8 @@ def _pre_process(env, sconscriptPath):
 def _process_component(env, component):
     if component.sconscriptPath and component.buildDir and not component.processed:
         variantPath = component.buildDir
-        component.processed = True
         env.SConscript(component.sconscriptPath, variant_dir=variantPath, duplicate=0, exports='env')
+        component.processed = True
 
 #TODO: rename?
 def _addComponent(env, name, component):
