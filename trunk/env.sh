@@ -46,6 +46,19 @@ if [ ! "$(which moc)" ]; then
     fi
 fi
 
+# Check if python config module is installed
+python -m config 2> /dev/null
+if [ $? -ne 0 ]; then
+    echo "warning: python config module not found, need to install config module to continue"
+    read -p "Install (y/n)?" REPLY
+    if [ "$REPLY" = "y" ]; then
+      wget http://www.red-dove.com/config-0.3.9.tar.gz && 
+        tar zxvf config-0.3.9.tar.gz && cd config-0.3.9 && sudo python setup.py install &&
+          cd .. && sudo rm -rf config-0.3.9*
+    else
+        exit 1
+    fi
+fi
 # jump to env.py
 python env.py
 
