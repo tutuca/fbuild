@@ -141,7 +141,7 @@ WalkDirsForComponents(env, topdir = env['WS_DIR'],
 component.initializeDependencies(env)
 
 
-target_arguments = ARGUMENTS.get('targets', '').split(',')
+target_arguments = [t for t in ARGUMENTS.get('targets', '').split(',') if t]
 
 targets = dict([(t, component.components.get(t)) for t in target_arguments]) or component.components
 
