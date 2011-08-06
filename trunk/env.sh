@@ -7,44 +7,7 @@
 # "shell env script" should be created.
 # i.e. for windows a env.bat should be created.
 
-# Check if python is installed
-if [ ! "$(which python)" ]; then
-    echo "warning: Python was not found, need to install python to continue"
-    echo "info: 'sudo apt-get install python' should do the job, do you want"
-    echo "      me to do it? (your password will be required)"
-    read -p "Install (y/n)?" REPLY
-    if [ "$REPLY" = "y" ]; then
-        sudo apt-get install python
-    else
-        exit 1
-    fi
-fi
-
-# Check if scons is installed
-if [ ! "$(which scons)" ]; then
-    echo "warning: scons was not found, need to install scons to continue"
-    echo "info: 'sudo apt-get install scons' should do the job, do you want"
-    echo "      me to do it? (your password will be required)"
-    read -p "Install (y/n)?" REPLY
-    if [ "$REPLY" = "y" ]; then
-        sudo apt-get install scons
-    else
-        exit 1
-    fi
-fi
-
-# Check if scons is installed
-if [ ! "$(which moc)" ]; then
-    echo "warning: qt was not found, qt is not required to continue"
-    echo "info: 'sudo apt-get install qt4-dev-tools' should do the job, do you want"
-    echo "      me to do it? (your password will be required)"
-    read -p "Install (y/n)?" REPLY
-    if [ "$REPLY" = "y" ]; then
-        sudo apt-get install qt4-dev-tools
-    else
-        exit 1
-    fi
-fi
+sh init.sh
 
 function scons {
     `python2 site_scons/script_helper.py $*`
