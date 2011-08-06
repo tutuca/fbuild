@@ -19,14 +19,14 @@ feca:
 gtest:
 {
     type: `SVN`,
-    url: "http://googletest.googlecode.com/svn/tags/release-1.5.0",
+    url: "http://googletest.googlecode.com/svn/tags/release-1.6.0",
     executeAfter: "cp #/site_scons/external/gtestSConscript #/gtest/SConscript"
 }
 
 gmock:
 {
     type: `SVN`,
-    url: "http://googlemock.googlecode.com/svn/tags/release-1.5.0",
+    url: "http://googlemock.googlecode.com/svn/tags/release-1.6.0",
     executeAfter: "cp #/site_scons/external/gmockSConscript #/gmock/SConscript"
 }
 

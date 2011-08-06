@@ -14,5 +14,3 @@ if not QTDIR:
 # Welcome message    
 from termcolor import cprint
 cprint('Welcome to the FuDePan console environment','green')
-
-
