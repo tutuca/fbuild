@@ -61,9 +61,10 @@ def CreateProgram(env, name, inc, src, deps):
         _addComponent(env, name, Component(name, inc, deps, buildDir))
     else:
         (incpaths,libpaths,libs) = GetDependenciesPaths(env, deps)
-        hlibEnv = env.Clone()
-        program = hlibEnv.Program(name, src, CPPPATH=incpaths, LIBS=libs, LIBPATH=libpaths)
-        hlibEnv.Install(env['INSTALL_DIR'], program)
+        progEnv = env.Clone()
+        program = progEnv.Program(name, src, CPPPATH=incpaths, LIBS=libs, LIBPATH=libpaths)
+        install = progEnv.Install(env['INSTALL_DIR'], program)
+        progEnv.Alias(name, install)
 
 def CreateTest(env, name, inc, src, deps):
     if isPreProcessing == True:
@@ -74,11 +75,15 @@ def CreateTest(env, name, inc, src, deps):
         (incpaths,libpaths,libs) = GetDependenciesPaths(env, deps)
         testEnv = env.Clone()
         global components
-        testEnv.PrependENVPath('LD_LIBRARY_PATH', components[name].buildDir)
-        testEnv.Append( RPATH = ':' + components[name].buildDir )
-        name = name + ':test'
-        test = testEnv.Program(name, src, CPPPATH=incpaths, LIBS=libs, LIBPATH=libpaths)
-        testEnv.Test(name + '.passed', test)
+        if not components.has_key(name):
+            raise Exception('The unit test is trying to test component %s which does not exists' % name)
+        else:            
+            testEnv.PrependENVPath('LD_LIBRARY_PATH', components[name].buildDir)
+            testEnv.Append( RPATH = ':' + components[name].buildDir )
+            name = name + ':test'
+            test = testEnv.Program(name, src, CPPPATH=incpaths, LIBS=libs, LIBPATH=libpaths)
+            runtest = testEnv.Test(name + '.passed', test)
+            testEnv.Alias(name, runtest)
         
 def CreateStaticLibrary(env, name, inc, src, deps):
     if isPreProcessing == True:
@@ -89,7 +94,8 @@ def CreateStaticLibrary(env, name, inc, src, deps):
         (incpaths,libpaths,libs) = GetDependenciesPaths(env, deps)
         incpaths.extend(_buildPathList(inc, lambda d: d.abspath))
         libEnv = env.Clone()
-        libEnv.Library(name, src, CPPPATH=incpaths)
+        compLib = libEnv.Library(name, src, CPPPATH=incpaths)
+        libEnv.Alias(name, compLib)        
 
 # For static libraries we will make a version header only
 # of the lib so a component can depend on this one in a light way
@@ -103,7 +109,8 @@ def CreateSharedLibrary(env, name, inc, src, deps):
         incpaths.extend(_buildPathList(inc, lambda d: d.abspath))
         dlibEnv = env.Clone()
         dlib = dlibEnv.SharedLibrary(name, src, CPPPATH=incpaths, LIBS=libs, LIBPATH=libpaths)
-        dlibEnv.Install(env['INSTALL_DIR'], dlib)
+        install = dlibEnv.Install(env['INSTALL_DIR'], dlib)
+        dlibEnv.Alias(name, install)
 
 # Empty build dir means that this is a header only library
 def AddComponent(env, name, incDirs, deps, buildDir = '', forceLib = False):
@@ -126,12 +133,13 @@ def initializeDependencies(env):
 def run(env, target):
     global components
     _process(env, target)
-    if components.has_key(target + ':test'):
-        _process(env, target + ':test')
+    #if components.has_key(target + ':test'):
+    #    _process(env, target + ':test')
 
 def _process(env, target):
     global components
     global downloadableDependencies
+	
     component = components.get(target)
     if component:
         for dep in component.deps:

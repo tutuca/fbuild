@@ -1,0 +1,11 @@
+Import ('env')
+
+name = 'testdoc'
+inc = env.Dir('.')
+src = env.Glob('*')
+deps = []
+
+env.CreateDoc(name, inc, src, deps)
+
+    
+

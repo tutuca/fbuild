@@ -1,4 +1,4 @@
-trunk/build
+trunk/build/
 trunk/install
 trunk/mili
 trunk/prot-filer
@@ -8,7 +8,7 @@ trunk/getoptpp
 trunk/gmock
 trunk/feca
 trunk/xdrfile
-
+trunk/.sconsign.dblite
 
 syntax: re
 ^.*\.pyc$

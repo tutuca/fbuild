@@ -9,10 +9,6 @@
 
 sh init.sh
 
-function scons {
-    `python2 site_scons/script_helper.py $*`
-}
-
 # jump to env.py
 python env.py
 

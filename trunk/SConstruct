@@ -132,18 +132,16 @@ from component import WalkDirsForComponents
 WalkDirsForComponents(env, topdir = env['WS_DIR'], 
                       ignore = [
                                'gmock/scons',
+                               'buildtest/test_doc',
                                'buildtest/test_program',
+                               'buildtest/test_program/test_ut',
                                'buildtest/test_qt',
                                'buildtest/test_shared',
                                'buildtest/test_static',
+                               'buildtest/test_ut',
+                               'buildtest/test_ut/test_ut'
                                ])
-
 component.initializeDependencies(env)
 
-
-target_arguments = [t for t in ARGUMENTS.get('targets', '').split(',') if t]
-
-targets = dict([(t, component.components.get(t)) for t in target_arguments]) or component.components
-
-for target in list(targets): #make a copy
+for target in list(component.components): #make a copy
     component.run(env, target)
