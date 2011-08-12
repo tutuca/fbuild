@@ -12,3 +12,4 @@ trunk/.sconsign.dblite
 
 syntax: re
 ^.*\.pyc$
+^.*\.swp$

@@ -54,6 +54,10 @@ class Component(object):
 def CreateHeaderOnlyLibrary(env, name, inc, deps):
     if isPreProcessing == True:
         _addComponent(env, name, Component(name, inc, deps))
+    else:
+        pass
+        #Command("file.out", "file.in", Copy("$TARGET", "$SOURCE"))
+        #Copy(inc, '/home/hugo/a')
 
 def CreateProgram(env, name, inc, src, deps):
     if isPreProcessing == True:
@@ -88,7 +92,6 @@ def CreateTest(env, name, inc, src, deps):
 def CreateStaticLibrary(env, name, inc, src, deps):
     if isPreProcessing == True:
         buildDir = os.path.join(env['BUILD_DIR'], name)
-        CreateHeaderOnlyLibrary(env, name + ':include', inc, deps)
         _addComponent(env, name, Component(name, inc, deps, buildDir))
     else:
         (incpaths,libpaths,libs) = GetDependenciesPaths(env, deps)
@@ -102,7 +105,6 @@ def CreateStaticLibrary(env, name, inc, src, deps):
 def CreateSharedLibrary(env, name, inc, src, deps):
     if isPreProcessing == True:
         buildDir = os.path.join(env['BUILD_DIR'], name)
-        CreateHeaderOnlyLibrary(env, name + ':include', inc, deps)
         _addComponent(env, name, Component(name, inc, deps, buildDir))
     else:
         (incpaths,libpaths,libs) = GetDependenciesPaths(env, deps)
@@ -130,13 +132,7 @@ def initializeDependencies(env):
     global downloadableDependencies 
     downloadableDependencies = findLoadableDependencies(env)
 
-def run(env, target):
-    global components
-    _process(env, target)
-    #if components.has_key(target + ':test'):
-    #    _process(env, target + ':test')
-
-def _process(env, target):
+def process(env, target):
     global components
     global downloadableDependencies
 	
@@ -153,7 +149,7 @@ def _process(env, target):
                         _pre_process_component(env, pathname)
                 else:
                     raise Exception('Could not found dependency: %s' % dep)
-            _process(env, dep)
+            process(env, dep)
         _process_component(env, component)
     else:
         raise Exception('Could not found target: %s' % target)
@@ -165,10 +161,14 @@ def _pre_process_component(env, sconscriptPath):
     isPreProcessing = False
 
 def _process_component(env, component):
-    if component.sconscriptPath and component.buildDir and not component.processed:
-        variantPath = component.buildDir
-        env.SConscript(component.sconscriptPath, variant_dir=variantPath, duplicate=0, exports='env')
+    global isPreProcessing
+    if component.sconscriptPath and not component.processed:
         component.processed = True
+        if component.buildDir:
+            variantPath = component.buildDir
+            env.SConscript(component.sconscriptPath, variant_dir=variantPath, duplicate=0, exports='env')
+        else:
+            env.SConscript(component.sconscriptPath)
 
 #TODO: rename?
 def _addComponent(env, name, component):

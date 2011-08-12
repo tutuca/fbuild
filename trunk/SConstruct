@@ -144,4 +144,4 @@ WalkDirsForComponents(env, topdir = env['WS_DIR'],
 component.initializeDependencies(env)
 
 for target in list(component.components): #make a copy
-    component.run(env, target)
+    component.process(env, target)
