@@ -17,18 +17,15 @@ def GetDependenciesPaths(env, deps):
     libs = []
     for dep in deps:
         comp = components[dep]
-        if comp.buildDir or comp.forceLib:
+        if comp.isLib:
             libpaths.append(comp.buildDir)
             libs.append(dep)
         if comp.incDirs:
             incpaths.extend(comp.incDirs)
         (recursiveIncReturn, recursiveLibPathReturn,recursiveLibReturn) = GetDependenciesPaths(env, comp.deps)
-        if recursiveIncReturn:
-            incpaths.extend(recursiveIncReturn)
-        if recursiveLibPathReturn:
-            libpaths.extend( recursiveLibPathReturn )
-        if recursiveLibReturn:
-            libs.extend( recursiveLibReturn )
+        incpaths.extend(recursiveIncReturn)
+        libpaths.extend(recursiveLibPathReturn)
+        libs.extend(recursiveLibReturn)
     return (incpaths, libpaths, libs)
 
 # takes an string or a to_path function parameter, or a list.
@@ -41,19 +38,23 @@ def _buildPathList(incDirs, to_path):
         return [_as_path(incDirs)]
 
 class Component(object):
-    def __init__(self, name, incDirs, deps, buildDir='', forceLib=False):
+    def __init__(self, name, incDirs, deps, buildDir, isLib=False):
         self.name = name
         self.incDirs = _buildPathList(incDirs, lambda d: d.abspath)
         self.deps = deps
         self.buildDir = buildDir
-        self.forceLib = forceLib
+        self.isLib = isLib
         self.processed = False
         self.sconscriptPath = None
+
+def setupComponent(env, name, inc, deps, isLib=False):
+    buildDir = os.path.join(env['BUILD_DIR'], name)
+    return Component(name, inc, deps, buildDir, isLib)
 
 # it has deps because it can pull other libraries
 def CreateHeaderOnlyLibrary(env, name, inc, deps):
     if isPreProcessing == True:
-        _addComponent(env, name, Component(name, inc, deps))
+        _addComponent(env, name, setupComponent(env, name, inc, deps, False))
     else:
         pass
         #Command("file.out", "file.in", Copy("$TARGET", "$SOURCE"))
@@ -61,8 +62,7 @@ def CreateHeaderOnlyLibrary(env, name, inc, deps):
 
 def CreateProgram(env, name, inc, src, deps):
     if isPreProcessing == True:
-        buildDir = os.path.join(env['BUILD_DIR'], name)
-        _addComponent(env, name, Component(name, inc, deps, buildDir))
+        _addComponent(env, name, setupComponent(env, name, inc, deps))
     else:
         (incpaths,libpaths,libs) = GetDependenciesPaths(env, deps)
         progEnv = env.Clone()
@@ -73,17 +73,17 @@ def CreateProgram(env, name, inc, src, deps):
 def CreateTest(env, name, inc, src, deps):
     if isPreProcessing == True:
         name = name + ':test'
-        buildDir = os.path.join(env['BUILD_DIR'], name)
-        _addComponent(env, name, Component(name, inc, deps, buildDir))
+        _addComponent(env, name, setupComponent(env, name, inc, deps))
     else:
         (incpaths,libpaths,libs) = GetDependenciesPaths(env, deps)
         testEnv = env.Clone()
-        global components
-        if not components.has_key(name):
+        component = components.get(name)
+        if not component:
             raise Exception('The unit test is trying to test component %s which does not exists' % name)
         else:            
-            testEnv.PrependENVPath('LD_LIBRARY_PATH', components[name].buildDir)
-            testEnv.Append( RPATH = ':' + components[name].buildDir )
+            buildDir = component.buildDir
+            testEnv.PrependENVPath('LD_LIBRARY_PATH', buildDir)
+            testEnv.Append(RPATH = ':' + buildDir)
             name = name + ':test'
             test = testEnv.Program(name, src, CPPPATH=incpaths, LIBS=libs, LIBPATH=libpaths)
             runtest = testEnv.Test(name + '.passed', test)
@@ -91,8 +91,7 @@ def CreateTest(env, name, inc, src, deps):
         
 def CreateStaticLibrary(env, name, inc, src, deps):
     if isPreProcessing == True:
-        buildDir = os.path.join(env['BUILD_DIR'], name)
-        _addComponent(env, name, Component(name, inc, deps, buildDir))
+        _addComponent(env, name, setupComponent(env, name, inc, deps, True))
     else:
         (incpaths,libpaths,libs) = GetDependenciesPaths(env, deps)
         incpaths.extend(_buildPathList(inc, lambda d: d.abspath))
@@ -104,8 +103,7 @@ def CreateStaticLibrary(env, name, inc, src, deps):
 # of the lib so a component can depend on this one in a light way
 def CreateSharedLibrary(env, name, inc, src, deps):
     if isPreProcessing == True:
-        buildDir = os.path.join(env['BUILD_DIR'], name)
-        _addComponent(env, name, Component(name, inc, deps, buildDir))
+        _addComponent(env, name, setupComponent(env, name, inc, deps, True))
     else:
         (incpaths,libpaths,libs) = GetDependenciesPaths(env, deps)
         incpaths.extend(_buildPathList(inc, lambda d: d.abspath))
@@ -115,9 +113,9 @@ def CreateSharedLibrary(env, name, inc, src, deps):
         dlibEnv.Alias(name, install)
 
 # Empty build dir means that this is a header only library
-def AddComponent(env, name, incDirs, deps, buildDir = '', forceLib = False):
+def AddComponent(env, name, incDirs, deps, buildDir = '', isLib = False):
     global components
-    components[name] = Component(name, incDirs, deps, buildDir, forceLib)
+    components[name] = Component(name, incDirs, deps, buildDir, isLib)
 
 #Just load all components.
 def WalkDirsForComponents(env, topdir, ignore):
@@ -161,14 +159,9 @@ def _pre_process_component(env, sconscriptPath):
     isPreProcessing = False
 
 def _process_component(env, component):
-    global isPreProcessing
     if component.sconscriptPath and not component.processed:
         component.processed = True
-        if component.buildDir:
-            variantPath = component.buildDir
-            env.SConscript(component.sconscriptPath, variant_dir=variantPath, duplicate=0, exports='env')
-        else:
-            env.SConscript(component.sconscriptPath)
+        env.SConscript(component.sconscriptPath, variant_dir=component.buildDir, duplicate=0, exports='env')
 
 #TODO: rename?
 def _addComponent(env, name, component):
