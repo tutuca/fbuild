@@ -39,8 +39,7 @@ getoptpp:
 "stl-debug":
 {
     type: `SVN`,
-    url: "http://stl-debug.googlecode.com/svn/trunk/",
-    executeAfter: "cp #/site_scons/external/stlDebugSConscript #/stl-debug/SConscript"
+    url: "http://stl-debug.googlecode.com/svn/trunk/"
 }
 
 "prot-filer":
