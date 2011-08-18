@@ -1,9 +1,0 @@
-Import ('env')
-
-name = 'getoptpp'
-inc = env.Dir('.')
-src = env.Glob('*.cpp')
-deps = []
-
-env.CreateStaticLibrary(name, inc, src, deps)
-

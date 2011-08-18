@@ -70,7 +70,14 @@ vars.AddVariables(
         'site_scons directory',
         os.path.join(env.Dir('#').abspath, "site_scons"),
         PathVariable.PathIsDirCreate))
+
 vars.Update(env)
+
+if not env.get('INCLUDES_DIR'):
+    includes_dir = os.path.join(env['INSTALL_DIR'], 'includes')
+    if not os.path.exists(includes_dir):
+        os.mkdir(includes_dir)
+    env['INCLUDES_DIR'] = includes_dir
 
 # Add the script paths so is easier to find the py modules
 sys.path.append(env['BUILD_SCRIPTS_DIR'])
@@ -141,6 +148,7 @@ WalkDirsForComponents(env, topdir = env['WS_DIR'],
                                'buildtest/test_ut',
                                'buildtest/test_ut/test_ut'
                                ])
+
 component.initializeDependencies(env)
 
 for target in list(component.components): #make a copy

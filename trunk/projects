@@ -33,8 +33,7 @@ gmock:
 getoptpp:
 {
     type: `SVN`,
-    url: "http://getoptpp.googlecode.com/svn/trunk",
-    executeAfter: "cp #/site_scons/external/getoptppSConscript #/getoptpp/SConscript"
+    url: "http://getoptpp.googlecode.com/svn/trunk"
 }
 
 "stl-debug":

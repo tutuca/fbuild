@@ -9,6 +9,7 @@ trunk/gmock
 trunk/feca
 trunk/xdrfile
 trunk/.sconsign.dblite
+trunk/stl-debug
 
 syntax: re
 ^.*\.pyc$
