@@ -149,6 +149,7 @@ def process(env, target):
     component = _findComponent(target)
     if component:
         for dep in component.deps:
+            env.Depends(component.name, dep)
             if not components.has_key(dep):
                 downloadableDependency = downloadableDependencies.get(dep)
                 if downloadDependency(env, downloadableDependency):
