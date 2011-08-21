@@ -95,6 +95,9 @@ def CreateTest(env, name, inc, src, deps):
             buildDir = component.buildDir
             testEnv.PrependENVPath('LD_LIBRARY_PATH', buildDir)
             testEnv.Append(RPATH = ':' + buildDir)
+            for p in libpaths: #TODO: porque esto es necesario?
+                testEnv.PrependENVPath('LD_LIBRARY_PATH', p)
+                testEnv.Append(RPATH = ':' + p)
             name = name + ':test'
             test = testEnv.Program(name, src, CPPPATH=incpaths, LIBS=libs, LIBPATH=libpaths)
             runtest = testEnv.Test(name + '.passed', test)
