@@ -7,8 +7,12 @@
 # "shell env script" should be created.
 # i.e. for windows a env.bat should be created.
 
+if [ -z "${PYTHON_BIN_PATH+x}" ]; then
+  export PYTHON_BIN_PATH=/usr/bin/python
+fi
+
 sh init.sh
 
 # jump to env.py
-python env.py
+$PYTHON_BIN_PATH env.py
 

@@ -1,4 +1,4 @@
-Run ./env.sh
+Run source env.sh
 
 To build everything:
 scons

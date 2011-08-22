@@ -47,7 +47,7 @@ if [ ! "$(which moc)" ]; then
 fi
 
 # Check if python config module is installed
-python -m config 2> /dev/null
+$PYTHON_BIN_PATH -m config 2> /dev/null
 if [ $? -ne 0 ]; then
     echo "warning: python config module not found, need to install config module to continue"
     read -p "Install (y/n)?" REPLY
