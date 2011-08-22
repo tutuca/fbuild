@@ -1,14 +1,9 @@
-trunk/build/
-trunk/install
-trunk/mili
-trunk/prot-filer
-trunk/backbones-generator
-trunk/biopp
-trunk/getoptpp
-trunk/gmock
-trunk/feca
-trunk/xdrfile
-trunk/.sconsign.dblite
+build/
+install
+.sconsign.dblite
+projects
+
 
 syntax: re
 ^.*\.pyc$
+^.*\.swp$

@@ -50,7 +50,7 @@ vars.AddVariables(
     PathVariable(
         'WS_DIR',
         'workspace directory',
-        env.Dir('#').abspath,
+        env.Dir('#/projects').abspath,
         PathVariable.PathIsDirCreate))
 vars.AddVariables(
     PathVariable(
@@ -60,17 +60,35 @@ vars.AddVariables(
         PathVariable.PathIsDirCreate))
 vars.AddVariables(
     PathVariable(
-        'INSTALL_DIR',
-        'install directory',
+        'INSTALL_BIN_DIR',
+        'install bin directory',
         os.path.join(env.Dir('#').abspath, "install"),
         PathVariable.PathIsDirCreate))
+vars.AddVariables(
+    PathVariable(
+        'INSTALL_HEADERS_DIR',
+        'install headers directory',
+        os.path.join(env.Dir('#').abspath, "install/includes"),
+        PathVariable.PathIsDirCreate))
+vars.AddVariables(
+    PathVariable(
+        'INSTALL_LIB_DIR',
+        'install libs directory',
+        os.path.join(env.Dir('#').abspath, "install/libs"),
+        PathVariable.PathIsDirCreate))
+
 vars.AddVariables(
     PathVariable(
         'BUILD_SCRIPTS_DIR',
         'site_scons directory',
         os.path.join(env.Dir('#').abspath, "site_scons"),
         PathVariable.PathIsDirCreate))
+
 vars.Update(env)
+
+print "install bin dir    : " + env['INSTALL_BIN_DIR']
+print "install lib dir    : " + env['INSTALL_LIB_DIR']
+print "install headers dir: " + env['INSTALL_HEADERS_DIR']
 
 # Add the script paths so is easier to find the py modules
 sys.path.append(env['BUILD_SCRIPTS_DIR'])
@@ -141,7 +159,8 @@ WalkDirsForComponents(env, topdir = env['WS_DIR'],
                                'buildtest/test_ut',
                                'buildtest/test_ut/test_ut'
                                ])
+
 component.initializeDependencies(env)
 
 for target in list(component.components): #make a copy
-    component.run(env, target)
+    component.process(env, target)
