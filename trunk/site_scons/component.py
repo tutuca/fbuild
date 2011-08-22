@@ -61,28 +61,28 @@ class Component(object):
 
 def setupComponent(env, name, inc, deps, isLib, externalHeaderDirs=None):
     buildDir = os.path.join(env['BUILD_DIR'], name)
-    installIncludesDir = os.path.join(env['INCLUDES_DIR'], name)
+    installIncludesDir = os.path.join(env['INSTALL_HEADERS_DIR'], name)
     return Component(name, inc, deps, buildDir, installIncludesDir, externalHeaderDirs, isLib)
 
 # it has deps because it can pull other libraries
 def CreateHeaderOnlyLibrary(env, name, inc, ext_inc, deps):
-    if isPreProcessing == True:
+    if isPreProcessing:
         _addComponent(env, name, setupComponent(env, name, inc, deps, False, ext_inc))
     else:
         _findComponent(name).copyHeaders(env)
 
 def CreateProgram(env, name, inc, src, deps):
-    if isPreProcessing == True:
+    if isPreProcessing:
         _addComponent(env, name, setupComponent(env, name, inc, deps, False))
     else:
         (incpaths,libpaths,libs) = GetDependenciesPaths(env, deps)
         progEnv = env.Clone()
         program = progEnv.Program(name, src, CPPPATH=incpaths, LIBS=libs, LIBPATH=libpaths)
-        install = progEnv.Install(env['INSTALL_DIR'], program)
+        install = progEnv.Install(env['INSTALL_BIN_DIR'], program)
         progEnv.Alias(name, install)
 
 def CreateTest(env, name, inc, src, deps):
-    if isPreProcessing == True:
+    if isPreProcessing:
         name = name + ':test'
         _addComponent(env, name, setupComponent(env, name, inc, deps, False))
     else:
@@ -104,7 +104,7 @@ def CreateTest(env, name, inc, src, deps):
             testEnv.Alias(name, runtest)
         
 def CreateStaticLibrary(env, name, inc, ext_inc, src, deps):
-    if isPreProcessing == True:
+    if isPreProcessing:
         _addComponent(env, name, setupComponent(env, name, inc, deps, True, ext_inc))
     else:
         (incpaths,libpaths,libs) = GetDependenciesPaths(env, deps)
@@ -117,7 +117,7 @@ def CreateStaticLibrary(env, name, inc, ext_inc, src, deps):
 # For static libraries we will make a version header only
 # of the lib so a component can depend on this one in a light way
 def CreateSharedLibrary(env, name, inc, ext_inc, src, deps):
-    if isPreProcessing == True:
+    if isPreProcessing:
         _addComponent(env, name, setupComponent(env, name, inc, deps, True, ext_inc))
     else:
         (incpaths,libpaths,libs) = GetDependenciesPaths(env, deps)
@@ -125,12 +125,14 @@ def CreateSharedLibrary(env, name, inc, ext_inc, src, deps):
         dlibEnv = env.Clone()
         _findComponent(name).copyHeaders(dlibEnv)
         dlib = dlibEnv.SharedLibrary(name, src, CPPPATH=incpaths, LIBS=libs, LIBPATH=libpaths)
-        install = dlibEnv.Install(env['INSTALL_DIR'], dlib)
+        install = dlibEnv.Install(env['INSTALL_LIB_DIR'], dlib)
         dlibEnv.Alias(name, install)
 
 def AddComponent(env, name, headerDirs, deps, buildDir = '', isLib = False):
     global components
-    components[name] = Component(name, headerDirs, deps, buildDir, '', None, isLib)
+    component = Component(name, headerDirs, deps, buildDir, '', None, isLib)
+    component.processed = True
+    components[name] = component
 
 #Just load all components.
 def WalkDirsForComponents(env, topdir, ignore):
@@ -152,8 +154,9 @@ def process(env, target):
     component = _findComponent(target)
     if component:
         for dep in component.deps:
-            env.Depends(component.name, dep)
             if not components.has_key(dep):
+                if not _findComponent(dep).processed:
+                    env.Depends(component.name, dep)
                 downloadableDependency = downloadableDependencies.get(dep)
                 if downloadDependency(env, downloadableDependency):
                     pathname = os.path.join(downloadableDependency.target, "SConscript")
