@@ -2,7 +2,7 @@ Import ('env')
 
 env.Replace(CXXFLAGS=[], CFLAGS=[])
 name = 'gmock'
-inc = env.Dir('#/gmock/gtest'), env.Dir('#/gmock/gtest/include'), env.Dir('#/gmock'), env.Dir('#/gmock/include')
+inc = env.Dir('#/projects/gmock/gtest'), env.Dir('#/projects/gmock/gtest/include'), env.Dir('#/projects/gmock'), env.Dir('#/projects/gmock/include')
 ext_inc = None
 src = ['gtest/src/gtest-all.cc','src/gmock-all.cc']
 deps = ['pthread']
@@ -10,7 +10,7 @@ deps = ['pthread']
 env.CreateStaticLibrary(name, inc, ext_inc, src, deps)
 
 name = 'gtest_main'
-inc = env.Dir('#/gmock/gtest'), env.Dir('#/gmock/gtest/include'), env.Dir('#/gmock'), env.Dir('#/gmock/include')
+inc = env.Dir('#/projects/gmock/gtest'), env.Dir('#/projects/gmock/gtest/include'), env.Dir('#/projects/gmock'), env.Dir('#/projects/gmock/include')
 ext_inc = None
 src = ['gtest/src/gtest_main.cc']
 deps = []

@@ -82,10 +82,10 @@ def downloadDependency(env, dep):
 
 def findLoadableDependencies(env):
     from config import Config, ConfigMerger
-    cfg = Config(os.path.join(env['WS_DIR'], 'projects'))
+    cfg = Config(env.File('#/conf/projects').abspath)
     cfg.addNamespace(sys.modules[SVN.__module__])
 
-    localCfgPath = os.path.join(env['WS_DIR'], 'projects.local')
+    localCfgPath = env.File('#/conf/projects.local').abspath
     if os.path.exists(localCfgPath):
         localCfg = Config(localCfgPath)
         localCfg.addNamespace(sys.modules[SVN.__module__])

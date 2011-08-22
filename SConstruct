@@ -50,7 +50,7 @@ vars.AddVariables(
     PathVariable(
         'WS_DIR',
         'workspace directory',
-        env.Dir('#').abspath,
+        env.Dir('#/projects').abspath,
         PathVariable.PathIsDirCreate))
 vars.AddVariables(
     PathVariable(

@@ -87,6 +87,9 @@ def CreateTest(env, name, inc, src, deps):
         _addComponent(env, name, setupComponent(env, name, inc, deps, False))
     else:
         (incpaths,libpaths,libs) = GetDependenciesPaths(env, deps)
+        print name
+        print incpaths
+        print libpaths
         testEnv = env.Clone()
         component = _findComponent(name)
         if not component:
@@ -151,11 +154,14 @@ def process(env, target):
     global components
     global downloadableDependencies
 	
+    for c, k in components.iteritems():
+        print "%s %s" % (c, k.headerDirs)
     component = _findComponent(target)
     if component:
         for dep in component.deps:
             if not components.has_key(dep):
-                if not _findComponent(dep).processed:
+                d = _findComponent(dep)
+                if d and not d.processed:
                     env.Depends(component.name, dep)
                 downloadableDependency = downloadableDependencies.get(dep)
                 if downloadDependency(env, downloadableDependency):
