@@ -6,8 +6,8 @@ mili:
 
 biopp:
 {
-    type: `SVN`,
-    url: "http://biopp.googlecode.com/svn/trunk"
+    type: `HG`,
+    url: "https://hugo.arregui@code.google.com/p/biopp/"
 }
 
 feca:
