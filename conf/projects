@@ -1,0 +1,62 @@
+mili:
+{
+    type: `SVN`,
+    url: "http://mili.googlecode.com/svn/trunk"
+}
+
+biopp:
+{
+    type: `SVN`,
+    url: "http://biopp.googlecode.com/svn/trunk"
+}
+
+feca:
+{
+    type: `HG`,
+    url: "https://feca.googlecode.com/hg"
+}
+
+gtest:
+{
+    type: `SVN`,
+    url: "http://googletest.googlecode.com/svn/tags/release-1.6.0",
+    executeAfter: "cp #/site_scons/external/gtestSConscript #/projects/gtest/SConscript"
+}
+
+gmock:
+{
+    type: `SVN`,
+    url: "http://googlemock.googlecode.com/svn/tags/release-1.6.0",
+    executeAfter: "cp #/site_scons/external/gmockSConscript #/projects/gmock/SConscript"
+}
+
+getoptpp:
+{
+    type: `SVN`,
+    url: "http://getoptpp.googlecode.com/svn/trunk"
+}
+
+"stl-debug":
+{
+    type: `SVN`,
+    url: "http://stl-debug.googlecode.com/svn/trunk/"
+}
+
+"prot-filer":
+{
+    type: `SVN`,
+    url: "http://prot-filer.googlecode.com/svn/trunk/"
+}
+
+xdrfile:
+{
+    type: `WGET`,
+    url: "ftp://ftp.gromacs.org/pub/contrib/xdrfile-1.1.tar.gz"
+    executeAfter: ["mkdir xdrfile2",
+                   "tar zxvf #/projects/xdrfile/xdrfile-1.1.tar.gz -C #/xdrfile2",
+                   "rm -r #/projects/xdrfile", 
+                   "mv #/xdrfile2/xdrfile-1.1b #/projects/xdrfile",
+                   "rmdir xdrfile2",
+                   "cp #/site_scons/external/xdrfileSConscript #/projects/xdrfile/SConscript"]
+
+}

@@ -1,8 +1,7 @@
 build/
 install
 .sconsign.dblite
-projects
-
+projects/
 
 syntax: re
 ^.*\.pyc$
