@@ -7,7 +7,7 @@ mili:
 biopp:
 {
     type: `HG`,
-    url: "https://hugo.arregui@code.google.com/p/biopp/"
+    url: "https://biopp.googlecode.com/hg"
 }
 
 feca:
@@ -38,8 +38,8 @@ getoptpp:
 
 "stl-debug":
 {
-    type: `SVN`,
-    url: "http://stl-debug.googlecode.com/svn/trunk/"
+    type: `HG`,
+    url: "https://stl-debug.googlecode.com/hg"
 }
 
 "prot-filer":

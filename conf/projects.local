@@ -7,9 +7,8 @@ mili:
 
 biopp:
 {
-    type: `SVN`,
-    url: "https://biopp.googlecode.com/svn/trunk"
-    username: "hugo.arregui@gmail.com"
+    type: `HG`,
+    url: "https://hugo.arregui@biopp.googlecode.com/hg"
 }
 
 'prot-filer':
