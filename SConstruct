@@ -121,8 +121,8 @@ env.Tool('doxygen')
 env.Tool('makebuilder')
 
 # Create a builder for tests
-import test
-bld = Builder(action = test.runTest)
+import builders
+bld = Builder(action = builders.runTest)
 env.Append(BUILDERS = {'Test' :  bld})
 
 # Add Qt
