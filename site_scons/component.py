@@ -89,6 +89,7 @@ def CreateProgram(env, name, inc, src, deps):
         program = progEnv.Program(name, src, CPPPATH=incpaths, LIBS=libs, LIBPATH=libpaths)
         install = progEnv.Install(env['INSTALL_BIN_DIR'], program)
         progEnv.Alias(name, install)
+        progEnv.Alias('install', install)
 
 def CreateTest(env, name, inc, src, deps):
     if isPreProcessing:
