@@ -3,7 +3,7 @@ Import ('env')
 env.Replace(CXXFLAGS=[], CFLAGS=[])
 name = 'gmock'
 inc = env.Dir('#/projects/gmock/gtest'), env.Dir('#/projects/gmock/gtest/include'), env.Dir('#/projects/gmock'), env.Dir('#/projects/gmock/include')
-ext_inc = None
+ext_inc = env.Dir('#/projects/gmock/include/gmock')
 src = ['gtest/src/gtest-all.cc','src/gmock-all.cc']
 deps = ['pthread']
 

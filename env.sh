@@ -16,3 +16,4 @@ sh init.sh
 # jump to env.py
 $PYTHON_BIN_PATH env.py
 
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$PWD/install/libs

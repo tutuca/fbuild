@@ -115,6 +115,8 @@ SConsEnvironment.CreateHeaderOnlyLibrary = component.CreateHeaderOnlyLibrary
 SConsEnvironment.CreateTest = component.CreateTest
 SConsEnvironment.AddComponent = component.AddComponent
 
+import recursive_install
+SConsEnvironment.RecursiveInstall = recursive_install.RecursiveInstall
 # Register builders
 # Register tools
 env.Tool('doxygen')
