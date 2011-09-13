@@ -113,6 +113,7 @@ SConsEnvironment.CreateStaticLibrary = component.CreateStaticLibrary
 SConsEnvironment.CreateSharedLibrary = component.CreateSharedLibrary
 SConsEnvironment.CreateHeaderOnlyLibrary = component.CreateHeaderOnlyLibrary
 SConsEnvironment.CreateTest = component.CreateTest
+SConsEnvironment.CreateAutoToolsProject = component.CreateAutoToolsProject
 SConsEnvironment.AddComponent = component.AddComponent
 
 import recursive_install
@@ -125,7 +126,8 @@ env.Tool('makebuilder')
 # Create a builder for tests
 import builders
 bld = Builder(action = builders.runTest)
-env.Append(BUILDERS = {'Test' :  bld})
+configure = Builder(action = builders.configure)
+env.Append(BUILDERS = {'Test':  bld, 'Configure': configure})
 
 # Add Qt
 import qtutil
