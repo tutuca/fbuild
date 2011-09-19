@@ -170,9 +170,6 @@ def process(env, target):
     if component:
         for dep in component.deps:
             if not components.has_key(dep):
-                d = _findComponent(dep)
-                if d and not d.processed:
-                    env.Depends(component.name, dep)
                 downloadableDependency = downloadableDependencies.get(dep)
                 if downloadDependency(env, downloadableDependency):
                     pathname = os.path.join(downloadableDependency.target, "SConscript")
