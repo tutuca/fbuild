@@ -13,10 +13,10 @@ def runTest(target, source, env):
         cprint('TEST OK: %s' % app, 'green')
 
 def configure(target, source, env):
-    makefile = str(target[0].abspath)
-    buildDir = os.path.split(makefile)[0]
+    buildDir = env['buildDir']
 
-    configure = str(source[0].abspath)
+    configure = env['configurePath']
+
     configureOpts = (' --bindir=%(INSTALL_BIN_DIR)s --libdir=%(INSTALL_LIB_DIR)s --includedir=%(INSTALL_HEADERS_DIR)s' % env)
     p = subprocess.Popen(configure + configureOpts, cwd=buildDir, shell=True)
     if p.wait() != 0:

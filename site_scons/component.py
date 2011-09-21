@@ -134,13 +134,14 @@ def CreateSharedLibrary(env, name, inc, ext_inc, src, deps):
         install = dlibEnv.Install(env['INSTALL_LIB_DIR'], dlib)
         dlibEnv.Alias(name, install)
 
-def CreateAutoToolsProject(env, name):
+def CreateAutoToolsProject(env, name, libfile, configureFile):
     if isPreProcessing:
         _addComponent(env, name, setupComponent(env, 'autotools', name, [], [], []))
     else:
         libEnv = env.Clone()
-        target = os.path.join(libEnv.Dir(".").abspath, 'Makefile')
-        c = libEnv.Configure(target, 'configure')
+        target = os.path.join(env['INSTALL_LIB_DIR'], libfile)
+        buildDir = _findComponent(name).buildDir
+        c = libEnv.Configure(target, None, buildDir=buildDir, configurePath=configureFile.abspath)
         libEnv.Alias(name, c)
 
 def AddComponent(env, name, headerDirs, deps, buildDir = '', isLib = False):

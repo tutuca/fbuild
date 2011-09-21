@@ -1,6 +1,8 @@
 Import ('env')
 
 name = 'xdrfile'
+target = 'libxdrfile.a'
+configurePath = env.File('#/projects/xdrfile/configure')
 
-env.CreateAutoToolsProject(name)
+env.CreateAutoToolsProject(name, target, configurePath)
 
