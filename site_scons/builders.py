@@ -14,7 +14,8 @@ def runTest(target, source, env):
 
 def configure(target, source, env):
     buildDir = env['buildDir']
-    os.makedirs(buildDir)
+    if not os.path.exists(buildDir):
+        os.makedirs(buildDir)
 
     configure = env['configurePath']
 
