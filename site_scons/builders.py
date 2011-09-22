@@ -4,6 +4,7 @@ import os
 from termcolor import cprint
 
 import subprocess
+import platform
 
 def runTest(target, source, env):
     app = str(source[0].abspath)
