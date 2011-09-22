@@ -141,7 +141,7 @@ def CreateAutoToolsProject(env, name, libfile, configureFile):
         libEnv = env.Clone()
         target = os.path.join(env['INSTALL_LIB_DIR'], libfile)
         buildDir = _findComponent(name).buildDir
-        c = libEnv.Configure(target, None, buildDir=buildDir, configurePath=configureFile.abspath)
+        c = libEnv.Configure(target, 'configure', buildDir=buildDir, configurePath=configureFile.abspath)
         libEnv.Alias(name, c)
 
 def AddComponent(env, name, headerDirs, deps, buildDir = '', isLib = False):

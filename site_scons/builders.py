@@ -14,8 +14,10 @@ def runTest(target, source, env):
 
 def configure(target, source, env):
     buildDir = env['buildDir']
+    os.makedirs(buildDir)
 
     configure = env['configurePath']
+
 
     configureOpts = (' --bindir=%(INSTALL_BIN_DIR)s --libdir=%(INSTALL_LIB_DIR)s --includedir=%(INSTALL_HEADERS_DIR)s' % env)
     p = subprocess.Popen(configure + configureOpts, cwd=buildDir, shell=True)
