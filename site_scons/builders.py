@@ -1,6 +1,7 @@
 # FuDePan boilerplate
 
 import os
+import platform
 from termcolor import cprint
 
 import subprocess
@@ -18,17 +19,22 @@ def configure(target, source, env):
         os.makedirs(buildDir)
 
     configure = env['configurePath']
-
-
     configureOpts = (' --bindir=%(INSTALL_BIN_DIR)s --libdir=%(INSTALL_LIB_DIR)s --includedir=%(INSTALL_HEADERS_DIR)s' % env)
-    p = subprocess.Popen(configure + configureOpts, cwd=buildDir, shell=True)
+
+    procEnv = os.environ
+    (arch,binType) = platform.architecture()
+    if arch == '64bit':
+        procEnv["CXXFLAGS"] = str(env["CXXFLAGS"])
+        procEnv["CFLAGS"] = '-fPIC'
+
+    p = subprocess.Popen(configure + configureOpts, cwd=buildDir, shell=True, env=procEnv)
     if p.wait() != 0:
         return p.wait()
 
-    p = subprocess.Popen('make', cwd=buildDir, shell=True)
+    p = subprocess.Popen('make', cwd=buildDir, shell=True, env=procEnv)
     if p.wait() != 0:
         return p.wait()
 
-    p = subprocess.Popen('make install', cwd=buildDir, shell=True)
+    p = subprocess.Popen('make install', cwd=buildDir, shell=True, env=procEnv)
     return p.wait()
 
