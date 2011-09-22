@@ -86,10 +86,6 @@ vars.AddVariables(
 
 vars.Update(env)
 
-print "install bin dir    : " + env['INSTALL_BIN_DIR']
-print "install lib dir    : " + env['INSTALL_LIB_DIR']
-print "install headers dir: " + env['INSTALL_HEADERS_DIR']
-
 # Add the script paths so is easier to find the py modules
 sys.path.append(env['BUILD_SCRIPTS_DIR'])
 
@@ -148,6 +144,11 @@ if ARGUMENTS.get('VERBOSE') != '1':
 # call to fudepan.py where 
 import fudepan
 fudepan.setDefines(env)
+
+termcolor.cprint('Install information:', 'green')
+termcolor.cprint('    bin dir    : ' + env['INSTALL_BIN_DIR'], 'green')
+termcolor.cprint('    lib dir    : ' + env['INSTALL_LIB_DIR'], 'green')
+termcolor.cprint('    headers dir: ' + env['INSTALL_HEADERS_DIR'], 'green')
 
 # Walk over the tree finding components
 from component import WalkDirsForComponents

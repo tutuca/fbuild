@@ -1,23 +1,19 @@
 Run source env.sh
 
 To build everything:
-scons
+scons build_all
+Note: build_all will also install because the target is usually the installation.
+
+To run all unit tests:
+scons run_all
+
+To install everything:
+scons install
+Note: the difference between building all and installing is that some libraries build and then copy artifacts to the INSTALL_DIR. Examples of these artifacts are headers, static libraries and dinamic libraries.
+Install alone is usefull when we want to copy all the artifacts to somewhere else.
 
 To clean everything:
 scons -c
 
-To create a doxygen component
-env.Doxygen("Doxyfile")
-
-To integrate a make project into scons, here is what to put in the SConscript file:
-# Define the sources for the make build, so SCons can track dependencies
-# (or just set source=None to have SCons run make all the time and
-# let make track dependencies).
-src = Glob('foo-1.2.3/*.c')
-
-# Run make inside the foo-1.2.3/ directory
-foolib = env.Make(source = src,
-                  target = [ 'foo-1.2.3/.libs/libfoo.a',
-                             'foo-1.2.3/.libs/libfoo.so' ],
-                  MakePath = Dir('foo-1.2.3'))
-
+To build, install and run everything:
+scons

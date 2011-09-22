@@ -84,6 +84,7 @@ def CreateProgram(env, name, inc, src, deps):
         (incpaths,libpaths,libs) = GetDependenciesPaths(name, env, deps)
         progEnv = env.Clone()
         program = progEnv.Program(name, src, CPPPATH=incpaths, LIBS=libs, LIBPATH=libpaths)
+        progEnv.Alias('build_all', program)
         install = progEnv.Install(env['INSTALL_BIN_DIR'], program)
         progEnv.Alias(name, install)
         progEnv.Alias('install', install)
@@ -108,8 +109,10 @@ def CreateTest(env, name, inc, src, deps):
                 testEnv.Append(RPATH = ':' + p)
             name = name + ':test'
             test = testEnv.Program(name, src, CPPPATH=incpaths, LIBS=libs, LIBPATH=libpaths)
+            testEnv.Alias('build_all', test)
             runtest = testEnv.Test(name + '.passed', test)
             testEnv.Alias(name, runtest)
+            testEnv.Alias('run_all', runtest)
         
 def CreateStaticLibrary(env, name, inc, ext_inc, src, deps):
     if isPreProcessing:
@@ -119,7 +122,8 @@ def CreateStaticLibrary(env, name, inc, ext_inc, src, deps):
         libEnv = env.Clone()
         _findComponent(name).copyHeaders(libEnv)
         compLib = libEnv.Library(name, src, CPPPATH=incpaths)
-        libEnv.Alias(name, compLib)        
+        libEnv.Alias(name, compLib)
+        libEnv.Alias('build_all', compLib)
 
 # For static libraries we will make a version header only
 # of the lib so a component can depend on this one in a light way
@@ -133,6 +137,8 @@ def CreateSharedLibrary(env, name, inc, ext_inc, src, deps):
         dlib = dlibEnv.SharedLibrary(name, src, CPPPATH=incpaths, LIBS=libs, LIBPATH=libpaths)
         install = dlibEnv.Install(env['INSTALL_LIB_DIR'], dlib)
         dlibEnv.Alias(name, install)
+        dlibEnv.Alias('build_all', dlib)
+        dlibEnv.Alias('install', install)
 
 def CreateAutoToolsProject(env, name, libfile, configureFile, ext_inc):
     if isPreProcessing:
@@ -147,6 +153,8 @@ def CreateAutoToolsProject(env, name, libfile, configureFile, ext_inc):
             os.makedirs(buildDir)
         c = libEnv.Configure(target, 'configure', buildDir=buildDir, configurePath=configureFile.abspath)
         libEnv.Alias(name, c)
+        libEnv.Alias('build_all', c)
+        libEnv.Alias('install', c)
 
 def AddComponent(env, name, headerDirs, deps, buildDir = '', isLib = False):
     global components
