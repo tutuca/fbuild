@@ -1,6 +1,7 @@
 build/
 install/
 .sconsign.dblite
+conf/projects.local
 projects/
 
 syntax: re
