@@ -32,8 +32,8 @@ gmock:
 
 getoptpp:
 {
-    type: `SVN`,
-    url: "http://getoptpp.googlecode.com/svn/trunk"
+    type: `HG`,
+    url: "https://getoptpp.googlecode.com/hg"
 }
 
 "stl-debug":
