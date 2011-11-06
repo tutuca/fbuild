@@ -1,8 +1,9 @@
 Import ('env')
 
+env.Replace(CXXFLAGS=[], CFLAGS=[])
 name = 'gtest'
-inc = env.Dir('.'), env.Dir('include')
-ext_inc = None
+inc = env.Dir('.'), env.Dir('include'), env.Dir('include/gtest')
+ext_inc = env.Dir('include/gtest')
 src = ['src/gtest-all.cc']
 deps = []
 
