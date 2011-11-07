@@ -59,3 +59,8 @@ if [ $? -ne 0 ]; then
         exit 1
     fi
 fi
+
+# jump to env.py
+$PYTHON_BIN_PATH env.py
+
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$PWD/install/libs

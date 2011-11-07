@@ -11,13 +11,12 @@ if [ -z "${PYTHON_BIN_PATH+x}" ]; then
   export PYTHON_BIN_PATH=/usr/bin/python
 fi
 
+hg pull -u
+
 sh init.sh
 
-# jump to env.py
-$PYTHON_BIN_PATH env.py
+source system.sh
 
-export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$PWD/install/libs
-
-function fudepan-install {
-    sudo scons INSTALL_HEADERS_DIR=/usr/local/include/ INSTALL_BIN_DIR=/usr/local/bin/ INSTALL_LIB_DIR=/usr/local/lib/ $* install
-}
+if [ -e library.sh ]; then
+  source library.sh
+fi
