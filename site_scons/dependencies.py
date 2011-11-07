@@ -3,7 +3,7 @@
 import os.path
 import sys
 import subprocess
-from termcolor import cprint
+from termcolor import cprint, ask_user
 
 class BasePrjDownload(object):
     def __init__(self, name, env, config):
@@ -71,11 +71,10 @@ class WGET(BasePrjDownload):
 def downloadDependency(env, dep):
     if dep:
         ## ask the user if he wants to download it
-        cprint('I found the dependency %s located at %s' % (dep.name, dep.url), 'blue')
-        cprint('Do you want me to download it? ', 'blue')
-        userResponse = raw_input()
-        userResponse = userResponse.lower()
-        if userResponse in ['y', 'yes', 'yeap', 'ok', 'yeah']:
+        userResponse = ask_user("""\
+I found the dependency %s located at %s
+Do you want me to download it?""" % (dep.name, dep.url), 'blue', ['y', 'n'])
+        if userResponse == 'y':
             compTarget = os.path.join(env['WS_DIR'], dep.name)
             return dep.download(compTarget)
     return False
