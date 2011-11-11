@@ -46,11 +46,12 @@ if binType == 'ELF':
 vars = Variables('SConfig')
 # Get the scons root path, this can be tricky because 
 # scons can be ran with the -v option
+INSTALL_DIR = os.path.join(env.Dir('#/..').abspath, "install")
 vars.AddVariables(
     PathVariable(
         'WS_DIR',
         'workspace directory',
-        env.Dir('#/projects').abspath,
+        env.Dir('#/../projects').abspath,
         PathVariable.PathIsDirCreate))
 vars.AddVariables(
     PathVariable(
@@ -62,21 +63,20 @@ vars.AddVariables(
     PathVariable(
         'INSTALL_BIN_DIR',
         'install bin directory',
-        os.path.join(env.Dir('#').abspath, "install"),
+        INSTALL_DIR,
         PathVariable.PathIsDirCreate))
 vars.AddVariables(
     PathVariable(
         'INSTALL_HEADERS_DIR',
         'install headers directory',
-        os.path.join(env.Dir('#').abspath, "install/includes"),
+        os.path.join(INSTALL_DIR, "includes"),
         PathVariable.PathIsDirCreate))
 vars.AddVariables(
     PathVariable(
         'INSTALL_LIB_DIR',
         'install libs directory',
-        os.path.join(env.Dir('#').abspath, "install/libs"),
+        os.path.join(INSTALL_DIR, "libs"),
         PathVariable.PathIsDirCreate))
-
 vars.AddVariables(
     PathVariable(
         'BUILD_SCRIPTS_DIR',

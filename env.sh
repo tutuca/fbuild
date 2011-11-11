@@ -31,12 +31,12 @@ if [ -z "${PYTHON_BIN_PATH+x}" ]; then
   export PYTHON_BIN_PATH=/usr/bin/python
 fi
 
-hg pull -u
+#hg pull -u
 
-sh init.sh
+sh bin/init.sh
 
-source system.sh
+source bin/system.sh
 
-if [ -e library.sh ]; then
-  source library.sh
+if [ -e bin/local.sh ]; then
+  source bin/local.sh
 fi

@@ -47,7 +47,10 @@ class BasePrjDownload(object):
         return True
                 
     def executeCmd(self, cmd):
-        cmd = cmd.replace('#', self.env.Dir('#').abspath)
+        cmd = cmd.replace('#external', self.env.Dir('#/site_scons/external').abspath)\
+                 .replace('#projects',self.env['WS_DIR'])\
+                 .replace('#',self.env.Dir('#').abspath)
+        print cmd
         cprint('About to execute: %s' % cmd, 'purple')
         rc = subprocess.call(cmd.split(' '))
         success = rc == 0
@@ -100,10 +103,10 @@ Do you want me to download it?""" % (dep.name, dep.url), 'blue', ['y', 'n'])
 
 def findLoadableDependencies(env):
     from config import Config, ConfigMerger
-    cfg = Config(env.File('#/conf/projects').abspath)
+    cfg = Config(env.File('#/../conf/projects').abspath)
     cfg.addNamespace(sys.modules[SVN.__module__])
 
-    localCfgPath = env.File('#/conf/projects.local').abspath
+    localCfgPath = env.File('#/../conf/projects.local').abspath
     if os.path.exists(localCfgPath):
         localCfg = Config(localCfgPath)
         localCfg.addNamespace(sys.modules[SVN.__module__])
