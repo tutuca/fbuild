@@ -40,3 +40,5 @@ source bin/system.sh
 if [ -e bin/local.sh ]; then
   source bin/local.sh
 fi
+
+alias fbuild="$PYTHON_BIN_PATH bin/fbuild.py"
