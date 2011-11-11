@@ -34,19 +34,23 @@ def GetDependenciesPaths(compName, env, deps):
     def search(deps):
         libpaths = []
         libs = []
+        incs = []
         for dep in deps:
             comp = _findComponent(dep)
+            if comp.external:
+                incs += comp.headerDirs
             if comp.type == 'static_lib':
                 libpaths.append(comp.buildDir)
             if comp.type in ["static_lib", "shared_lib", 'lib', 'autotools']:
                 libs.append(dep)
-            (recursiveLibPathReturn,recursiveLibReturn) = search(comp.deps)
+            (recursiveLibPathReturn, recursiveLibReturn, recursiveIncs) = search(comp.deps)
             libpaths.extend(recursiveLibPathReturn)
             libs.extend(recursiveLibReturn)
-        return (libpaths, libs)
+            incs.extend(recursiveIncs)
+        return (libpaths, libs, incs)
     comp = _findComponent(compName)
-    incpaths = [env['INSTALL_HEADERS_DIR']] + _buildPathList(comp.headerDirs, lambda d: d.abspath)
-    libpaths, libs = search(deps)
+    libpaths, libs, incs = search(deps)
+    incpaths = incs + [env['INSTALL_HEADERS_DIR']] + _buildPathList(comp.headerDirs, lambda d: d.abspath)
     libpaths.append(env['INSTALL_LIB_DIR'])
     return (incpaths, libpaths, libs)
 
@@ -70,6 +74,7 @@ class Component(object):
         self.sconscriptPath = None
         self.processed = False
         self.type = type
+        self.external = False
 
     def copyHeaders(self, env):
         if not self.processed and self.externalHeaderDirs:
@@ -179,6 +184,7 @@ def AddComponent(env, name, headerDirs, deps, buildDir = '', isLib = False):
     global components
     component = Component(name, headerDirs, deps, buildDir, '', None, 'lib' if isLib else 'component')
     component.processed = True
+    component.external = True
     components[name] = component
 
 #Just load all components.
