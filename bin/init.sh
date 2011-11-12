@@ -80,6 +80,16 @@ if [ $? -ne 0 ]; then
     fi
 fi
 
+$PYTHON_BIN_PATH -m argparse 2> /dev/null
+if [ $? -ne 0 ]; then
+    echo "warning: python argparse module not found, need to install it to continue"
+    read -p "Install (y/n)?" REPLY
+    if [ "$REPLY" = "y" ]; then
+        sudo apt-get install python-argparse
+    else
+        exit 1
+    fi
+fi
 # jump to env.py
 $PYTHON_BIN_PATH bin/env.py
 
