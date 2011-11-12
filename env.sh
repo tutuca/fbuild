@@ -31,7 +31,7 @@ if [ -z "${PYTHON_BIN_PATH+x}" ]; then
   export PYTHON_BIN_PATH=/usr/bin/python
 fi
 
-#hg pull -u
+hg pull -u
 
 sh bin/init.sh
 

@@ -78,7 +78,6 @@ class Component(object):
 
     def copyHeaders(self, env):
         if not self.processed and self.externalHeaderDirs:
-            print self.externalHeaderDirs
             for d in self.externalHeaderDirs:
                 for f in os.listdir(d):
                     if not f.startswith('.'):
