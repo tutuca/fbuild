@@ -38,6 +38,7 @@ def parse_project_arg(arg):
 
 parser = argparse.ArgumentParser(description="invokes the fudepan-build system")
 parser.add_argument('-c', dest='commands', help="clear", action='append_const', const='clear')
+parser.add_argument('-l', '--list', dest='commands', help="list projects", action='append_const', const='projects')
 parser.add_argument('project', nargs='*', help="use project[:task]. Possibles tasks are: test, checkout")
 args = parser.parse_args()
 
@@ -48,6 +49,8 @@ scons_args = []
 for command in args.commands or []:
     if command == 'clear':
         scons_args.append('-c')
+    elif command == 'projects':
+        print deps.keys()
 
 scons_targets = []
 for arg in args.project or []:
@@ -55,11 +58,12 @@ for arg in args.project or []:
     if task == 'checkout':
         d = deps.get(project)
         if d:
-            downloadDependency(d, {
-                'WS_DIR': 'projects',
-                'EXTERNAL_DIR': 'scons/site_scons/external',
-                'ROOT': 'scons'
-                })
+            d.env = {
+                    'WS_DIR': 'projects',
+                    'EXTERNAL_DIR': 'scons/site_scons/external',
+                    'ROOT': 'scons'
+                    }
+            d.download()
         else:
             cprint("Cannot find %s in project file" % project, 'red')
     else:
