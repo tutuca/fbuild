@@ -52,7 +52,7 @@ xdrfile:
 {
     type: `WGET`,
     url: "ftp://ftp.gromacs.org/pub/contrib/xdrfile-1.1.tar.gz"
-    executeAfter: ["mkdir xdrfile2",
+    executeAfter: ["mkdir #/xdrfile2",
                    "tar zxvf #projects/xdrfile/xdrfile-1.1.tar.gz -C #/xdrfile2",
                    "rm -r #projects/xdrfile", 
                    "mv #/xdrfile2/xdrfile-1.1b #projects/xdrfile",
