@@ -60,3 +60,9 @@ xdrfile:
                    "cp #external/xdrfileSConscript #projects/xdrfile/SConscript"]
 
 }
+
+"fudepan-sandbox":
+{
+    type: `HG`,
+    url: "http://code.google.com/p/fudepan-sandbox/"
+}
