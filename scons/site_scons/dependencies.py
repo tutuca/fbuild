@@ -32,7 +32,8 @@ class BasePrjDownload(object):
         self.env = env
         self.username = config.get("username")
 
-    def download(self, target):
+    def download(self):
+        target = os.path.join(self.env['WS_DIR'], self.name)
         s = self.fetch(target) and self.afterFetch()
         if s:
             self.target = target
@@ -47,9 +48,9 @@ class BasePrjDownload(object):
         return True
                 
     def executeCmd(self, cmd):
-        cmd = cmd.replace('#external', self.env.Dir('#/site_scons/external').abspath)\
-                 .replace('#projects',self.env['WS_DIR'])\
-                 .replace('#',self.env.Dir('#').abspath)
+        cmd = cmd.replace('#external', self.env['EXTERNAL_DIR'])\
+                 .replace('#projects', self.env['WS_DIR'])\
+                 .replace('#', self.env['#'])
         cprint('About to execute: %s' % cmd, 'purple')
         rc = subprocess.call(cmd.split(' '))
         success = rc == 0
@@ -89,26 +90,26 @@ class WGET(BasePrjDownload):
            return False
         return True
 
-def downloadDependency(env, dep):
+def downloadDependency(dep, env=None):
     if dep:
         ## ask the user if he wants to download it
         userResponse = ask_user("""\
 I found the dependency %s located at %s
 Do you want me to download it?""" % (dep.name, dep.url), 'blue', ['y', 'n'])
         if userResponse == 'y':
-            compTarget = os.path.join(env['WS_DIR'], dep.name)
-            return dep.download(compTarget)
+            if env:
+                dep.env = env
+            return dep.download()
     return False
 
-def findLoadableDependencies(env):
+def findLoadableDependencies(env, confDir):
     from config import Config, ConfigMerger
-    cfg = Config(env.File('#/../conf/projects').abspath)
+    cfg = Config(os.path.join(confDir, 'projects'))
     cfg.addNamespace(sys.modules[SVN.__module__])
 
-    localCfgPath = env.File('#/../conf/projects.local').abspath
+    localCfgPath = os.path.join(confDir, 'projects.local') 
     if os.path.exists(localCfgPath):
         localCfg = Config(localCfgPath)
         localCfg.addNamespace(sys.modules[SVN.__module__])
         ConfigMerger(lambda local, cfg, key: "overwrite").merge(cfg, localCfg)
     return dict([(prj, prjCfg.type(prj, env, prjCfg)) for prj, prjCfg in cfg.iteritems()])
-
