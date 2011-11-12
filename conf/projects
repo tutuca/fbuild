@@ -20,14 +20,14 @@ gtest:
 {
     type: `SVN`,
     url: "http://googletest.googlecode.com/svn/tags/release-1.6.0",
-    executeAfter: "cp #/site_scons/external/gtestSConscript #/projects/gtest/SConscript"
+    executeAfter: "cp #external/gtestSConscript #projects/gtest/SConscript"
 }
 
 gmock:
 {
     type: `SVN`,
     url: "http://googlemock.googlecode.com/svn/tags/release-1.6.0",
-    executeAfter: "cp #/site_scons/external/gmockSConscript #/projects/gmock/SConscript"
+    executeAfter: "cp #external/gmockSConscript #projects/gmock/SConscript"
 }
 
 getoptpp:
@@ -53,10 +53,22 @@ xdrfile:
     type: `WGET`,
     url: "ftp://ftp.gromacs.org/pub/contrib/xdrfile-1.1.tar.gz"
     executeAfter: ["mkdir xdrfile2",
-                   "tar zxvf #/projects/xdrfile/xdrfile-1.1.tar.gz -C #/xdrfile2",
-                   "rm -r #/projects/xdrfile", 
-                   "mv #/xdrfile2/xdrfile-1.1b #/projects/xdrfile",
+                   "tar zxvf #projects/xdrfile/xdrfile-1.1.tar.gz -C #/xdrfile2",
+                   "rm -r #projects/xdrfile", 
+                   "mv #/xdrfile2/xdrfile-1.1b #projects/xdrfile",
                    "rmdir xdrfile2",
-                   "cp #/site_scons/external/xdrfileSConscript #/projects/xdrfile/SConscript"]
+                   "cp #external/xdrfileSConscript #projects/xdrfile/SConscript"]
 
+}
+
+"fudepan-sandbox":
+{
+    type: `HG`,
+    url: "http://code.google.com/p/fudepan-sandbox/"
+}
+
+"backbones-generator":
+{
+    type: `SVN`,
+    url: "http://backbones-generator.googlecode.com/svn/trunk"
 }

@@ -198,7 +198,8 @@ def WalkDirsForComponents(env, topdir, ignore):
 
 def initializeDependencies(env):
     global downloadableDependencies 
-    downloadableDependencies = findLoadableDependencies(env)
+    confDir = env.Dir('#/../conf/').abspath
+    downloadableDependencies = findLoadableDependencies(env, confDir)
 
 def process(env, target):
     global components
@@ -209,7 +210,10 @@ def process(env, target):
         for dep in component.deps:
             if not components.has_key(dep):
                 downloadableDependency = downloadableDependencies.get(dep)
-                if downloadDependency(env, downloadableDependency):
+                denv = env.Clone()
+                denv['EXTERNAL_DIR'] = env.Dir('#/site_scons/external').abspath
+                denv['ROOT'] = env.Dir('#').abspath
+                if downloadDependency(downloadableDependency, denv):
                     pathname = os.path.join(downloadableDependency.target, "SConscript")
                     if not os.path.exists(pathname):
                         raise Exception('Could not found SConscript for: %s' % dep)
