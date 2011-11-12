@@ -211,8 +211,9 @@ def process(env, target):
             if not components.has_key(dep):
                 downloadableDependency = downloadableDependencies.get(dep)
                 denv = env.Clone()
+                print denv["WS_DIR"]
                 denv['EXTERNAL_DIR'] = env.Dir('#/site_scons/external').abspath
-                denv['#'] = env.Dir('#').abspath
+                denv['ROOT'] = env.Dir('#').abspath
                 if downloadDependency(downloadableDependency, denv):
                     pathname = os.path.join(downloadableDependency.target, "SConscript")
                     if not os.path.exists(pathname):

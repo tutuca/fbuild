@@ -55,7 +55,7 @@ xdrfile:
     executeAfter: ["mkdir xdrfile2",
                    "tar zxvf #projects/xdrfile/xdrfile-1.1.tar.gz -C #/xdrfile2",
                    "rm -r #projects/xdrfile", 
-                   "mv #/xdrfile2/xdrfile-1.1b #/projects/xdrfile",
+                   "mv #/xdrfile2/xdrfile-1.1b #projects/xdrfile",
                    "rmdir xdrfile2",
                    "cp #external/xdrfileSConscript #projects/xdrfile/SConscript"]
 
@@ -65,4 +65,10 @@ xdrfile:
 {
     type: `HG`,
     url: "http://code.google.com/p/fudepan-sandbox/"
+}
+
+"backbones-generator":
+{
+    type: `SVN`,
+    url: "http://backbones-generator.googlecode.com/svn/trunk"
 }

@@ -58,7 +58,7 @@ for arg in args.project or []:
             downloadDependency(d, {
                 'WS_DIR': 'projects',
                 'EXTERNAL_DIR': 'scons/site_scons/external',
-                '#': 'scons'
+                'ROOT': 'scons'
                 })
         else:
             cprint("Cannot find %s in project file" % project, 'red')

@@ -50,7 +50,7 @@ class BasePrjDownload(object):
     def executeCmd(self, cmd):
         cmd = cmd.replace('#external', self.env['EXTERNAL_DIR'])\
                  .replace('#projects', self.env['WS_DIR'])\
-                 .replace('#', self.env['#'])
+                 .replace('#', self.env['ROOT'])
         cprint('About to execute: %s' % cmd, 'purple')
         rc = subprocess.call(cmd.split(' '))
         success = rc == 0
