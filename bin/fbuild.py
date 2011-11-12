@@ -32,14 +32,14 @@ def invoke_scons(args):
         cmd = 'cd scons; scons ' + ' '.join(args)
         call(cmd, shell=True)
 
-def parse_arg(arg):
+def parse_project_arg(arg):
     splitted = arg.split(':')
     return (arg, splitted[0], splitted[1] if len(splitted) > 1 else None)
 
 parser = argparse.ArgumentParser(description="invokes the fudepan-build system")
 parser.add_argument('-c', dest='commands', help="clear", action='append_const', const='clear')
 parser.add_argument('project', nargs='*', help="use project[:task]. Possibles tasks are: test, checkout")
-args = parser.parse_args()
+args = parser.parse_project_args()
 
 from dependencies import downloadDependency, findLoadableDependencies
 deps = findLoadableDependencies({}, "conf")
@@ -51,10 +51,9 @@ for command in args.commands or []:
 
 scons_targets = []
 for arg in args.project or []:
-    original, project, task = parse_arg(arg)
+    original, project, task = parse_project_arg(arg)
     if task == 'checkout':
         d = deps.get(project)
-        print d
         if d:
             downloadDependency(d, {
                 'WS_DIR': 'projects',
