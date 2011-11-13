@@ -20,4 +20,3 @@
 function fudepan-install {
     sudo $PYTHON_BIN_PATH bin/fbuild.py INSTALL_HEADERS_DIR=/usr/local/include/ INSTALL_BIN_DIR=/usr/local/bin/ INSTALL_LIB_DIR=/usr/local/lib/ $* install
 }
-

@@ -26,6 +26,7 @@ sys.path.append(BUILD_SCRIPTS_DIR)
 import argparse
 from subprocess import call
 from termcolor import cprint
+from tasks import checkout, astyle
 
 def invoke_scons(args):
     if args:
@@ -39,7 +40,7 @@ def parse_project_arg(arg):
 parser = argparse.ArgumentParser(description="invokes the fudepan-build system")
 parser.add_argument('-c', dest='commands', help="clear", action='append_const', const='clear')
 parser.add_argument('-l', '--list', dest='commands', help="list projects", action='append_const', const='projects')
-parser.add_argument('project', nargs='*', help="use project[:task]. Possibles tasks are: test, checkout")
+parser.add_argument('project', nargs='*', help="use project[:task]. Possibles tasks are: test, checkout, astyle")
 args = parser.parse_args()
 
 from dependencies import downloadDependency, findLoadableDependencies
@@ -56,16 +57,9 @@ scons_targets = []
 for arg in args.project or []:
     original, project, task = parse_project_arg(arg)
     if task == 'checkout':
-        d = deps.get(project)
-        if d:
-            d.env = {
-                    'WS_DIR': 'projects',
-                    'EXTERNAL_DIR': 'scons/site_scons/external',
-                    'ROOT': 'scons'
-                    }
-            d.download()
-        else:
-            cprint("Cannot find %s in project file" % project, 'red')
+        checkout(deps, project)
+    elif task == 'astyle':
+        astyle(project)
     else:
         scons_targets.append(original)
 
