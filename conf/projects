@@ -64,11 +64,17 @@ xdrfile:
 "fudepan-sandbox":
 {
     type: `HG`,
-    url: "http://code.google.com/p/fudepan-sandbox/"
+    url: "https://fudepan-sandbox.googlecode.com/hg"
 }
 
 "backbones-generator":
 {
     type: `SVN`,
     url: "http://backbones-generator.googlecode.com/svn/trunk"
+}
+
+nuca:
+{
+    type: `HG`,
+    url: "https://nuca.googlecode.com/hg"
 }
