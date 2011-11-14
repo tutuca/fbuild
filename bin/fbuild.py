@@ -26,7 +26,7 @@ sys.path.append(BUILD_SCRIPTS_DIR)
 import argparse
 from subprocess import call
 from termcolor import cprint
-from tasks import checkout, astyle
+from tasks import tasks
 
 def invoke_scons(args):
     if args:
@@ -54,12 +54,12 @@ for command in args.commands or []:
         print deps.keys()
 
 scons_targets = []
+env = dict(projects=deps)
 for arg in args.project or []:
     original, project, task = parse_project_arg(arg)
-    if task == 'checkout':
-        checkout(deps, project)
-    elif task == 'astyle':
-        astyle(project)
+    if task in tasks:
+        env['original'] = original
+        tasks[task](project, task, env)
     else:
         scons_targets.append(original)
 
