@@ -59,7 +59,7 @@ for command in args.commands or []:
         scons_args.append(command)
     if command == 'projects':
         missing_args = False
-        print deps.keys()
+        print " ".join(deps.keys())
 
 scons_targets = []
 env = dict(projects=deps)

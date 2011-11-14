@@ -20,3 +20,13 @@
 function fudepan-install {
     sudo $PYTHON_BIN_PATH bin/fbuild.py INSTALL_HEADERS_DIR=/usr/local/include/ INSTALL_BIN_DIR=/usr/local/bin/ INSTALL_LIB_DIR=/usr/local/lib/ $* install
 }
+
+_fbuild() {
+    cur="${COMP_WORDS[COMP_CWORD]}"
+    if [ -z $cur ]; then
+        COMPREPLY=(`ls projects`)
+    else
+        COMPREPLY=(`find projects/$cur* -maxdepth 0 | cut -f2 -d'/'`)
+    fi
+}
+complete -F _fbuild fbuild
