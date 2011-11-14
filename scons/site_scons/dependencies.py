@@ -73,7 +73,7 @@ class HG(BasePrjDownload):
         target = os.path.join(self.env['WS_DIR'], self.name)
         rc = subprocess.call("cd %s; hg pull -u" % target, shell=True)
         if rc != 0 :
-            cprint('svn failed to retrieve target %s from %s' % (target, self.url), 'red')
+            cprint('hg failed to retrieve target %s from %s' % (target, self.url), 'red')
             cprint('error: %s' % rc, 'red')
 
 class SVN(BasePrjDownload):

@@ -69,7 +69,7 @@ env = dict(projects=deps)
 for arg in args.project or []:
     missing_args = False
     original, project_name, task = parse_project_arg(arg)
-    for project in (project_name if project_name != 'all' else find_installed_projects()):
+    for project in ([project_name] if project_name != 'all' else find_installed_projects()):
         if task in tasks:
             env['original'] = original
             tasks[task](project, task, env)

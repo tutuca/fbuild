@@ -17,8 +17,9 @@
 # You should have received a copy of the GNU General Public License
 # along with fudepan-build.  If not, see <http://www.gnu.org/licenses/>.
 
+from os import path
 from subprocess import call, check_output
-from termcolor import cprint
+from termcolor import cprint, ask_user
 
 def dependency_method_wrapper(projects, project, method):
     d = projects.get(project)
@@ -46,8 +47,45 @@ def astyle(project, task, env):
     else:
         cprint("Astyle version should be >=1.24", 'red')
 
+def doxygen(project, task, env):
+    prjPath = path.join('projects', project)
+    doxyfilePath = path.join(prjPath, 'Doxyfile')
+    if not path.exists(doxyfilePath):
+        if ask_user("""There is no doxygen configuration file, \
+do you want to create one?""", 'green', ['y', 'n']) == 'y':
+            doxygen_template = """\
+PROJECT_NAME = %s
+OUTPUT_DIRECTORY = %s
+TAB_SIZE = 4
+BUILTIN_STL_SUPPORT = YES
+IDL_PROPERTY_SUPPORT = NO
+EXTRACT_ALL = YES
+EXTRACT_PRIVATE = YES
+EXTRACT_STATIC = YES
+EXTRACT_LOCAL_METHODS = YES
+EXTRACT_ANON_NSPACES = YES
+SOURCE_BROWSER = YES
+REFERENCED_BY_RELATION = YES
+REFERENCES_RELATION = YES
+ALPHABETICAL_INDEX = YES
+HTML_DYNAMIC_SECTIONS = YES
+TOC_EXPAND = YES
+GENERATE_TREEVIEW = YES
+USE_INLINE_TREES = YES
+HIDE_UNDOC_RELATIONS = NO
+HAVE_DOT = YES
+UML_LOOK = YES
+CALL_GRAPH = YES
+CALLER_GRAPH = YES
+MAX_DOT_GRAPH_DEPTH = 5"""
+            f = open(doxyfilePath, "w")
+            f.write(doxygen_template % (project, 'docs'))
+            f.flush()
+            f.close()
+
 tasks = {
         'checkout': checkout,
         'astyle'  : astyle,
-        'update'  : update
+        'update'  : update,
+        'doxygen' : doxygen
         }
