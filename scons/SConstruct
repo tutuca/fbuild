@@ -118,6 +118,7 @@ SConsEnvironment.RecursiveInstall = recursive_install.RecursiveInstall
 # Register tools
 env.Tool('doxygen')
 env.Tool('makebuilder')
+env.Tool('qt4')
 
 # Create a builder for tests
 import builders
