@@ -37,6 +37,9 @@ def parse_project_arg(arg):
     splitted = arg.split(':')
     return (arg, splitted[0], splitted[1] if len(splitted) > 1 else None)
 
+def find_installed_projects():
+    return os.listdir('projects')
+
 parser = argparse.ArgumentParser(description="invokes the fudepan-build system")
 parser.add_argument('--type', dest='type', nargs=1, action='store', help='type of build, options: dbg, opt')
 parser.add_argument('--efective', dest='commands', help="adds -Weffc flag", action='append_const', const='efective')
@@ -49,14 +52,14 @@ missing_args = True
 from dependencies import downloadDependency, findLoadableDependencies
 deps = findLoadableDependencies({}, "conf")
 
-scons_args = []
+scons_args = set()
 
 if args.type:
-    scons_args.append('--type=%s' % args.type[0])
+    scons_args.add('--type=%s' % args.type[0])
 
 for command in args.commands or []:
     if command in ['effective']:
-        scons_args.append(command)
+        scons_args.add(command)
     if command == 'projects':
         missing_args = False
         print " ".join(deps.keys())
@@ -65,20 +68,25 @@ scons_targets = []
 env = dict(projects=deps)
 for arg in args.project or []:
     missing_args = False
-    original, project, task = parse_project_arg(arg)
-    if task in tasks:
-        env['original'] = original
-        tasks[task](project, task, env)
-    elif task == 'clear':
-        scons_args.append('-c')
-        scons_targets.append(project)
-    elif task == 'clear-test':
-        scons_args.append('-c')
-        scons_targets.append(project + ':test')
-    else:
-        scons_targets.append(original)
+    original, project_name, task = parse_project_arg(arg)
+    for project in (project_name if project_name != 'all' else find_installed_projects()):
+        if task in tasks:
+            env['original'] = original
+            tasks[task](project, task, env)
+        elif task == 'clear':
+            scons_args.add('-c')
+            scons_targets.append(project)
+        elif task == 'clear-test':
+            scons_args.add('-c')
+            scons_targets.append(project + ':test')
+        elif task == 'test':
+            if os.path.exists('projects/%s/tests/SConscript' % project):
+                scons_targets.append(project + ':test')
+        else:
+            cmd = original.replace(project_name, project)
+            scons_targets.append(cmd)
 
-invoke_scons(scons_args + scons_targets)
+invoke_scons(list(scons_args) + scons_targets)
 
 if missing_args:
     parser.print_help()
