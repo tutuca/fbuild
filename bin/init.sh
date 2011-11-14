@@ -27,49 +27,44 @@
 # "shell env script" should be created.
 # i.e. for windows a env.bat should be created.
 
+function ubuntuInstall {
+    UBUNTU=`cat /etc/issue | grep Ubuntu`
+    if [ -n $UBUNTU ]; then
+      echo "info: 'sudo apt-get install $1' should do the job, do you want"
+      echo "      me to do it? (your password will be required)"
+      read -p "Install (y/n)?" REPLY
+      if [ "$REPLY" = "y" ]; then
+          sudo apt-get install $1
+      else
+          if [ $2 == 'required' ]; then
+            exit 1
+          fi
+      fi
+    fi
+}
+
 # Check if python is installed
 if [ ! "$(which python)" ]; then
-    echo "warning: Python was not found, need to install python to continue"
-    echo "info: 'sudo apt-get install python' should do the job, do you want"
-    echo "      me to do it? (your password will be required)"
-    read -p "Install (y/n)?" REPLY
-    if [ "$REPLY" = "y" ]; then
-        sudo apt-get install python
-    else
-        exit 1
-    fi
+    echo "error: Python was not found, need to install python to continue"
+    ubuntuInstall python 'required'
 fi
 
 # Check if scons is installed
 if [ ! "$(which scons)" ]; then
-    echo "warning: scons was not found, need to install scons to continue"
-    echo "info: 'sudo apt-get install scons' should do the job, do you want"
-    echo "      me to do it? (your password will be required)"
-    read -p "Install (y/n)?" REPLY
-    if [ "$REPLY" = "y" ]; then
-        sudo apt-get install scons
-    else
-        exit 1
-    fi
+    echo "error: scons was not found, need to install scons to continue"
+    ubuntuInstall scons 'required'
 fi
 
 # Check if scons is installed
 if [ ! "$(which moc)" ]; then
     echo "warning: qt was not found, qt is not required to continue"
-    echo "info: 'sudo apt-get install qt4-dev-tools' should do the job, do you want"
-    echo "      me to do it? (your password will be required)"
-    read -p "Install (y/n)?" REPLY
-    if [ "$REPLY" = "y" ]; then
-        sudo apt-get install qt4-dev-tools
-    else
-        exit 1
-    fi
+    ubuntuInstall qt4-dev-tools
 fi
 
 # Check if python config module is installed
 $PYTHON_BIN_PATH -m config 2> /dev/null
 if [ $? -ne 0 ]; then
-    echo "warning: python config module not found, need to install config module to continue"
+    echo "error: python config module not found, need to install config module to continue"
     read -p "Install (y/n)?" REPLY
     if [ "$REPLY" = "y" ]; then
       wget http://www.red-dove.com/config-0.3.9.tar.gz && 
@@ -82,14 +77,10 @@ fi
 
 $PYTHON_BIN_PATH -m argparse 2> /dev/null
 if [ $? -ne 0 ]; then
-    echo "warning: python argparse module not found, need to install it to continue"
-    read -p "Install (y/n)?" REPLY
-    if [ "$REPLY" = "y" ]; then
-        sudo apt-get install python-argparse
-    else
-        exit 1
-    fi
+    echo "error: python argparse module not found, need to install it to continue"
+    ubuntuInstall python-argparse 'required'
 fi
+
 # jump to env.py
 $PYTHON_BIN_PATH bin/env.py
 
