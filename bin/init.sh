@@ -29,14 +29,14 @@
 
 function ubuntuInstall {
     UBUNTU=`cat /etc/issue | grep Ubuntu`
-    if [ -n $UBUNTU ]; then
+    if [ -n "$UBUNTU" ]; then
       echo "info: 'sudo apt-get install $1' should do the job, do you want"
       echo "      me to do it? (your password will be required)"
       read -p "Install (y/n)?" REPLY
       if [ "$REPLY" = "y" ]; then
           sudo apt-get install $1
       else
-          if [ $2 == 'required' ]; then
+          if [ $2 = 'required' ]; then
             exit 1
           fi
       fi
