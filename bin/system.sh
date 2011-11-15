@@ -26,7 +26,10 @@ _fbuild() {
     if [ -z $cur ]; then
         COMPREPLY=(`ls projects`)
     else
-        COMPREPLY=(`find projects/$cur* -maxdepth 0 | cut -f2 -d'/'`)
+        TMP=`find projects/$cur* -maxdepth 0 2> /dev/null`
+        if [ $? = "0" ]; then
+          COMPREPLY=(`find projects/$cur* -maxdepth 0 | cut -f2 -d'/'`)
+        fi
     fi
 }
 complete -F _fbuild fbuild
