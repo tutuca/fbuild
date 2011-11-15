@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 # fudepan-build: The build system for FuDePAN projects 
 #
