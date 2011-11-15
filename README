@@ -1,19 +1,2 @@
-Run source env.sh
 
-To build everything:
-scons build_all
-Note: build_all will also install because the target is usually the installation.
-
-To run all unit tests:
-scons run_all
-
-To install everything:
-scons install
-Note: the difference between building all and installing is that some libraries build and then copy artifacts to the INSTALL_DIR. Examples of these artifacts are headers, static libraries and dinamic libraries.
-Install alone is usefull when we want to copy all the artifacts to somewhere else.
-
-To clean everything:
-scons -c
-
-To build, install and run everything:
-scons
+See: http://code.google.com/p/fudepan-build/wiki/readme

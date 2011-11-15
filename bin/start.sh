@@ -27,6 +27,16 @@
 # "shell env script" should be created.
 # i.e. for windows a env.bat should be created.
 
-hg pull -u
+if [ -z "${PYTHON_BIN_PATH+x}" ]; then
+  export PYTHON_BIN_PATH=/usr/bin/python
+fi
 
-source bin/start.sh
+alias fbuild="$PYTHON_BIN_PATH bin/fbuild.py"
+
+bash bin/init.sh
+
+source bin/system.sh
+
+if [ -e bin/local.sh ]; then
+  source bin/local.sh
+fi
