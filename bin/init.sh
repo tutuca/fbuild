@@ -36,7 +36,7 @@ function ubuntuInstall {
       if [ "$REPLY" = "y" ]; then
           sudo apt-get install $1
       else
-          if [ $2 = 'required' ]; then
+          if [ "$2" = 'required' ]; then
             exit 1
           fi
       fi

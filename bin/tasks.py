@@ -18,7 +18,7 @@
 # along with fudepan-build.  If not, see <http://www.gnu.org/licenses/>.
 
 from os import path
-from subprocess import call, check_output
+from subprocess import call, Popen, PIPE
 from termcolor import cprint, ask_user
 
 def dependency_method_wrapper(projects, project, method):
@@ -40,7 +40,11 @@ def update(project, task, env):
     dependency_method_wrapper(env['projects'], project, 'update')
 
 def astyle(project, task, env):
-    version = float(check_output('astyle -V 2>&1 | cut -f4 -d" "', shell=True))
+    p = Popen('astyle -V 2>&1 | cut -f4 -d" "', shell=True, stdout=PIPE)
+    p.wait()
+    output = p.stdout.read()
+    version = float(output)
+    #version = float(check_output('astyle -V 2>&1 | cut -f4 -d" "', shell=True))
     if version >= 1.24:
         cmd = 'cd projects; cd ' + project + '; astyle -k1 --recursive --options=none --convert-tabs -bSKpUH *.h *.cpp'
         call(cmd, shell=True)
