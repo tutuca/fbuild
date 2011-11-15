@@ -32,4 +32,4 @@ _fbuild() {
         fi
     fi
 }
-complete -F _fbuild fbuild
+complete -F _fbuild -o nospace fbuild
