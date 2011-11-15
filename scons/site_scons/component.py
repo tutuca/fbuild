@@ -17,7 +17,7 @@
 # You should have received a copy of the GNU General Public License
 # along with fudepan-build.  If not, see <http://www.gnu.org/licenses/>.
 
-# FuDePan boilerplate required here
+# FuDePAN boilerplate required here
 
 import fnmatch
 import os
