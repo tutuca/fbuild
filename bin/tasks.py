@@ -50,38 +50,27 @@ def astyle(project, task, env):
 def doxygen(project, task, env):
     prjPath = path.join('projects', project)
     doxyfilePath = path.join(prjPath, 'Doxyfile')
+    run = True
     if not path.exists(doxyfilePath):
         if ask_user("""There is no doxygen configuration file, \
 do you want to create one?""", 'green', ['y', 'n']) == 'y':
-            doxygen_template = """\
-PROJECT_NAME = %s
-OUTPUT_DIRECTORY = %s
-TAB_SIZE = 4
-BUILTIN_STL_SUPPORT = YES
-IDL_PROPERTY_SUPPORT = NO
-EXTRACT_ALL = YES
-EXTRACT_PRIVATE = YES
-EXTRACT_STATIC = YES
-EXTRACT_LOCAL_METHODS = YES
-EXTRACT_ANON_NSPACES = YES
-SOURCE_BROWSER = YES
-REFERENCED_BY_RELATION = YES
-REFERENCES_RELATION = YES
-ALPHABETICAL_INDEX = YES
-HTML_DYNAMIC_SECTIONS = YES
-TOC_EXPAND = YES
-GENERATE_TREEVIEW = YES
-USE_INLINE_TREES = YES
-HIDE_UNDOC_RELATIONS = NO
-HAVE_DOT = YES
-UML_LOOK = YES
-CALL_GRAPH = YES
-CALLER_GRAPH = YES
-MAX_DOT_GRAPH_DEPTH = 5"""
+            doxygen_template = _read('conf/doxygenTemplate')
             f = open(doxyfilePath, "w")
-            f.write(doxygen_template % (project, 'docs'))
+            f.write(doxygen_template.replace('$PROJECT_NAME', project)\
+                                    .replace('$OUTPUT_DIR', 'docs'))
             f.flush()
             f.close()
+        else:
+            run = False
+
+    if run:
+        call('cd %s; doxygen' % prjPath, shell=True)
+
+def _read(f):
+    f = open(f, "r")
+    content = f.read()
+    f.close()
+    return content
 
 tasks = {
         'checkout': checkout,
