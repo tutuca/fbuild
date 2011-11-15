@@ -35,7 +35,7 @@ hg pull -u
 
 alias fbuild="$PYTHON_BIN_PATH bin/fbuild.py"
 
-sh bin/init.sh
+bash bin/init.sh
 
 source bin/system.sh
 
