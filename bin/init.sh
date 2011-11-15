@@ -61,6 +61,11 @@ if [ ! "$(which moc)" ]; then
     ubuntuInstall qt4-dev-tools
 fi
 
+if [ ! "$(which doxygen)" ]; then
+    echo "warning: doxygen was not found, doxygen is not required to continue"
+    ubuntuInstall doxygen 
+fi
+
 # Check if python config module is installed
 $PYTHON_BIN_PATH -m config 2> /dev/null
 if [ $? -ne 0 ]; then
