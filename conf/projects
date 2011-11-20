@@ -36,6 +36,12 @@ getoptpp:
     url: "https://getoptpp.googlecode.com/hg"
 }
 
+"biopp-filer":
+{
+    type: `HG`,
+    url: "https://biopp-filer.googlecode.com/hg"
+}
+
 "stl-debug":
 {
     type: `HG`,
@@ -44,8 +50,8 @@ getoptpp:
 
 "prot-filer":
 {
-    type: `SVN`,
-    url: "http://prot-filer.googlecode.com/svn/trunk/"
+    type: `HG`,
+    url: "https://prot-filer.googlecode.com/hg"
 }
 
 xdrfile:
