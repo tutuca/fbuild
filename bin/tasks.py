@@ -26,7 +26,7 @@ def dependency_method_wrapper(projects, project, method):
     if d:
         d.env = {
                 'WS_DIR': 'projects',
-                'EXTERNAL_DIR': 'scons/site_scons/external',
+                'EXTERNAL_DIR': 'site_scons/external',
                 'ROOT': 'scons'
                 }
         getattr(d, method)()

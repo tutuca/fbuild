@@ -20,7 +20,7 @@
 import os
 import sys
 
-BUILD_SCRIPTS_DIR = os.path.join(os.getcwd(), "scons/site_scons")
+BUILD_SCRIPTS_DIR = os.path.join(os.getcwd(), "site_scons")
 sys.path.append(BUILD_SCRIPTS_DIR)
 
 import argparse
@@ -30,7 +30,7 @@ from tasks import tasks
 
 def invoke_scons(args):
     if args:
-        cmd = 'cd scons; scons ' + ' '.join(args)
+        cmd = 'scons ' + ' '.join(args)
         call(cmd, shell=True)
 
 def parse_project_arg(arg):

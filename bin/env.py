@@ -22,7 +22,7 @@
 import os
 import sys
 
-BUILD_SCRIPTS_DIR = os.path.join(os.getcwd(), "scons/site_scons")
+BUILD_SCRIPTS_DIR = os.path.join(os.getcwd(), "site_scons")
 sys.path.append(BUILD_SCRIPTS_DIR)
 
 # Welcome message    
