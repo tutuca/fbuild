@@ -198,7 +198,7 @@ def WalkDirsForComponents(env, topdir, ignore):
 
 def initializeDependencies(env):
     global downloadableDependencies 
-    confDir = env.Dir('#/../conf/').abspath
+    confDir = env.Dir('#/conf/').abspath
     downloadableDependencies = findLoadableDependencies(env, confDir)
 
 def process(env, target):

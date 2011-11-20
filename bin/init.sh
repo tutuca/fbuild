@@ -19,8 +19,6 @@
 # You should have received a copy of the GNU General Public License
 # along with fudepan-build.  If not, see <http://www.gnu.org/licenses/>.
 
-# Insert FuDePan boilerplate
-
 # This file was written in shell scripting because we could not have python at this point
 # After the first check that python is there, we jump to env.py to ensure we support as
 # many platforms as we can. If another platform besides *nix is required, a different
@@ -43,6 +41,12 @@ function ubuntuInstall {
     fi
 }
 
+# Check if the build-essential tools are installed
+if [ ! "$(which g++)" ]; then
+    echo "error: Essential development tools were not found, need to install them to continue"
+    ubuntuInstall build-essential 'required'
+fi
+
 # Check if python is installed
 if [ ! "$(which python)" ]; then
     echo "error: Python was not found, need to install python to continue"
@@ -55,7 +59,7 @@ if [ ! "$(which scons)" ]; then
     ubuntuInstall scons 'required'
 fi
 
-# Check if scons is installed
+# Check if qt is installed (we use the moc executable)
 if [ ! "$(which moc)" ]; then
     echo "warning: qt was not found, qt is not required to continue"
     ubuntuInstall qt4-dev-tools

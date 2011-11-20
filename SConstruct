@@ -15,11 +15,11 @@ SetOption('num_jobs', cpu_count() + 1)
 
 # Add options
 AddOption('--type',
-          dest='type', 
+          dest='type',
           type='string',
           nargs=1,
           action='store',
-          help='type of build, options: dbg (default), opt',
+          help='type of build, options: debug (default), opt',
           default='debug')
 
 (arch,binType) = platform.architecture()
@@ -44,14 +44,15 @@ if binType == 'ELF':
 # Add variables, this variables can be introduced through a file or
 # can be introduced via command line
 vars = Variables('SConfig')
-# Get the scons root path, this can be tricky because 
+
+# Get the scons root path, this can be tricky because
 # scons can be ran with the -v option
 INSTALL_DIR = os.path.join(env.Dir('#/..').abspath, "install")
 vars.AddVariables(
     PathVariable(
         'WS_DIR',
         'workspace directory',
-        env.Dir('#/../projects').abspath,
+        env.Dir('#/projects').abspath,
         PathVariable.PathIsDirCreate))
 vars.AddVariables(
     PathVariable(
@@ -118,7 +119,6 @@ SConsEnvironment.RecursiveInstall = recursive_install.RecursiveInstall
 # Register tools
 env.Tool('doxygen')
 env.Tool('makebuilder')
-env.Tool('qt4')
 
 # Create a builder for tests
 import builders
@@ -128,7 +128,7 @@ env.Append(BUILDERS = {'Test':  bld, 'Configure': configure})
 
 # Add Qt
 import qtutil
-env.Tool('qt')
+qtutil.preDetectQt(env)
 qtutil.addQtComponents(env)
 import boostutil
 boostutil.addBoostComponents(env)
@@ -142,7 +142,7 @@ import termcolor
 if ARGUMENTS.get('VERBOSE') != '1':
     termcolor.prettyMessages(env)
 
-# call to fudepan.py where 
+# call to fudepan.py where
 import fudepan
 fudepan.setDefines(env)
 
@@ -153,7 +153,7 @@ termcolor.cprint('    headers dir: ' + env['INSTALL_HEADERS_DIR'], 'green')
 
 # Walk over the tree finding components
 from component import WalkDirsForComponents
-WalkDirsForComponents(env, topdir = env['WS_DIR'], 
+WalkDirsForComponents(env, topdir = env['WS_DIR'],
                       ignore = [
                                'gmock/scons',
                                'buildtest/test_doc',
