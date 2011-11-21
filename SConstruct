@@ -47,7 +47,7 @@ vars = Variables('SConfig')
 
 # Get the scons root path, this can be tricky because
 # scons can be ran with the -v option
-INSTALL_DIR = os.path.join(env.Dir('#/..').abspath, "install")
+INSTALL_DIR = os.path.join(env.Dir('#').abspath, "install")
 vars.AddVariables(
     PathVariable(
         'WS_DIR',
