@@ -156,14 +156,17 @@ from component import WalkDirsForComponents
 WalkDirsForComponents(env, topdir = env['WS_DIR'],
                       ignore = [
                                'gmock/scons',
-                               'buildtest/test_doc',
-                               'buildtest/test_program',
-                               'buildtest/test_program/test_ut',
-                               'buildtest/test_qt',
-                               'buildtest/test_shared',
-                               'buildtest/test_static',
-                               'buildtest/test_ut',
-                               'buildtest/test_ut/test_ut'
+                               # The following exclusions are used when testing the build environment
+                               # previously, the user copies from #/test the buildtest folder inside
+                               # projects so scons can detect it
+                               'projects/buildtest/test_doc',
+                               'projects/buildtest/test_program',
+                               'projects/buildtest/test_program/test_ut',
+                               'projects/buildtest/test_qt',
+                               'projects/buildtest/test_shared',
+                               'projects/buildtest/test_static',
+                               'projects/buildtest/test_ut',
+                               'projects/buildtest/test_ut/test_ut'
                                ])
 
 component.initializeDependencies(env)

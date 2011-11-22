@@ -2,10 +2,11 @@ Import ('env')
 
 name = 'teststatic'
 inc = env.Dir('.')
+ext_inc = env.Dir('.')
 src = env.Glob('*.cpp')
 deps = []
 
-env.CreateStaticLibrary(name, inc, src, deps)
+env.CreateStaticLibrary(name, inc, ext_inc, src, deps)
 
     
 

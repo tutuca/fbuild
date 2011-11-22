@@ -456,9 +456,9 @@ def __moc_generator_from_h(source, target, env, for_signature):
         pass
     
     if pass_defines:
-        return '$QT4_MOC $QT4_MOCDEFINES $QT4_MOCFROMHFLAGS $QT4_MOCINCFLAGS -o $TARGET $SOURCE'
+        return SCons.Action.Action('$QT4_MOC $QT4_MOCDEFINES $QT4_MOCFROMHFLAGS $QT4_MOCINCFLAGS -o $TARGET $SOURCE','$QT4_MOCFROMHCOMSTR')
     else:
-        return '$QT4_MOC $QT4_MOCFROMHFLAGS $QT4_MOCINCFLAGS -o $TARGET $SOURCE'
+        return SCons.Action.Action('$QT4_MOC $QT4_MOCFROMHFLAGS $QT4_MOCINCFLAGS -o $TARGET $SOURCE','$QT4_MOCFROMHCOMSTR')
 
 def __moc_generator_from_cxx(source, target, env, for_signature):
     pass_defines = False
@@ -470,10 +470,10 @@ def __moc_generator_from_cxx(source, target, env, for_signature):
     
     if pass_defines:
         return ['$QT4_MOC $QT4_MOCDEFINES $QT4_MOCFROMCXXFLAGS $QT4_MOCINCFLAGS -o $TARGET $SOURCE',
-                SCons.Action.Action(checkMocIncluded,None)]
+                SCons.Action.Action(checkMocIncluded,'$QT4_MOCFROMCXXCOMSTR')]
     else:
         return ['$QT4_MOC $QT4_MOCFROMCXXFLAGS $QT4_MOCINCFLAGS -o $TARGET $SOURCE',
-                SCons.Action.Action(checkMocIncluded,None)]
+                SCons.Action.Action(checkMocIncluded,'$QT4_MOCFROMCXXCOMSTR')]
 
 def __mocx_generator_from_h(source, target, env, for_signature):
     pass_defines = False
@@ -484,9 +484,9 @@ def __mocx_generator_from_h(source, target, env, for_signature):
         pass
     
     if pass_defines:
-        return '$QT4_MOC $QT4_MOCDEFINES $QT4_MOCFROMHFLAGS $QT4_MOCINCFLAGS -o $TARGET $SOURCE'
+        return  SCons.Action.Action('$QT4_MOC $QT4_MOCDEFINES $QT4_MOCFROMHFLAGS $QT4_MOCINCFLAGS -o $TARGET $SOURCE','$QT4_MOCFROMHCOMSTR')
     else:
-        return '$QT4_MOC $QT4_MOCFROMHFLAGS $QT4_MOCINCFLAGS -o $TARGET $SOURCE'
+        return SCons.Action.Action('$QT4_MOC $QT4_MOCFROMHFLAGS $QT4_MOCINCFLAGS -o $TARGET $SOURCE','$QT4_MOCFROMHCOMSTR')
 
 def __mocx_generator_from_cxx(source, target, env, for_signature):
     pass_defines = False
@@ -498,10 +498,10 @@ def __mocx_generator_from_cxx(source, target, env, for_signature):
     
     if pass_defines:
         return ['$QT4_MOC $QT4_MOCDEFINES $QT4_MOCFROMCXXFLAGS $QT4_MOCINCFLAGS -o $TARGET $SOURCE',
-                SCons.Action.Action(checkMocIncluded,None)]
+                SCons.Action.Action(checkMocIncluded,'$QT4_MOCFROMHCOMSTR')]
     else:
         return ['$QT4_MOC $QT4_MOCFROMCXXFLAGS $QT4_MOCINCFLAGS -o $TARGET $SOURCE',
-                SCons.Action.Action(checkMocIncluded,None)]
+                SCons.Action.Action(checkMocIncluded,'$QT4_MOCFROMHCOMSTR')]
 
 def __qrc_generator(source, target, env, for_signature):
     name_defined = False

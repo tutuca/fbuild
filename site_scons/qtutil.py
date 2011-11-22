@@ -17,16 +17,15 @@
 # You should have received a copy of the GNU General Public License
 # along with fudepan-build.  If not, see <http://www.gnu.org/licenses/>.
 
+import glob
 import os
 import sys
-import glob
 
 def preDetectQt(env):
-    moc = env.WhereIs('moc-qt4') or env.WhereIs('moc4')
-    if moc:
-        qtdir = os.path.split(os.path.split(moc)[0])[0]
+    moc4 = env.WhereIs('moc-qt4') or env.WhereIs('moc4')
+    if moc4:
+        qtdir = os.path.split(os.path.split(moc4)[0])[0]
         os.environ['QT4DIR'] = qtdir
-        os.environ['QTDIR'] = qtdir
         env.Tool('qt4')
     else:
         moc = env.WhereIs('moc')
@@ -37,7 +36,8 @@ def preDetectQt(env):
 
 def addQtComponents(env):
     # This is a base component, it will include the qt base include path
-    QT_INCLUDE_ROOT = os.getenv("QT_INCLUDE_ROOT", os.path.join( os.environ['QTDIR'], 'include', 'qt4'))
+    qtdir =  os.environ['QT4DIR'] or os.environ['QTDIR']
+    QT_INCLUDE_ROOT = os.getenv("QT_INCLUDE_ROOT", os.path.join(qtdir, 'include', 'qt4'))
     env.AddComponent('QtInc', os.getenv("QT_INCLUDE", env.Dir(QT_INCLUDE_ROOT)), [])
     validModules = [
         'QtCore',

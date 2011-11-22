@@ -1,5 +1,5 @@
 #include "funcshared.h"
-#include "funcstatic.h"
+#include "teststatic/funcstatic.h"
 
 #include <iostream>
 

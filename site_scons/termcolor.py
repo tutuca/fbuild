@@ -65,9 +65,15 @@ def prettyMessages(env):
     env['SHLINKCOMSTR'] = link_shared_library_message
     env['LINKCOMSTR'] = link_program_message
     env['INSTALLSTR'] =  install_message
+    # Qt3
     env['QT_UICCOMSTR'] = qtuic_message
     #env['QT_RCCCOMSTR'] = rcc
     env['QT_MOCFROMHCOMSTR'] = qtmoc_message
     env['QT_MOCFROMCXXCOMSTR'] = qtmoc_message
     #env['QT_LUPDATECOMSTR'] = ts
     #env['QT_LRELEASECOMSTR'] = qm
+    # Qt4
+    env['QT4_MOCFROMHCOMSTR'] = qtmoc_message
+    env['QT4_MOCFROMCXXCOMSTR'] = qtmoc_message
+    env['QT4_UICCOMSTR'] = qtuic_message
+    
