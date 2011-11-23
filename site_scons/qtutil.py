@@ -36,7 +36,7 @@ def preDetectQt(env):
 
 def addQtComponents(env):
     # This is a base component, it will include the qt base include path
-    qtdir =  os.environ['QT4DIR'] or os.environ['QTDIR']
+    qtdir =  os.environ.get('QT4DIR') or os.environ.get('QTDIR')
     QT_INCLUDE_ROOT = os.getenv("QT_INCLUDE_ROOT", os.path.join(qtdir, 'include', 'qt4'))
     env.AddComponent('QtInc', os.getenv("QT_INCLUDE", env.Dir(QT_INCLUDE_ROOT)), [])
     validModules = [

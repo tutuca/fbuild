@@ -79,6 +79,9 @@ for arg in args.project or []:
         elif task == 'clear-test':
             scons_args.add('-c')
             scons_targets.append(project + ':test')
+        elif task == 'gcov':
+            scons_args.add('--gcoverage')
+            scons_targets.append(project)
         elif task == 'test':
             if os.path.exists('projects/%s/tests/SConscript' % project):
                 scons_targets.append(project + ':test')
