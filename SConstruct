@@ -94,6 +94,9 @@ sys.path.append(env['BUILD_SCRIPTS_DIR'])
 env.Decider( 'MD5-timestamp' )
 env.SConsignFile()
 
+# Let the default to do nothing
+env.Default()
+
 # Compiler options
 import compiler
 compiler.loadCompilerOptions(env)
@@ -101,6 +104,12 @@ compiler.loadCompilerOptions(env)
 # Linker options
 import linker
 linker.loadLinkOptions(env)
+
+# Include the aliases helper
+import helpfromaliases
+env.AliasesHelpHead('\nTargets:')
+env.AliasesHelpFoot('')
+env.AlwaysBuild(env.Alias('targets', [], env.AliasesGenHelp))
 
 # Wrapper functions to build target types
 from SCons.Script.SConscript import SConsEnvironment
@@ -112,6 +121,7 @@ SConsEnvironment.CreateHeaderOnlyLibrary = component.CreateHeaderOnlyLibrary
 SConsEnvironment.CreateTest = component.CreateTest
 SConsEnvironment.CreateAutoToolsProject = component.CreateAutoToolsProject
 SConsEnvironment.AddComponent = component.AddComponent
+SConsEnvironment.CreateDoc = component.CreateDoc
 
 import recursive_install
 SConsEnvironment.RecursiveInstall = recursive_install.RecursiveInstall
@@ -173,3 +183,4 @@ component.initializeDependencies(env)
 
 for target in list(component.components): #make a copy
     component.process(env, target)
+

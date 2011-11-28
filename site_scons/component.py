@@ -86,7 +86,7 @@ class Component(object):
                             env.RecursiveInstall(self.installIncludesDir, path)
                         else:
                             t = env.Install(self.installIncludesDir, path)
-                            env.Alias('install', t)
+                            env.jAlias('install', t, "install all targets")
             self.processed = True #TODO: gtest_main
 
 def setupComponent(env, type, name, inc, deps, externalHeaderDirs=None):
@@ -108,10 +108,10 @@ def CreateProgram(env, name, inc, src, deps):
         (incpaths,libpaths,libs) = GetDependenciesPaths(name, env, deps)
         progEnv = env.Clone()
         program = progEnv.Program(name, src, CPPPATH=incpaths, LIBS=libs, LIBPATH=libpaths)
-        progEnv.Alias('build_all', program)
+        progEnv.jAlias('build_all', program, "build all targets")
         install = progEnv.Install(env['INSTALL_BIN_DIR'], program)
-        progEnv.Alias(name, install)
-        progEnv.Alias('install', install)
+        progEnv.jAlias(name, install, "install " + name)
+        progEnv.jAlias('install', install, "install all targets")
 
 def CreateTest(env, name, inc, src, deps):
     if isPreProcessing:
@@ -133,10 +133,10 @@ def CreateTest(env, name, inc, src, deps):
                 testEnv.Append(RPATH = ':' + p)
             name = name + ':test'
             test = testEnv.Program(name, src, CPPPATH=incpaths, LIBS=libs, LIBPATH=libpaths)
-            testEnv.Alias('build_all', test)
+            testEnv.jAlias('build_all', test, "build all targets")
             runtest = testEnv.Test(name + '.passed', test)
-            testEnv.Alias(name, runtest)
-            testEnv.Alias('run_all', runtest)
+            testEnv.jAlias(name, runtest, "run " + name)
+            testEnv.jAlias('run_all', runtest, "run all targets")
         
 def CreateStaticLibrary(env, name, inc, ext_inc, src, deps):
     if isPreProcessing:
@@ -146,8 +146,17 @@ def CreateStaticLibrary(env, name, inc, ext_inc, src, deps):
         libEnv = env.Clone()
         _findComponent(name).copyHeaders(libEnv)
         compLib = libEnv.Library(name, src, CPPPATH=incpaths)
-        libEnv.Alias(name, compLib)
-        libEnv.Alias('build_all', compLib)
+        libEnv.jAlias(name, compLib, "build " + name)
+        libEnv.jAlias('build_all', compLib, "build all targets")
+
+def CreateDoc(env, name, doxyfile=None):
+    if not isPreProcessing:
+        docEnv = env.Clone()
+        if doxyfile is None:
+            doxyfile = '#/conf/doxygenTemplate'
+        createDoc = docEnv.Doxygen(doxyfile)
+        name = name + ':doc'
+        docEnv.jAlias(name, createDoc, "generates documentation for " + name)
 
 # For static libraries we will make a version header only
 # of the lib so a component can depend on this one in a light way
@@ -160,9 +169,9 @@ def CreateSharedLibrary(env, name, inc, ext_inc, src, deps):
         _findComponent(name).copyHeaders(dlibEnv)
         dlib = dlibEnv.SharedLibrary(name, src, CPPPATH=incpaths, LIBS=libs, LIBPATH=libpaths)
         install = dlibEnv.Install(env['INSTALL_LIB_DIR'], dlib)
-        dlibEnv.Alias(name, install)
-        dlibEnv.Alias('build_all', dlib)
-        dlibEnv.Alias('install', install)
+        dlibEnv.jAlias(name, install, "install " + name)
+        dlibEnv.jAlias('build_all', dlib, "build all targets")
+        dlibEnv.jAlias('install', install, "install all targets")
 
 def CreateAutoToolsProject(env, name, libfile, configureFile, ext_inc):
     if isPreProcessing:
@@ -176,9 +185,9 @@ def CreateAutoToolsProject(env, name, libfile, configureFile, ext_inc):
         if not os.path.exists(buildDir):
             os.makedirs(buildDir)
         c = libEnv.Configure(target, 'configure', buildDir=buildDir, configurePath=configureFile.abspath)
-        libEnv.Alias(name, c)
-        libEnv.Alias('build_all', c)
-        libEnv.Alias('install', c)
+        libEnv.jAlias(name, c, "build " + name)
+        libEnv.jAlias('build_all', c, "build all targets")
+        libEnv.jAlias('install', c, "install all targets")
 
 def AddComponent(env, name, headerDirs, deps, buildDir = '', isLib = False):
     global components
