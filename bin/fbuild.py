@@ -44,8 +44,7 @@ parser = argparse.ArgumentParser(description="invokes the fudepan-build system")
 parser.add_argument('--type', dest='type', nargs=1, action='store', help='type of build, options: dbg, opt')
 parser.add_argument('--efective', dest='commands', help="adds -Weffc flag", action='append_const', const='efective')
 parser.add_argument('-l', '--list', dest='commands', help="list projects", action='append_const', const='projects')
-parser.add_argument('--targets', nargs='?', help="prints a list of possible tasks to execute")
-parser.add_argument('project', nargs='*', help="use project[:task]. Possibles tasks are: test, clear, clear-test, " + ", ".join(tasks.keys()))
+parser.add_argument('project', nargs='*', help="use project[:task]. Possibles tasks are: test, clear, clear-test, " + ", ".join(tasks.keys()) + " or use 'targets' to list the possible targets")
 args = parser.parse_args()
 
 missing_args = True
@@ -64,10 +63,6 @@ for command in args.commands or []:
     if command == 'projects':
         missing_args = False
         print " ".join(deps.keys())
-    
-if args.targets == 'targets':
-    missing_args = False
-    scons_args.add(args.targets)
 
 scons_targets = []
 env = dict(projects=deps)
