@@ -199,7 +199,7 @@ def AddComponent(env, name, headerDirs, deps, buildDir = '', isLib = False):
 def WalkDirsForComponents(env, topdir, ignore = []):
     # Step 1: populate all the components
     for root, dirnames, filenames in os.walk(topdir):
-        if ignore.count(os.path.relpath(root, env.Dir('#').abspath)) == 0:
+        if ignore.count(os.path.relpath(root, topdir)) == 0:
             for filename in fnmatch.filter(filenames, 'SConscript'):
                 pathname = os.path.join(root, filename)
                 _pre_process_component(env, pathname)
@@ -224,7 +224,7 @@ def initializeDependencies(env):
     confDir = env.Dir('#/conf/').abspath
     downloadableDependencies = dependencies.findLoadableDependencies(env, confDir)
     for key in downloadableDependencies.keys():
-        if env.Dir('#/projects/'+key).exists():
+        if env.Dir(env['WS_DIR'] + '/' + key).exists():
             env.AlwaysBuild(env.Alias(key + ':update', [], UpdateDependencyAction))
             env.jAddAliasDescription(key + ':update', 'update ' + key)
             env.jAlias('all:update', key+':update', 'updates all the checked-out projects')

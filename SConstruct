@@ -21,6 +21,11 @@ AddOption('--type',
           action='store',
           help='type of build, options: debug (default), opt',
           default='debug')
+AddOption('--buildtests',
+          dest='buildtests',
+          action='store_true',
+          help='this flag is used to test the build environment, it will parse the buildtests folder instead of the projects folder',
+          default=False)
 
 (arch,binType) = platform.architecture()
 # Specific linux options
@@ -86,6 +91,9 @@ vars.AddVariables(
         PathVariable.PathIsDirCreate))
 
 vars.Update(env)
+
+if env.GetOption('buildtests'):
+    env['WS_DIR'] = env.Dir('#/buildtests').abspath
 
 # Add the script paths so is easier to find the py modules
 sys.path.append(env['BUILD_SCRIPTS_DIR'])
@@ -165,20 +173,9 @@ env.cprint('    headers dir: ' + env['INSTALL_HEADERS_DIR'], 'green')
 # Walk over the tree finding components
 from component import WalkDirsForComponents
 WalkDirsForComponents(env, topdir = env['WS_DIR'],
-                      ignore = [
-                               'gmock/scons',
-                               # The following exclusions are used when testing the build environment
-                               # previously, the user copies from #/test the buildtest folder inside
-                               # projects so scons can detect it
-                               'projects/buildtest/test_doc',
-                               'projects/buildtest/test_program',
-                               'projects/buildtest/test_program/test_ut',
-                               'projects/buildtest/test_qt',
-                               'projects/buildtest/test_shared',
-                               'projects/buildtest/test_static',
-                               'projects/buildtest/test_ut',
-                               'projects/buildtest/test_ut/test_ut'
-                               ])
+                  ignore = [
+                           'gmock/scons',
+                           ])
 
 component.initializeDependencies(env)
 

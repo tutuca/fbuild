@@ -1,0 +1,9 @@
+Import ('env')
+
+name = 'testdoc'
+inc = env.Dir('.')
+
+env.CreateDoc(name)
+
+    
+
