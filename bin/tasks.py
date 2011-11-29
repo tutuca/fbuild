@@ -33,12 +33,6 @@ def dependency_method_wrapper(projects, project, method):
     else:
         cprint("Cannot find %s in project file" % project, 'red')
 
-def checkout(project, task, env):
-    dependency_method_wrapper(env['projects'], project, 'download')
-
-def update(project, task, env):
-    dependency_method_wrapper(env['projects'], project, 'update')
-
 def astyle(project, task, env):
     p = Popen('astyle -V 2>&1 | cut -f4 -d" "', shell=True, stdout=PIPE)
     p.wait()
@@ -77,8 +71,6 @@ def _read(f):
     return content
 
 tasks = {
-        'checkout': checkout,
         'astyle'  : astyle,
-        'update'  : update,
         'doxygen' : doxygen
         }

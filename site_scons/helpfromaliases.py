@@ -43,6 +43,14 @@ def jAlias(self, aliasname, tgt, helptext=None):
     return thealias
 SConsEnvironment.jAlias = jAlias
 
+def jAddAliasDescription(self, aliasname, helptext=None):
+    if helptext is None:
+        if not self.jData.mHelpText.has_key(aliasname):
+            self.jData.mHelpText[aliasname] = '???'
+    else:
+        self.jData.mHelpText[aliasname] = helptext
+SConsEnvironment.jAddAliasDescription = jAddAliasDescription
+
 #-- ------------------
 #-- adds a line of text to the help heading
 def jHelpHead(self, msg):
@@ -56,8 +64,8 @@ def jHelpFoot(self, msg):
 SConsEnvironment.AliasesHelpFoot = jHelpFoot
 
 #-- ------------------
-#-- generates the help
-def jGenHelp(self, target, source, env):
+#-- print the help
+def jPrintHelpAliases(self, target, source, env):
     for head in env.jData.mHelpTextHead:
         print head
     keys = env.jData.mHelpText.keys()
@@ -70,5 +78,5 @@ def jGenHelp(self, target, source, env):
         print s
     for tail in env.jData.mHelpTextTail:
         print tail
-SConsEnvironment.AliasesGenHelp = jGenHelp
+SConsEnvironment.AliasesPrintHelp = jPrintHelpAliases
 

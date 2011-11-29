@@ -109,7 +109,7 @@ linker.loadLinkOptions(env)
 import helpfromaliases
 env.AliasesHelpHead('\nTargets:')
 env.AliasesHelpFoot('')
-env.AlwaysBuild(env.Alias('targets', [], env.AliasesGenHelp))
+env.AlwaysBuild(env.Alias('targets', [], env.AliasesPrintHelp))
 
 # Wrapper functions to build target types
 from SCons.Script.SConscript import SConsEnvironment

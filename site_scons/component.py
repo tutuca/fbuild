@@ -22,8 +22,7 @@
 import fnmatch
 import os
 import SCons
-from dependencies import downloadDependency
-from dependencies import findLoadableDependencies
+import dependencies
 
 isPreProcessing = False
 SConscriptFiles = {}
@@ -197,7 +196,7 @@ def AddComponent(env, name, headerDirs, deps, buildDir = '', isLib = False):
     components[name] = component
 
 #Just load all components.
-def WalkDirsForComponents(env, topdir, ignore):
+def WalkDirsForComponents(env, topdir, ignore = []):
     # Step 1: populate all the components
     for root, dirnames, filenames in os.walk(topdir):
         if ignore.count(os.path.relpath(root, env.Dir('#').abspath)) == 0:
@@ -205,14 +204,38 @@ def WalkDirsForComponents(env, topdir, ignore):
                 pathname = os.path.join(root, filename)
                 _pre_process_component(env, pathname)
 
+def DownloadDependencyAction(target, source, env):
+    global components
+    for t in target:
+        project = str(t).split(':')[0]
+        downloadableDependency = env['DOWNLOADABLE_PROJECTS'].get(project)
+        downloadableDependency.download()
+        WalkDirsForComponents(env,'#/projects/'+project)
+        for target in list(components):
+            process(env, target)
+        
+def UpdateDependencyAction(target, source, env):
+    for t in target:
+        project = str(t).split(':')[0]
+        downloadableDependency = env['DOWNLOADABLE_PROJECTS'].get(project)
+        downloadableDependency.update()
+
 def initializeDependencies(env):
-    global downloadableDependencies 
     confDir = env.Dir('#/conf/').abspath
-    downloadableDependencies = findLoadableDependencies(env, confDir)
+    downloadableDependencies = dependencies.findLoadableDependencies(env, confDir)
+    for key in downloadableDependencies.keys():
+        if env.Dir('#/projects/'+key).exists():
+            env.AlwaysBuild(env.Alias(key + ':update', [], UpdateDependencyAction))
+            env.jAddAliasDescription(key + ':update', 'update ' + key)
+            env.jAlias('all:update', key+':update', 'updates all the checkedout projects')
+        else:
+            env.AlwaysBuild(env.Alias(key + ':checkout', [], DownloadDependencyAction))
+            env.jAddAliasDescription(key + ':checkout', 'checkout ' + key)
+    env['DOWNLOADABLE_PROJECTS'] = downloadableDependencies
 
 def process(env, target):
     global components
-    global downloadableDependencies
+    downloadableDependencies = env['DOWNLOADABLE_PROJECTS']
 	
     component = _findComponent(target)
     if component:
@@ -222,7 +245,7 @@ def process(env, target):
                 denv = env.Clone()
                 denv['EXTERNAL_DIR'] = env.Dir('#/site_scons/external').abspath
                 denv['ROOT'] = env.Dir('#').abspath
-                if downloadDependency(downloadableDependency, denv):
+                if dependencies.downloadDependency(downloadableDependency, denv):
                     pathname = os.path.join(downloadableDependency.target, "SConscript")
                     if not os.path.exists(pathname):
                         raise Exception('Could not found SConscript for: %s' % dep)

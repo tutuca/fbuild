@@ -71,6 +71,7 @@ class HG(BasePrjDownload):
 
     def update(self):
         target = os.path.join(self.env['WS_DIR'], self.name)
+        cprint('[hg] updating %s => %s' % (self.url, target), 'purple')
         rc = subprocess.call("cd %s; hg pull -u" % target, shell=True)
         if rc != 0 :
             cprint('hg failed to retrieve target %s from %s' % (target, self.url), 'red')
@@ -89,6 +90,7 @@ class SVN(BasePrjDownload):
 
     def update(self):
         target = os.path.join(self.env['WS_DIR'], self.name)
+        cprint('[svn] updating %s => %s' % (self.url, target), 'purple')
         rc = subprocess.call("cd %s; svn update" % target, shell=True)
         if rc != 0 :
             cprint('svn failed to retrieve target %s from %s' % (target, self.url), 'red')
@@ -127,3 +129,4 @@ def findLoadableDependencies(env, confDir):
         localCfg.addNamespace(sys.modules[SVN.__module__])
         ConfigMerger(lambda local, cfg, key: "overwrite").merge(cfg, localCfg)
     return dict([(prj, prjCfg.type(prj, env, prjCfg)) for prj, prjCfg in cfg.iteritems()])
+    
