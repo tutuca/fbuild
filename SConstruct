@@ -151,15 +151,16 @@ linux.addOSComponents(env)
 import termcolor
 if ARGUMENTS.get('VERBOSE') != '1':
     termcolor.prettyMessages(env)
+env.cprint = termcolor.cprint
 
 # call to fudepan.py where
 import fudepan
 fudepan.setDefines(env)
 
-termcolor.cprint('Install information:', 'green')
-termcolor.cprint('    bin dir    : ' + env['INSTALL_BIN_DIR'], 'green')
-termcolor.cprint('    lib dir    : ' + env['INSTALL_LIB_DIR'], 'green')
-termcolor.cprint('    headers dir: ' + env['INSTALL_HEADERS_DIR'], 'green')
+env.cprint('Install information:', 'green')
+env.cprint('    bin dir    : ' + env['INSTALL_BIN_DIR'], 'green')
+env.cprint('    lib dir    : ' + env['INSTALL_LIB_DIR'], 'green')
+env.cprint('    headers dir: ' + env['INSTALL_HEADERS_DIR'], 'green')
 
 # Walk over the tree finding components
 from component import WalkDirsForComponents

@@ -108,9 +108,9 @@ def CreateProgram(env, name, inc, src, deps):
         (incpaths,libpaths,libs) = GetDependenciesPaths(name, env, deps)
         progEnv = env.Clone()
         program = progEnv.Program(name, src, CPPPATH=incpaths, LIBS=libs, LIBPATH=libpaths)
-        progEnv.jAlias('build_all', program, "build all targets")
+        progEnv.jAlias('build_all', program, "build and install all targets")
         install = progEnv.Install(env['INSTALL_BIN_DIR'], program)
-        progEnv.jAlias(name, install, "install " + name)
+        progEnv.jAlias(name, install, "build and install " + name)
         progEnv.jAlias('install', install, "install all targets")
 
 def CreateTest(env, name, inc, src, deps):
@@ -131,11 +131,11 @@ def CreateTest(env, name, inc, src, deps):
             for p in libpaths: 
                 testEnv.PrependENVPath('LD_LIBRARY_PATH', p)
                 testEnv.Append(RPATH = ':' + p)
-            name = name + ':test'
-            test = testEnv.Program(name, src, CPPPATH=incpaths, LIBS=libs, LIBPATH=libpaths)
-            testEnv.jAlias('build_all', test, "build all targets")
-            runtest = testEnv.Test(name + '.passed', test)
-            testEnv.jAlias(name, runtest, "run " + name)
+            tname = name + ':test'
+            test = testEnv.Program(tname, src, CPPPATH=incpaths, LIBS=libs, LIBPATH=libpaths)
+            testEnv.jAlias('build_all', test, "build and install all targets")
+            runtest = testEnv.Test(tname + '.passed', test)
+            testEnv.jAlias(tname, runtest, "run " + name + " tests")
             testEnv.jAlias('run_all', runtest, "run all targets")
         
 def CreateStaticLibrary(env, name, inc, ext_inc, src, deps):
@@ -147,7 +147,7 @@ def CreateStaticLibrary(env, name, inc, ext_inc, src, deps):
         _findComponent(name).copyHeaders(libEnv)
         compLib = libEnv.Library(name, src, CPPPATH=incpaths)
         libEnv.jAlias(name, compLib, "build " + name)
-        libEnv.jAlias('build_all', compLib, "build all targets")
+        libEnv.jAlias('build_all', compLib, "build and install all targets")
 
 def CreateDoc(env, name, doxyfile=None):
     if not isPreProcessing:
@@ -170,7 +170,7 @@ def CreateSharedLibrary(env, name, inc, ext_inc, src, deps):
         dlib = dlibEnv.SharedLibrary(name, src, CPPPATH=incpaths, LIBS=libs, LIBPATH=libpaths)
         install = dlibEnv.Install(env['INSTALL_LIB_DIR'], dlib)
         dlibEnv.jAlias(name, install, "install " + name)
-        dlibEnv.jAlias('build_all', dlib, "build all targets")
+        dlibEnv.jAlias('build_all', dlib, "build and install all targets")
         dlibEnv.jAlias('install', install, "install all targets")
 
 def CreateAutoToolsProject(env, name, libfile, configureFile, ext_inc):
@@ -186,7 +186,7 @@ def CreateAutoToolsProject(env, name, libfile, configureFile, ext_inc):
             os.makedirs(buildDir)
         c = libEnv.Configure(target, 'configure', buildDir=buildDir, configurePath=configureFile.abspath)
         libEnv.jAlias(name, c, "build " + name)
-        libEnv.jAlias('build_all', c, "build all targets")
+        libEnv.jAlias('build_all', c, "build and install all targets")
         libEnv.jAlias('install', c, "install all targets")
 
 def AddComponent(env, name, headerDirs, deps, buildDir = '', isLib = False):
@@ -254,6 +254,8 @@ def _process_component(_env, component):
 #TODO: rename?
 def _addComponent(env, name, component):
     global components
+    if not name.lower() == name:
+        env.cprint('[warn] modules names should be lower case: ' + name, 'yellow')
     component.sconscriptPath = os.path.join(env.Dir('.').abspath, "SConscript")
     component.projectDir = env.Dir('.').abspath
     components[name] = component

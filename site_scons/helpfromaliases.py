@@ -35,12 +35,11 @@ SConsEnvironment.jData = jDataClass()
 #-- wraps Alias to put the alias name in the help text
 def jAlias(self, aliasname, tgt, helptext=None):
     thealias = self.Alias(aliasname, tgt)
-    lcaliasname = aliasname.lower()
     if helptext is None:
-        if not self.jData.mHelpText.has_key(lcaliasname):
-            self.jData.mHelpText[lcaliasname] = '???'
+        if not self.jData.mHelpText.has_key(aliasname):
+            self.jData.mHelpText[aliasname] = '???'
     else:
-        self.jData.mHelpText[lcaliasname] = helptext
+        self.jData.mHelpText[aliasname] = helptext
     return thealias
 SConsEnvironment.jAlias = jAlias
 
