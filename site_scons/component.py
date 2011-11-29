@@ -85,7 +85,7 @@ class Component(object):
                             env.RecursiveInstall(self.installIncludesDir, path)
                         else:
                             t = env.Install(self.installIncludesDir, path)
-                            env.jAlias('install', t, "install all targets")
+                            env.jAlias('all:install', t, "install all targets")
             self.processed = True #TODO: gtest_main
 
 def setupComponent(env, type, name, inc, deps, externalHeaderDirs=None):
@@ -107,10 +107,10 @@ def CreateProgram(env, name, inc, src, deps):
         (incpaths,libpaths,libs) = GetDependenciesPaths(name, env, deps)
         progEnv = env.Clone()
         program = progEnv.Program(name, src, CPPPATH=incpaths, LIBS=libs, LIBPATH=libpaths)
-        progEnv.jAlias('build_all', program, "build and install all targets")
+        progEnv.jAlias('all:build', program, "build all targets")
         install = progEnv.Install(env['INSTALL_BIN_DIR'], program)
         progEnv.jAlias(name, install, "build and install " + name)
-        progEnv.jAlias('install', install, "install all targets")
+        progEnv.jAlias('all:install', install, "install all targets")
 
 def CreateTest(env, name, inc, src, deps):
     if isPreProcessing:
@@ -132,10 +132,10 @@ def CreateTest(env, name, inc, src, deps):
                 testEnv.Append(RPATH = ':' + p)
             tname = name + ':test'
             test = testEnv.Program(tname, src, CPPPATH=incpaths, LIBS=libs, LIBPATH=libpaths)
-            testEnv.jAlias('build_all', test, "build and install all targets")
+            testEnv.jAlias('all:build', test, "build all targets")
             runtest = testEnv.Test(tname + '.passed', test)
             testEnv.jAlias(tname, runtest, "run " + name + " tests")
-            testEnv.jAlias('run_all', runtest, "run all targets")
+            testEnv.jAlias('all:test', runtest, "run all targets")
         
 def CreateStaticLibrary(env, name, inc, ext_inc, src, deps):
     if isPreProcessing:
@@ -146,7 +146,7 @@ def CreateStaticLibrary(env, name, inc, ext_inc, src, deps):
         _findComponent(name).copyHeaders(libEnv)
         compLib = libEnv.Library(name, src, CPPPATH=incpaths)
         libEnv.jAlias(name, compLib, "build " + name)
-        libEnv.jAlias('build_all', compLib, "build and install all targets")
+        libEnv.jAlias('all:build', compLib, "build all targets")
 
 def CreateDoc(env, name, doxyfile=None):
     if not isPreProcessing:
@@ -169,8 +169,8 @@ def CreateSharedLibrary(env, name, inc, ext_inc, src, deps):
         dlib = dlibEnv.SharedLibrary(name, src, CPPPATH=incpaths, LIBS=libs, LIBPATH=libpaths)
         install = dlibEnv.Install(env['INSTALL_LIB_DIR'], dlib)
         dlibEnv.jAlias(name, install, "install " + name)
-        dlibEnv.jAlias('build_all', dlib, "build and install all targets")
-        dlibEnv.jAlias('install', install, "install all targets")
+        dlibEnv.jAlias('all:build', dlib, "build all targets")
+        dlibEnv.jAlias('all:install', install, "install all targets")
 
 def CreateAutoToolsProject(env, name, libfile, configureFile, ext_inc):
     if isPreProcessing:
@@ -185,8 +185,8 @@ def CreateAutoToolsProject(env, name, libfile, configureFile, ext_inc):
             os.makedirs(buildDir)
         c = libEnv.Configure(target, 'configure', buildDir=buildDir, configurePath=configureFile.abspath)
         libEnv.jAlias(name, c, "build " + name)
-        libEnv.jAlias('build_all', c, "build and install all targets")
-        libEnv.jAlias('install', c, "install all targets")
+        libEnv.jAlias('all:build', c, "build all targets")
+        libEnv.jAlias('all:install', c, "install all targets")
 
 def AddComponent(env, name, headerDirs, deps, buildDir = '', isLib = False):
     global components
@@ -210,7 +210,7 @@ def DownloadDependencyAction(target, source, env):
         project = str(t).split(':')[0]
         downloadableDependency = env['DOWNLOADABLE_PROJECTS'].get(project)
         downloadableDependency.download()
-        WalkDirsForComponents(env,'#/projects/'+project)
+        WalkDirsForComponents(env, env['WS_DIR'] + '/' + project)
         for target in list(components):
             process(env, target)
         
@@ -227,7 +227,7 @@ def initializeDependencies(env):
         if env.Dir('#/projects/'+key).exists():
             env.AlwaysBuild(env.Alias(key + ':update', [], UpdateDependencyAction))
             env.jAddAliasDescription(key + ':update', 'update ' + key)
-            env.jAlias('all:update', key+':update', 'updates all the checkedout projects')
+            env.jAlias('all:update', key+':update', 'updates all the checked-out projects')
         else:
             env.AlwaysBuild(env.Alias(key + ':checkout', [], DownloadDependencyAction))
             env.jAddAliasDescription(key + ':checkout', 'checkout ' + key)
@@ -246,11 +246,9 @@ def process(env, target):
                 denv['EXTERNAL_DIR'] = env.Dir('#/site_scons/external').abspath
                 denv['ROOT'] = env.Dir('#').abspath
                 if dependencies.downloadDependency(downloadableDependency, denv):
-                    pathname = os.path.join(downloadableDependency.target, "SConscript")
-                    if not os.path.exists(pathname):
-                        raise Exception('Could not found SConscript for: %s' % dep)
-                    else:
-                        _pre_process_component(env, pathname)
+                    WalkDirsForComponents(env, downloadableDependency.target)
+                    for target in list(components):
+                        process(env, target)
                 else:
                     raise Exception('Could not found dependency: %s' % dep)
             process(env, dep)
