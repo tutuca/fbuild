@@ -45,32 +45,6 @@ def astyle(project, task, env):
     else:
         cprint("Astyle version should be >=1.24", 'red')
 
-def doxygen(project, task, env):
-    prjPath = path.join('projects', project)
-    doxyfilePath = path.join(prjPath, 'Doxyfile')
-    run = True
-    if not path.exists(doxyfilePath):
-        if ask_user("""There is no doxygen configuration file, \
-do you want to create one?""", 'green', ['y', 'n']) == 'y':
-            doxygen_template = _read('conf/doxygenTemplate')
-            f = open(doxyfilePath, "w")
-            f.write(doxygen_template.replace('$PROJECT_NAME', project)\
-                                    .replace('$OUTPUT_DIR', 'docs'))
-            f.flush()
-            f.close()
-        else:
-            run = False
-
-    if run:
-        call('cd %s; doxygen' % prjPath, shell=True)
-
-def _read(f):
-    f = open(f, "r")
-    content = f.read()
-    f.close()
-    return content
-
 tasks = {
-        'astyle'  : astyle,
-        'doxygen' : doxygen
+        'astyle'  : astyle
         }

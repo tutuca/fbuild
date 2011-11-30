@@ -6,4 +6,4 @@ configurePath = env.File('#/projects/xdrfile/configure')
 ext_inc = env.Glob('./include/*.h')
 
 env.CreateAutoToolsProject(name, target, configurePath, ext_inc)
-
+env.CreateDoc(name)

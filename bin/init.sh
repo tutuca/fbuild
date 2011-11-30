@@ -70,6 +70,11 @@ if [ ! "$(which doxygen)" ]; then
     ubuntuInstall doxygen 
 fi
 
+if [ ! "$(which dot)" ]; then
+    echo "warning: graphviz was not found, graphviz is not required to continue"
+    ubuntuInstall graphviz
+fi
+
 # Check if python config module is installed
 $PYTHON_BIN_PATH -m config 2> /dev/null
 if [ $? -ne 0 ]; then

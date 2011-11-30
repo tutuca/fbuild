@@ -85,6 +85,12 @@ vars.AddVariables(
         PathVariable.PathIsDirCreate))
 vars.AddVariables(
     PathVariable(
+        'INSTALL_DOC_DIR',
+        'install docs directory',
+        os.path.join(INSTALL_DIR, "docs"),
+        PathVariable.PathIsDirCreate))
+vars.AddVariables(
+    PathVariable(
         'BUILD_SCRIPTS_DIR',
         'site_scons directory',
         os.path.join(env.Dir('#').abspath, "site_scons"),
@@ -135,7 +141,6 @@ import recursive_install
 SConsEnvironment.RecursiveInstall = recursive_install.RecursiveInstall
 # Register builders
 # Register tools
-env.Tool('doxygen')
 env.Tool('makebuilder')
 
 # Create a builder for tests
@@ -143,6 +148,12 @@ import builders
 bld = Builder(action = builders.runTest)
 configure = Builder(action = builders.configure)
 env.Append(BUILDERS = {'Test':  bld, 'Configure': configure})
+
+# Create a builder for doxygen
+import doxygen
+doxygenBuilder = Builder(action = doxygen.runDoxygen)
+env.Append(BUILDERS = {'Doxygen':  doxygenBuilder})
+env['DEFAULT_DOXYFILE'] = env.File('#/conf/doxygenTemplate').abspath
 
 # Add Qt
 import qtutil

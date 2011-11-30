@@ -8,3 +8,4 @@ src = ['src/gtest-all.cc']
 deps = []
 
 env.CreateStaticLibrary(name, inc, ext_inc, src, deps)
+env.CreateDoc(name)

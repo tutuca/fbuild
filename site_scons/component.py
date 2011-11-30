@@ -88,7 +88,7 @@ class Component(object):
                             env.jAlias('all:install', t, "install all targets")
             self.processed = True #TODO: gtest_main
 
-def setupComponent(env, type, name, inc, deps, externalHeaderDirs=None):
+def setupComponent(env, type, name, inc, deps=[], externalHeaderDirs=None):
     buildDir = os.path.join(env['BUILD_DIR'], name)
     installIncludesDir = os.path.join(env['INSTALL_HEADERS_DIR'], name)
     return Component(name, inc, deps, buildDir, installIncludesDir, externalHeaderDirs, type)
@@ -149,13 +149,12 @@ def CreateStaticLibrary(env, name, inc, ext_inc, src, deps):
         libEnv.jAlias('all:build', compLib, "build all targets")
 
 def CreateDoc(env, name, doxyfile=None):
-    if not isPreProcessing:
+    if isPreProcessing:
         docEnv = env.Clone()
-        if doxyfile is None:
-            doxyfile = '#/conf/doxygenTemplate'
-        createDoc = docEnv.Doxygen(doxyfile)
-        name = name + ':doc'
-        docEnv.jAlias(name, createDoc, "generates documentation for " + name)
+        if doxyfile == None:
+            doxyfile = env.Glob('SConscript')
+        createDoc = docEnv.Doxygen(name + ':doc', doxyfile)
+        docEnv.jAlias(name + ':doc', createDoc, "generates documentation for " + name)
 
 # For static libraries we will make a version header only
 # of the lib so a component can depend on this one in a light way
