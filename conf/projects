@@ -82,5 +82,11 @@ xdrfile:
 nuca:
 {
     type: `HG`,
-    url: "https://nuca.googlecode.com/hg"
+    url: "https://code.google.com/p/nuca/"
+}
+
+"backbones-selector":
+{
+    type: `HG`,
+    url: "http://code.google.com/p/backbones-selector/"
 }
