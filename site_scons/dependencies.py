@@ -106,8 +106,7 @@ class WGET(BasePrjDownload):
            return False
         return True
     def update(self):
-        # Do nothing
-        cprint('[wget] updating not supported', 'purple')
+        return True
 
 def downloadDependency(dep, env=None):
     if dep:
