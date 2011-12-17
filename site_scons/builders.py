@@ -25,10 +25,15 @@ import platform
 
 def runTest(target, source, env):
     app = str(source[0].abspath)
-    if subprocess.call(app):
-        cprint('TEST ERROR: %s' % app, 'red')
+    (dir, appbin) = os.path.split(app)
+    origWD = os.getcwd() # remember our original working directory
+    os.chdir(dir)
+    appbin = './' + appbin
+    if subprocess.call(appbin):
+        cprint('TEST ERROR: %s' % appbin, 'red')
     else:
-        cprint('TEST OK: %s' % app, 'green')
+        cprint('TEST OK: %s' % appbin, 'green')
+    os.chdir(origWD) # get back to our original working directory
 
 def configure(target, source, env):
     buildDir = env['buildDir']
