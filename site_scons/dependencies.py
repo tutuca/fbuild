@@ -105,16 +105,21 @@ class WGET(BasePrjDownload):
            cprint('error: %s' % rc, 'red')
            return False
         return True
+    def update(self):
+        # Do nothing
+        cprint('[wget] updating not supported', 'purple')
 
 def downloadDependency(dep, env=None):
     if dep:
-        ## ask the user if he wants to download it
-        userResponse = ask_user("""\
-I found the dependency %s located at %s
-Do you want me to download it?""" % (dep.name, dep.url), 'blue', ['y', 'n'])
+        if env:
+            dep.env = env
+        userResponse = 'y'
+        if not env.GetOption('nostdin'):
+            ## ask the user if he wants to download it
+            userResponse = ask_user(
+                "I found the dependency %s located at %s Do you want me to download it?" 
+                % (dep.name, dep.url), 'blue', ['y', 'n'])
         if userResponse == 'y':
-            if env:
-                dep.env = env
             return dep.download()
     return False
 

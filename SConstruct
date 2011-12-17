@@ -26,6 +26,11 @@ AddOption('--buildtests',
           action='store_true',
           help='this flag is used to test the build environment, it will parse the buildtests folder instead of the projects folder',
           default=False)
+AddOption('--nostdin',
+          dest='nostdin',
+          action='store_true',
+          help='this flag is used to avoid the environment to use stdin to ask stuff, it should assume the default behavior (added to support Eclipse plugin)',
+          default=False)
 
 (arch,binType) = platform.architecture()
 # Specific linux options
@@ -137,8 +142,6 @@ SConsEnvironment.CreateAutoToolsProject = component.CreateAutoToolsProject
 SConsEnvironment.AddComponent = component.AddComponent
 SConsEnvironment.CreateDoc = component.CreateDoc
 
-import recursive_install
-SConsEnvironment.RecursiveInstall = recursive_install.RecursiveInstall
 # Register builders
 # Register tools
 env.Tool('makebuilder')

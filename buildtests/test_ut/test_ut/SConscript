@@ -1,9 +1,0 @@
-Import ('env')
-
-name = 'testut'
-inc = env.Dir('.')
-src = env.Glob('*.cpp')
-deps = []
-
-env.CreateTest(name, inc, src, deps)
-

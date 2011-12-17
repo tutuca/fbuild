@@ -23,6 +23,8 @@ import fnmatch
 import os
 import SCons
 import dependencies
+import recursive_install
+import shutil
 
 isPreProcessing = False
 SConscriptFiles = {}
@@ -49,7 +51,10 @@ def GetDependenciesPaths(compName, env, deps):
         return (libpaths, libs, incs)
     comp = _findComponent(compName)
     libpaths, libs, incs = search(deps)
-    incpaths = incs + [env['INSTALL_HEADERS_DIR']] + _buildPathList(comp.headerDirs, lambda d: d.abspath)
+    if comp:
+        incpaths = incs + [env['INSTALL_HEADERS_DIR']] + _buildPathList(comp.headerDirs, lambda d: d.abspath)
+    else:
+        incpaths = incs + [env['INSTALL_HEADERS_DIR']]
     libpaths.append(env['INSTALL_LIB_DIR'])
     return (incpaths, libpaths, libs)
 
@@ -74,6 +79,7 @@ class Component(object):
         self.processed = False
         self.type = type
         self.external = False
+        self.refDir = ''
 
     def copyHeaders(self, env):
         if not self.processed and self.externalHeaderDirs:
@@ -82,11 +88,11 @@ class Component(object):
                     if not f.startswith('.'):
                         path = os.path.join(d, f)
                         if os.path.isdir(path):
-                            env.RecursiveInstall(self.installIncludesDir, path)
+                            recursive_install.RecursiveInstall(env, self.installIncludesDir, path)
                         else:
                             t = env.Install(self.installIncludesDir, path)
                             env.jAlias('all:install', t, "install all targets")
-            self.processed = True #TODO: gtest_main
+            self.processed = True #TODO: gtest_main.abspath()
 
 def setupComponent(env, type, name, inc, deps=[], externalHeaderDirs=None):
     buildDir = os.path.join(env['BUILD_DIR'], name)
@@ -116,6 +122,10 @@ def CreateTest(env, name, inc, src, deps):
     if isPreProcessing:
         name = name + ':test'
         _addComponent(env, name, setupComponent(env, 'test', name, inc, deps))
+        refPath = os.path.join(env.Dir('.').abspath, 'ref')
+        if os.path.isdir(refPath):
+            testComponent = _findComponent(name);
+            testComponent.refDir = refPath
     else:
         (incpaths,libpaths,libs) = GetDependenciesPaths(name, env, deps)
         libEnv = env.Clone()
@@ -131,6 +141,13 @@ def CreateTest(env, name, inc, src, deps):
                 testEnv.PrependENVPath('LD_LIBRARY_PATH', p)
                 testEnv.Append(RPATH = ':' + p)
             tname = name + ':test'
+            testComponent = _findComponent(tname)
+            # TODO: remove this hack, but put a better way to handle reference files
+            if os.path.isdir(testComponent.refDir):
+                dstRefPath = os.path.join(os.path.split(src[0].abspath)[0], 'ref')
+                if os.path.isdir(dstRefPath):
+                    shutil.rmtree(dstRefPath)
+                shutil.copytree(testComponent.refDir, dstRefPath)
             test = testEnv.Program(tname, src, CPPPATH=incpaths, LIBS=libs, LIBPATH=libpaths)
             testEnv.jAlias('all:build', test, "build all targets")
             runtest = testEnv.Test(tname + '.passed', test)

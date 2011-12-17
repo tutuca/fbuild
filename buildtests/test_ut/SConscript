@@ -1,9 +1,9 @@
 Import ('env')
 
-name = 'testut'
+name = 'teststatic'
 inc = env.Dir('.')
 src = env.Glob('*.cc')
 deps = []
 
-env.CreateProgram(name, inc, src, deps)
+env.CreateTest(name, inc, src, deps)
 
