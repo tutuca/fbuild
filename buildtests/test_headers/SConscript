@@ -1,0 +1,8 @@
+Import ('env')
+
+name = 'testheaders'
+inc = env.Dir('.')
+ext_inc = env.Dir('.')
+deps = []
+
+env.CreateHeaderOnlyLibrary(name, inc, ext_inc, deps)
