@@ -4,6 +4,12 @@ install/
 conf/projects.local
 projects/
 bin/local.sh
+buildtests/gmock
+buildtests/mili
+
+.cproject
+.project
+.pydevproject
 
 syntax: re
 ^.*\.pyc$
