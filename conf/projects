@@ -90,3 +90,9 @@ nuca:
     type: `HG`,
     url: "http://code.google.com/p/backbones-selector/"
 }
+
+unplugged:
+{
+    type: `HG`,
+    url: "http://code.google.com/p/unplugged/"
+}
