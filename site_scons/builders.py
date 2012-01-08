@@ -17,33 +17,54 @@
 # You should have received a copy of the GNU General Public License
 # along with fudepan-build.  If not, see <http://www.gnu.org/licenses/>.
 
-import os
-from termcolor import cprint
+from SCons.Script.SConscript import SConsEnvironment
+from SCons.Script import *
+import SCons.Builder
 
-import subprocess
-import platform
+def init(env):
+    from SCons.Script import Builder
+    bldHL = Builder(action = SCons.Action.Action(HeaderLibrary, PrintDummy))
+    env.Append(BUILDERS = {'HeaderLibrary': bldHL})
+    bldRUT = Builder(action = SCons.Action.Action(RunUnittest, PrintDummy))
+    env.Append(BUILDERS = {'RunUnittest' : bldRUT})
+    
+def PrintDummy(env, source, target):
+    return ""
 
-def runTest(target, source, env):
-    app = str(source[0].abspath)
-    (dir, appbin) = os.path.split(app)
-    origWD = os.getcwd() # remember our original working directory
-    os.chdir(dir)
-    appbin = './' + appbin
-    if subprocess.call(appbin):
-        cprint('TEST ERROR: %s' % appbin, 'red')
-    else:
-        cprint('TEST OK: %s' % appbin, 'green')
-    os.chdir(origWD) # get back to our original working directory
+def HeaderLibrary(env, source, target):
+    # Copy headers
+    return;
+    #if not self.processed and self.externalHeaderDirs:
+    #for d in self.externalHeaderDirs:
+    #    for f in os.listdir(d):
+    #        if not f.startswith('.'):
+    #            path = os.path.join(d, f)
+    #            if os.path.isdir(path):
+    #                recursive_install.RecursiveInstall(env, self.installIncludesDir, path)
+    #            else:
+    #                t = env.Install(self.installIncludesDir, path)
+    #                env.jAlias('all:install', t, "install all targets")
+    #self.processed = True #TODO: gtest_main.abspath()
 
-def configure(target, source, env):
-    buildDir = env['buildDir']
-    configure = env['configurePath']
-    configureOpts = (' --bindir=%(INSTALL_BIN_DIR)s --libdir=%(INSTALL_LIB_DIR)s --includedir=%(INSTALL_HEADERS_DIR)s' % env)
-    procEnv = os.environ
-    (arch,binType) = platform.architecture()
-    if arch == '64bit':
-        procEnv["CXXFLAGS"] = str(env["CXXFLAGS"])
-        procEnv["CFLAGS"] = '-fPIC'
+def RunUnittest(env, source, target):
+    for s in source:
+        app = str(s.abspath)
+        (dir, appbin) = os.path.split(app)
+        rc = subprocess.call("cd %s; ./%s" % (dir, appbin), shell=True)
+        if rc:
+            cprint('[error] %s failed, error: ' % (app, rc), 'red')
+        else:
+            cprint('[passed] %s passed' % app, 'green')
 
-    return subprocess.call(configure + configureOpts + ' ; make; make install', cwd=buildDir, shell=True, env=procEnv)
+#def configure(target, source, env):
+#    buildDir = env['buildDir']
+#    configure = env['configurePath']
+#    configureOpts = (' --bindir=%(INSTALL_BIN_DIR)s --libdir=%(INSTALL_LIB_DIR)s --includedir=%(INSTALL_HEADERS_DIR)s' % env)
+#    procEnv = os.environ
+#    (arch,binType) = platform.architecture()
+#    if arch == '64bit':
+#        procEnv["CXXFLAGS"] = str(env["CXXFLAGS"])
+#        procEnv["CFLAGS"] = '-fPIC'
+#
+#    return subprocess.call(configure + configureOpts + ' ; make; make install', cwd=buildDir, shell=True, env=procEnv)
 

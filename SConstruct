@@ -54,9 +54,17 @@ linker.init(env)
 import helpfromaliases
 helpfromaliases.init(env)
 
+# Include the builders
+import builders
+builders.init(env)
+
 # Include the graph dependency solver
 import dependencygraph
 dependencygraph.init(env)
+
+# Include the dependencies checkout and update system
+import dependencies
+dependencies.init(env)
 #
 ## Register builders
 ## Register tools

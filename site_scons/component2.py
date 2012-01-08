@@ -220,34 +220,6 @@ def WalkDirsForComponents(env, topdir, ignore = []):
                 pathname = os.path.join(root, filename)
                 _pre_process_component(env, pathname)
 
-def DownloadDependencyAction(target, source, env):
-    global components
-    for t in target:
-        project = str(t).split(':')[0]
-        downloadableDependency = env['DOWNLOADABLE_PROJECTS'].get(project)
-        downloadableDependency.download()
-        WalkDirsForComponents(env, env['WS_DIR'] + '/' + project)
-        for target in list(components):
-            process(env, target)
-        
-def UpdateDependencyAction(target, source, env):
-    for t in target:
-        project = str(t).split(':')[0]
-        downloadableDependency = env['DOWNLOADABLE_PROJECTS'].get(project)
-        downloadableDependency.update()
-
-def initializeDependencies(env):
-    confDir = env.Dir('#/conf/').abspath
-    downloadableDependencies = dependencies.findLoadableDependencies(env, confDir)
-    for key in downloadableDependencies.keys():
-        if env.Dir(env['WS_DIR'] + '/' + key).exists():
-            env.AlwaysBuild(env.Alias(key + ':update', [], UpdateDependencyAction))
-            env.jAddAliasDescription(key + ':update', 'update ' + key)
-            env.jAlias('all:update', key+':update', 'updates all the checked-out projects')
-        else:
-            env.AlwaysBuild(env.Alias(key + ':checkout', [], DownloadDependencyAction))
-            env.jAddAliasDescription(key + ':checkout', 'checkout ' + key)
-    env['DOWNLOADABLE_PROJECTS'] = downloadableDependencies
 
 def process(env, target):
     global components
