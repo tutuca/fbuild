@@ -158,6 +158,11 @@ doxygenBuilder = Builder(action = doxygen.runDoxygen)
 env.Append(BUILDERS = {'Doxygen':  doxygenBuilder})
 env['DEFAULT_DOXYFILE'] = env.File('#/conf/doxygenTemplate').abspath
 
+# Create a latex2pdf builder 
+import pdflatex
+pdfLatexBuilder = Builder(action = pdflatex.runPdfLatex)
+env.Append(BUILDERS = {'PdfLatex':  pdfLatexBuilder})
+
 # Add Qt
 import qtutil
 qtutil.preDetectQt(env)
