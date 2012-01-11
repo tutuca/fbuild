@@ -25,7 +25,15 @@ def runPdfLatex(target, source, env):
     (pathHead, pathTail) = os.path.split(source[0].abspath)
     
     tmpPdf2TexDir = pathHead + '/tmp_Pdf2Texfile/'
-    targetName = os.path.basename(target[0].abspath)[:-4]
+    if not os.path.exists(tmpPdf2TexDir):
+        os.makedirs(tmpPdf2TexDir)
 
-    subprocess.call('cd ' + pathHead + ' ; pfdlatex -output-format pdf -aux-directory=' + tmpPdf2TexDir + ' ' + pathTail, shell=True)
-    shutil.rmtree(tmpPdf2TexDir, ignore_errors=true)
+    targetName = os.path.basename(target[0].abspath)[:-4]
+    targetDir = env['INSTALL_DOC_DIR'] + '/' + targetName +'/pdf/'
+    if not os.path.exists(targetDir):
+        os.makedirs(targetDir)
+    
+    subprocess.call('cd ' + pathHead + ' ; pdflatex ' + env['PDFLATEX_OPTIONS'] + 
+        ' -output-directory "' + tmpPdf2TexDir + '" ' + pathTail, shell=True)
+    shutil.copy2(tmpPdf2TexDir + pathTail[:-4] +".pdf", targetDir)
+    shutil.rmtree(tmpPdf2TexDir, ignore_errors=True)

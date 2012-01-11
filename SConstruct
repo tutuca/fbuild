@@ -141,6 +141,7 @@ SConsEnvironment.CreateTest = component.CreateTest
 SConsEnvironment.CreateAutoToolsProject = component.CreateAutoToolsProject
 SConsEnvironment.AddComponent = component.AddComponent
 SConsEnvironment.CreateDoc = component.CreateDoc
+SConsEnvironment.CreatePdf = component.CreatePdf
 
 # Register builders
 # Register tools
@@ -162,6 +163,7 @@ env['DEFAULT_DOXYFILE'] = env.File('#/conf/doxygenTemplate').abspath
 import pdflatex
 pdfLatexBuilder = Builder(action = pdflatex.runPdfLatex)
 env.Append(BUILDERS = {'PdfLatex':  pdfLatexBuilder})
+env['PDFLATEX_OPTIONS'] = '' 
 
 # Add Qt
 import qtutil
