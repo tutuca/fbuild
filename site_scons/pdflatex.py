@@ -18,7 +18,6 @@
 # along with fudepan-build.  If not, see <http://www.gnu.org/licenses/>.
 
 import os.path
-import shutil
 import subprocess
 
 def runPdfLatex(target, source, env):
@@ -26,14 +25,15 @@ def runPdfLatex(target, source, env):
     
     tmpPdf2TexDir = pathHead + '/tmp_Pdf2Texfile/'
     if not os.path.exists(tmpPdf2TexDir):
-        os.makedirs(tmpPdf2TexDir)
+        env.Execute(env.Mkdir(tmpPdf2TexDir))
 
     targetName = os.path.basename(target[0].abspath)[:-4]
-    targetDir = env['INSTALL_DOC_DIR'] + '/' + targetName +'/pdf/'
+    targetDir = env['INSTALL_DOC_DIR'] + '/' + targetName + "/"
     if not os.path.exists(targetDir):
-        os.makedirs(targetDir)
+        env.Execute(env.Mkdir(targetDir))
     
     subprocess.call('cd ' + pathHead + ' ; pdflatex ' + env['PDFLATEX_OPTIONS'] + 
         ' -output-directory "' + tmpPdf2TexDir + '" ' + pathTail, shell=True)
-    shutil.copy2(tmpPdf2TexDir + pathTail[:-4] +".pdf", targetDir)
-    shutil.rmtree(tmpPdf2TexDir, ignore_errors=True)
+    env.Execute(env.Move(targetDir, tmpPdf2TexDir + pathTail[:-4] +".pdf"))
+    env.Execute(env.Delete(tmpPdf2TexDir))
+

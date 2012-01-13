@@ -142,6 +142,10 @@ SConsEnvironment.CreateAutoToolsProject = component.CreateAutoToolsProject
 SConsEnvironment.AddComponent = component.AddComponent
 SConsEnvironment.CreateDoc = component.CreateDoc
 SConsEnvironment.CreatePdf = component.CreatePdf
+## Commands wrapped for platform independent file manipulation in builders
+SConsEnvironment.Mkdir = Mkdir
+SConsEnvironment.Move = Move
+SConsEnvironment.Delete = Delete
 
 # Register builders
 # Register tools
