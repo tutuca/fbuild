@@ -110,13 +110,15 @@ def CreateProgram(env, name, inc, src, deps):
     if isPreProcessing:
         _addComponent(env, name, setupComponent(env, 'program', name, inc, deps))
     else:
-        (incpaths,libpaths,libs) = GetDependenciesPaths(name, env, deps)
-        progEnv = env.Clone()
-        program = progEnv.Program(name, src, CPPPATH=incpaths, LIBS=libs, LIBPATH=libpaths)
-        progEnv.jAlias('all:build', program, "build all targets")
-        install = progEnv.Install(env['INSTALL_BIN_DIR'], program)
-        progEnv.jAlias(name, install, "build and install " + name)
-        progEnv.jAlias('all:install', install, "install all targets")
+        if not _findComponent(name).processed:
+            (incpaths,libpaths,libs) = GetDependenciesPaths(name, env, deps)
+            progEnv = env.Clone()
+            program = progEnv.Program(name, src, CPPPATH=incpaths, LIBS=libs, LIBPATH=libpaths)
+            progEnv.jAlias('all:build', program, "build all targets")
+            install = progEnv.Install(env['INSTALL_BIN_DIR'], program)
+            progEnv.jAlias(name, install, "build and install " + name)
+            progEnv.jAlias('all:install', install, "install all targets")
+            _findComponent(name).processed = True
 
 def CreateTest(env, name, inc, src, deps):
     if isPreProcessing:
@@ -179,14 +181,16 @@ def CreateSharedLibrary(env, name, inc, ext_inc, src, deps):
     if isPreProcessing:
         _addComponent(env, name, setupComponent(env, 'shared_lib', name, inc, deps, ext_inc))
     else:
-        (incpaths,libpaths,libs) = GetDependenciesPaths(name, env, deps)
-        dlibEnv = env.Clone()
-        _findComponent(name).copyHeaders(dlibEnv)
-        dlib = dlibEnv.SharedLibrary(name, src, CPPPATH=incpaths, LIBS=libs, LIBPATH=libpaths)
-        install = dlibEnv.Install(env['INSTALL_LIB_DIR'], dlib)
-        dlibEnv.jAlias(name, install, "install " + name)
-        dlibEnv.jAlias('all:build', dlib, "build all targets")
-        dlibEnv.jAlias('all:install', install, "install all targets")
+        if not _findComponent(name).processed:
+            (incpaths,libpaths,libs) = GetDependenciesPaths(name, env, deps)
+            dlibEnv = env.Clone()
+            _findComponent(name).copyHeaders(dlibEnv)
+            dlib = dlibEnv.SharedLibrary(name, src, CPPPATH=incpaths, LIBS=libs, LIBPATH=libpaths)
+            install = dlibEnv.Install(env['INSTALL_LIB_DIR'], dlib)
+            dlibEnv.jAlias(name, install, "install " + name)
+            dlibEnv.jAlias('all:build', dlib, "build all targets")
+            dlibEnv.jAlias('all:install', install, "install all targets")
+            _findComponent(name).processed = True
 
 def CreateAutoToolsProject(env, name, libfile, configureFile, ext_inc):
     if isPreProcessing:
