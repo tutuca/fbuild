@@ -1,3 +1,9 @@
+aso:
+{
+    type: `SVN`,
+    url: "http://aso.googlecode.com/svn/trunk"
+}
+
 mili:
 {
     type: `SVN`,
