@@ -96,3 +96,9 @@ unplugged:
     type: `HG`,
     url: "http://code.google.com/p/unplugged/"
 }
+
+"fx-parser":
+{
+    type: `HG`,
+    url: "http://code.google.com/p/fx-parser/"
+}
