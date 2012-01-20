@@ -23,7 +23,7 @@ import os.path
 import SCons
 import sys
 import subprocess
-from termcolor import cprint, ask_user
+from termcolor import cprint, cformat, ask_user
 
 projects = {}
 
@@ -34,6 +34,7 @@ def init(env):
     updateBuilder = Builder(action = SCons.Action.Action(UpdateDependency, UpdateDependencyMessage))
     env.Append(BUILDERS = {'UpdateDependency': updateBuilder})
     createDependenciesTargets(env)
+    env.CheckoutDependencyNow = CheckoutDependencyNow
     
 def createDependenciesTargets(env):
     confDir = os.path.join(env.Dir('#').abspath,'conf')
@@ -46,7 +47,7 @@ def createDependenciesTargets(env):
         projectName = projectElement.getAttribute('name')
         if projects.has_key(projectName) > 0:
             env.cprint('[warn] project ' + projectName 
-                       + ' informatino is duplicated in the projects.xml file', 'yellow')
+                       + ' information is duplicated in the projects.xml file', 'yellow')
         else:
             projectType = projectElement.getAttribute('repository_type')
             project = createDependency(env, projectName, projectType, projectElement)
@@ -78,48 +79,53 @@ def createDependenciesTargets(env):
             env.AlwaysBuild( env.Alias(tgt, checkoutAction, 'checkout ' + project))
 
 class Dependencies(object):
-    def __init__(self, name, target, node):
+    def __init__(self, name, target, node, env):
         self.name = name
         self.target = target
         self.url = node.getAttribute('repository_url')
         if len(node.childNodes) > 0:
-            self.executeAfter = node.childNodes[0].nodeValue
+            # we need to get the text contained in execute_after, to do so, we
+            # get the execute_after node, then we get the child node (the text
+            # contained in the execute_after node), and then we get the text.
+            # Here we are assuming that the contents of the execute_after node
+            # would be of type TEXT_NODE, otherwise, it would cause an error.
+            self.executeAfter = node.getElementsByTagName('execute_after')[0].childNodes[0].data
         else:
             self.executeAfter = ''
         if node.hasAttribute('username'):
             self.username = node.getAttribute('username')
         else:
             self.username = ''
+        self.env = env
 
     def afterCheckout(self):
-        if len(self.executeAfter):
+        if len(self.executeAfter) > 0:
             cmds = self.executeAfter.split('\n')
             for cmd in cmds:
-                cmd = cmd.replace('#', self.env['ROOT'])
+                cmd = cmd.replace('{WS_DIR}', self.env['WS_DIR'])
+                cmd = cmd.replace('#', self.env.Dir('#').abspath)
                 cprint('[info] execute post-checkout command: %s' % cmd, 'purple')
                 rc = subprocess.call(cmd.split(' '))
                 if rc != 0:
-                    cprint('[error] failed to execute post-checkout command: %s, error: %s' % (cmd, rc), 'red')
-                    return False
+                    return cformat('[error] failed to execute post-checkout command: %s, error: %s' % (cmd, rc), 'red')
+        return 0
 
 class HG(Dependencies):
     def checkout(self):
         cprint('[hg] checkout %s => %s' % (self.url, self.target), 'purple')
         rc = subprocess.call(['hg', 'clone', self.url, self.target])
         if rc != 0:
-            cprint('[error] hg failed to checkout target %s from %s, error: %s' 
-                   % (self.target, self.url, rc), 'red')
-            return False
+            return cformat('[error] hg failed to checkout target %s from %s, error: %s' 
+                           % (self.target, self.url, rc), 'red')
         return self.afterCheckout()
 
     def update(self):
         cprint('[hg] updating %s => %s' % (self.url, self.target), 'purple')
         rc = subprocess.call("cd %s; hg pull -u" % self.target, shell=True)
         if rc != 0:
-            cprint('[error] hg failed to update target %s from %s, error: %s' 
-                   % (self.target, self.url, rc), 'red')
-            return False
-        return True
+            return cforamt('[error] hg failed to update target %s from %s, error: %s' 
+                           %(self.target, self.url, rc), 'red')
+        return 0
 
 class SVN(Dependencies):
     def checkout(self):
@@ -127,58 +133,59 @@ class SVN(Dependencies):
         cmd = ['svn', 'checkout'] + (['--username', self.username] if self.username else []) + [self.url, self.target]
         rc = subprocess.call(cmd)
         if rc != 0 :
-            cprint('[error] svn failed to checkout target %s from %s, error: %s' 
-                   % (self.target, self.url, rc), 'red')
-            return False
+            return cformat('[error] svn failed to checkout target %s from %s, error: %s' 
+                           % (self.target, self.url, rc), 'red')
         return self.afterCheckout()
 
     def update(self):
-        cprint('[svn] uafterCheckoutpdating %s => %s' % (self.url, self.target), 'purple')
+        cprint('[svn] updating %s => %s' % (self.url, self.target), 'purple')
         rc = subprocess.call("cd %s; svn update" % self.target, shell=True)
         if rc != 0 :
-            cprint('[error] svn failed to update target %s from %s, error: %s' 
-                   % (self.target, self.url, rc), 'red')
-            return False
-        return True
+            return cformat('[error] svn failed to update target %s from %s, error: %s' 
+                           % (self.target, self.url, rc), 'red')
+        return 0
 
 class WGET(Dependencies):
     def checkout(self):
         cprint('[wget] downloading %s => %s' % (self.url, self.target), 'purple')
         rc = subprocess.call(['wget', self.url, '-P', self.target])
         if rc != 0 :
-           cprint('[error] wget failed to download target %s from %s, error: %s' 
-                  % (self.target, self.url, rc), 'red')
-           return False
+           return cformat('[error] wget failed to download target %s from %s, error: %s' 
+                          % (self.target, self.url, rc), 'red')
         return self.afterCheckout()
     
     def update(self):
         #TODO: this is not supported, should be? should we download the version
         # again an update? that will be time consuming and update should be
-        # fast.
-        return True
+        # fast. This should be supported once we mark the version and there
+        # is a way to know that the version didnt changed from last download
+        return 0
 
 def createDependency(env, name, type, node):
     target = os.path.join(env['WS_DIR'], name)
     if type == 'HG':
-        return HG(name, target, node)
+        return HG(name, target, node, env)
     elif type == 'SVN':
-        return SVN(name, target, node)
+        return SVN(name, target, node, env)
     elif type == 'WGET':
-        return WGET(name, target, node)
+        return WGET(name, target, node, env)
     else:
         cprint('[error] project %s has repository %s which is not supported' 
                % (name, type), 'red')
         return None
         
 def CheckoutDependencyMessage(env, source, target):
-    return ""
+    return ''
 
 def CheckoutDependency(env, source, target):
     dep = str(target[0]).split(':')[0]
     return projects[dep].checkout()
 
+def CheckoutDependencyNow(dep):
+    return projects[dep].checkout()
+
 def UpdateDependencyMessage(env, source, target):
-    return ""
+    return ''
 
 def UpdateDependency(env, source, target):
     dep = str(target[0]).split(':')[0]

@@ -34,9 +34,7 @@ scons_defaults.init(env,vars)
 
 # Color pretty printing
 import termcolor
-if ARGUMENTS.get('VERBOSE') != '1':
-    termcolor.prettyMessages(env)
-env.cprint = termcolor.cprint
+termcolor.init(env, ARGUMENTS)
 
 # things to debug the environment
 import debug
@@ -65,6 +63,11 @@ dependencygraph.init(env)
 # Include the dependencies checkout and update system
 import dependencies
 dependencies.init(env)
+
+# Add OS Components
+import linux
+linux.init(env)
+
 #
 ## Register builders
 ## Register tools
@@ -89,9 +92,6 @@ dependencies.init(env)
 #import boostutil
 #boostutil.addBoostComponents(env)
 #
-## Add OS Components
-#import linux
-#linux.addOSComponents(env)
 #
 #
 ## call to fudepan.py where

@@ -20,31 +20,18 @@
 from SCons.Script.SConscript import SConsEnvironment
 from SCons.Script import *
 import SCons.Builder
+import shutil
 
 def init(env):
     from SCons.Script import Builder
-    bldHL = Builder(action = SCons.Action.Action(HeaderLibrary, PrintDummy))
-    env.Append(BUILDERS = {'HeaderLibrary': bldHL})
     bldRUT = Builder(action = SCons.Action.Action(RunUnittest, PrintDummy))
     env.Append(BUILDERS = {'RunUnittest' : bldRUT})
-    
+    bldDoxygen = Builder(action = SCons.Action.Action(RunDoxygen, PrintDummy))
+    env.Append(BUILDERS = {'RunDoxygen' : bldDoxygen})
+    env['DEFAULT_DOXYFILE'] = env.File('#/conf/doxygenTemplate').abspath
+
 def PrintDummy(env, source, target):
     return ""
-
-def HeaderLibrary(env, source, target):
-    # Copy headers
-    return;
-    #if not self.processed and self.externalHeaderDirs:
-    #for d in self.externalHeaderDirs:
-    #    for f in os.listdir(d):
-    #        if not f.startswith('.'):
-    #            path = os.path.join(d, f)
-    #            if os.path.isdir(path):
-    #                recursive_install.RecursiveInstall(env, self.installIncludesDir, path)
-    #            else:
-    #                t = env.Install(self.installIncludesDir, path)
-    #                env.jAlias('all:install', t, "install all targets")
-    #self.processed = True #TODO: gtest_main.abspath()
 
 def RunUnittest(env, source, target):
     for s in source:
@@ -52,9 +39,32 @@ def RunUnittest(env, source, target):
         (dir, appbin) = os.path.split(app)
         rc = subprocess.call("cd %s; ./%s" % (dir, appbin), shell=True)
         if rc:
-            cprint('[error] %s failed, error: ' % (app, rc), 'red')
+            env.cprint('[error] %s failed, error: ' % (app, rc), 'red')
         else:
-            cprint('[passed] %s passed' % app, 'green')
+            env.cprint('[passed] %s passed' % app, 'green')
+
+def RunDoxygen(target, source, env):
+    (pathHead, pathTail) = os.path.split(source[0].abspath)
+    if pathTail == 'SConscript':
+        fsrc = open(os.path.abspath(env['DEFAULT_DOXYFILE']), 'r')
+        doxygenSrc = fsrc.read()
+        fsrc.close()
+    else:
+        fsrc = open(source[0].abspath, 'r')
+        doxygenSrc = fsrc.read()
+        fsrc.close()
+    
+    tmpdoxyFile = pathHead + '/tmp_doxyfile'
+    targetName = os.path.basename(target[0].abspath)[:-4]
+    targetDir = env['INSTALL_DOC_DIR'] + '/' + targetName
+    
+    ftgt = open(tmpdoxyFile, "w")
+    ftgt.write(doxygenSrc.replace('$PROJECT_NAME', targetName)\
+                         .replace('$OUTPUT_DIR', targetDir))
+    ftgt.flush()
+    ftgt.close()
+    subprocess.call('cd ' + pathHead + ' ; doxygen ' + tmpdoxyFile, shell=True)
+    os.remove(tmpdoxyFile)
 
 #def configure(target, source, env):
 #    buildDir = env['buildDir']
@@ -68,3 +78,37 @@ def RunUnittest(env, source, target):
 #
 #    return subprocess.call(configure + configureOpts + ' ; make; make install', cwd=buildDir, shell=True, env=procEnv)
 
+# The following build is based on: 
+# http://xtargets.com/2010/04/21/recursive-install-builder-for-scons/
+
+def recursive_install(env, path, fileFilter):
+    out = []
+    fileNodes = []
+    if isinstance(fileFilter, list or tuple):
+        for ff in fileFilter:
+            fileNodes.extend(env.Glob(os.path.join(path, ff), strings=False))
+    else:
+        fileNodes.extend(env.Glob(os.path.join(path, fileFilter), strings=False))
+    for f in fileNodes:
+        out.append(f)
+    dirNodes = env.Glob(os.path.join(path, '*'), strings=False)
+    for n in dirNodes:
+        if n.isdir():
+            out.extend( recursive_install(env, n.abspath, fileFilter ))
+    return out
+
+def RecursiveInstall(env, sourceDir, sourcesRel, targetName, fileFilter='*.*'):
+    nodes = []
+    if isinstance(sourcesRel, list or tuple):
+        for source in sourcesRel:
+            nodes.extend( recursive_install(env, sourceDir.rel_path(source), fileFilter ) )
+    else:
+        nodes.extend( recursive_install(env, sourceDir.rel_path(sourcesRel), fileFilter ) )
+    l = len(sourceDir.abspath) + 1
+    relnodes = [ n.abspath[l:] for n in nodes ]
+    
+    targetHeaderDir = env.Dir(env['INSTALL_HEADERS_DIR']).Dir(targetName).abspath
+    for n in relnodes:
+        t = os.path.join(targetHeaderDir, n)
+        s = os.path.join(sourceDir.abspath, n)
+        env.HookedAlias(targetName, env.InstallAs(env.File(t), env.File(s)))
