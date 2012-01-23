@@ -1,11 +1,12 @@
 Import ('env')
 
-env.Replace(CXXFLAGS=[], CFLAGS=[])
+gtestEnv = env.Clone()
+gtestEnv.Replace(CXXFLAGS=[], CFLAGS=[])
 name = 'gtest'
-inc = env.Dir('.'), env.Dir('include'), env.Dir('include/gtest')
-ext_inc = env.Dir('include/gtest')
+inc = gtestEnv.Dir('.'), gtestEnv.Dir('include'), gtestEnv.Dir('include/gtest')
+ext_inc = gtestEnv.Dir('include/gtest')
 src = ['src/gtest-all.cc']
 deps = []
 
-env.CreateStaticLibrary(name, inc, ext_inc, src, deps)
-env.CreateDoc(name)
+gtestEnv.CreateStaticLibrary(name, inc, ext_inc, src, deps)
+gtestEnv.CreateDoc(name)

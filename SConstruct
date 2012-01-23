@@ -107,7 +107,7 @@ linux.init(env)
 #from component import WalkDirsForComponents
 dependencygraph.WalkDirsForSconscripts(env, topdir = env['WS_DIR'],
                                        ignore = [
-                                                 'gmock/scons',
+                                                 #'gmock/scons',
                                                  'test_doc',
                                                  #'test_program',
                                                  'test_qt',

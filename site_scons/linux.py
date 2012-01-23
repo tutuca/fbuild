@@ -24,4 +24,5 @@ import component
 
 def init(env):
     env.CreateLibraryComponent('pthread', [], [])
+    env.CreateLibraryComponent('dl', [], [])
 
