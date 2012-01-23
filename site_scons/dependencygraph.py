@@ -205,8 +205,7 @@ class LibraryComponent(HeaderOnlyComponent):
         libs = []
         if depth > 0:
             libs.append(self.name)
-            libDir = os.path.join(env['BUILD_DIR'], self.name)
-            libpaths.append(libDir)
+            libpaths.append(env['INSTALL_LIB_DIR'])
         processedComponents.append(self.name)
 
         # TODO: We need a way to check for circular dependencies
@@ -242,10 +241,11 @@ class StaticLibraryComponent(LibraryComponent):
         LibraryComponent.Process(self, env)
         incpaths = self.getIncludePaths(env)
         (libs,libpaths) = self.getLibs(env)
-        self.srcabsSrcs = []
         sLib = env.StaticLibrary(self.name, self.src, CPPPATH=incpaths)
+        iLib = env.Install(env['INSTALL_LIB_DIR'], sLib)
         env.Alias(self.name, sLib, "Build " + self.name)
         env.Alias('all:build', sLib, "build all targets")
+        env.Alias('all:install', iLib, "Install all targets")
         return sLib
 
 def CreateStaticLibrary(env, name, inc, ext_inc, src, deps):
@@ -268,6 +268,7 @@ class DynamicLibraryComponent(LibraryComponent):
         iLib = env.Install(env['INSTALL_BIN_DIR'], dLib)
         env.Alias(self.name, iLib, "Build and install " + self.name)
         env.Alias('all:build', dLib, "build all targets")
+        env.Alias('all:install', iLib, "Install all targets")
         return dLib
 
 def CreateSharedLibrary(env, name, inc, ext_inc, src, deps):

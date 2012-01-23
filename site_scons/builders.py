@@ -21,6 +21,7 @@ from SCons.Script.SConscript import SConsEnvironment
 from SCons.Script import *
 import SCons.Builder
 import shutil
+import subprocess
 
 def init(env):
     from SCons.Script import Builder
