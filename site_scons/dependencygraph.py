@@ -274,6 +274,29 @@ class ProgramComponent(LibraryComponent):
     def __init__(self, env, name, compDir, deps, inc, src):
         LibraryComponent.__init__(self, env, name, compDir, deps, [], inc, src)
     
+    def getLibs(self):
+        (libs, libpaths, processedComponents) = self._getLibs([], 0)
+        libs = utils.removeDuplicates(libs)
+        libpaths = utils.removeDuplicates(libpaths)
+        return (libs, libpaths)
+        
+    def _getLibs(self, processedComponents, depth):
+        libpaths = []
+        libs = []
+        # TODO: We need a way to check for circular dependencies
+        for dep in self.deps:
+            # Only process the dep if it was not already processed
+            if not (dep in processedComponents):
+                c = componentGraph.get(dep)
+                if c is None:
+                    self.env.cprint('[error] %s depends on %s which could not be found' % (self.name, dep), 'red')
+                    continue
+                if hasattr(c, '_getLibs'):
+                    (depLibs, depLibPaths, depProcessedComp) = c._getLibs(processedComponents,depth+1)
+                    libpaths.extend(depLibPaths)
+                    libs.extend(depLibs)
+        return (libs, libpaths, processedComponents)
+
     def Process(self):
         # TODO: add the header thing
         #LibraryComponent.Process(self)
