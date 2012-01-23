@@ -109,11 +109,11 @@ dependencygraph.WalkDirsForSconscripts(env, topdir = env['WS_DIR'],
                                        ignore = [
                                                  'gmock/scons',
                                                  'test_doc',
-                                                 'test_program',
+                                                 #'test_program',
                                                  'test_qt',
-                                                 'test_shared',
-                                                 'test_static',
-                                                 'test_ut'
+                                                 #'test_shared',
+                                                 #'test_static',
+                                                 #'test_ut'
                                                 ])
 
 #component.initializeDependencies(env)

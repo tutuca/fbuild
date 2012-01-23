@@ -24,8 +24,9 @@
 import fnmatch
 import os
 from builders import RecursiveInstall
+import utils
+import SCons
 
-isPreProcessing = True
 downloadedDependencies = False
 
 headersFilter = ['*.h','*.hpp']
@@ -33,6 +34,7 @@ headersFilter = ['*.h','*.hpp']
 def init(env):
     from SCons.Script.SConscript import SConsEnvironment
     SConsEnvironment.CreateProgram = CreateProgram
+    SConsEnvironment.CreateLibraryComponent = CreateLibraryComponent
     SConsEnvironment.CreateStaticLibrary = CreateStaticLibrary
     SConsEnvironment.CreateSharedLibrary = CreateSharedLibrary
     SConsEnvironment.CreateHeaderOnlyLibrary = CreateHeaderOnlyLibrary
@@ -66,16 +68,20 @@ class ComponentDictionary:
 componentGraph = ComponentDictionary()
 
 class Component(object):
-    def __init__(self, name, type, compDir, inc = [], deps = [], extInc = None):
+    def __init__(self, name, compDir, deps):
         self.name = name
-        self.type = type
-        self.inc = []
-        if inc:
-            if isinstance(inc,list) or isinstance(inc,tuple):
-                for i in inc:
-                    self.inc.append( os.path.relpath(i.abspath, compDir.abspath) )
-            else:
-                self.inc.append( os.path.relpath(inc.abspath, compDir.abspath) )
+        # Directory where the component lives (the directory that contains the
+        # SConscript)
+        self.dir = compDir.abspath
+        self.deps = deps
+
+    def Process(self, env):
+        for dep in self.deps:
+            env.Depends(env.HookedAlias(self.name), env.HookedAlias(dep))
+
+class HeaderOnlyComponent(Component):
+    def __init__(self, name, compDir, deps, extInc):
+        Component.__init__(self, name, compDir, deps)
         self.extInc = []
         if extInc:
             if isinstance(extInc,list) or isinstance(extInc,tuple):
@@ -83,62 +89,25 @@ class Component(object):
                     self.extInc.append( os.path.relpath(i.abspath, compDir.abspath) )
             else:
                 self.extInc.append( os.path.relpath(extInc.abspath, compDir.abspath) )
-        self.deps = deps
-        # Directory where the component lives (the directory that contains the
-        # SConscript)
-        self.dir = compDir.abspath
-
-    class Type:
-        HEADER_ONLY = 0
-        PROGRAM = 1
-        UNITTEST = 2
-        STATIC_LIBRARY = 3
-        SHARED_LIBRARY = 4
-        DOC = 5
-
-    def GetDependenciesPaths(self, env):
-        (incs, libs, libpaths, processedComponents) = self._getDependenciesPaths(env, [], 0)
-        return (incs, libs, libpaths)
-        
-    def _getDependenciesPaths(self, env, processedComponents, depth):
-        libpaths = []
-        libs = []
+    
+    def getIncludePaths(self,env):
+        (incs, processedComponents) = self._getIncludePaths(env, [], 0)
+        incs = utils.removeDuplicates(incs)
+        return incs
+    
+    def _getIncludePaths(self, env, processedComponents, depth):
+        includeModulePath = os.path.join(env['INSTALL_HEADERS_DIR'],self.name)
         incs = []
-        # First, add the stuff of this library so this goes first than the
-        # dependencies
-        if depth > 0 and (self.type in [Component.Type.DOC,
-                                        Component.Type.PROGRAM,
-                                        Component.Type.UNITTEST
-                                        ]):
-            env.cprint('[warn] %s depends on %s which is of type %s (this is not allowed)' 
-                       % (processedComponents[len(processedComponents)-1],
-                          self.name, 
-                          self.type), 'yellow')
-            return (incs, libs, libpaths, processedComponents) 
-        if self.type in [Component.Type.STATIC_LIBRARY, 
-                         Component.Type.SHARED_LIBRARY]:
-            # We only link to this library if this is a component that another 
-            # library depends on.
-            if depth > 0:
-                libs.append(self.name)
-                libDir = os.path.join(env['BUILD_DIR'], self.name)
-                libpaths.append(libDir)
-        if self.type in [Component.Type.STATIC_LIBRARY, 
-                         Component.Type.SHARED_LIBRARY,
-                         Component.Type.HEADER_ONLY]:
-            # We only include the external headers if this is a component
-            # that another library depends on. If we are getting this library
-            # every header should be in the inc section
-            if depth > 0:
-                for i in self.extInc:
-                    hDir = os.path.join(env['INSTALL_HEADERS_DIR'], i)
-                    incs.append(hDir)
-            for i in self.inc:
-                hDir = os.path.join(self.dir, i)
-                incs.append(hDir)
+        if depth > 0:
+            for i in self.extInc:
+                hDir = os.path.join(includeModulePath, i)
+                (hDirHead, hDirTail) = os.path.split(hDir)
+                incs.append(hDirHead)
+        # Because we are building from #, we include also compDir as an include
+        # path so it finds local includes
+        incs.append(self.dir)
         processedComponents.append(self.name)
 
-        # Second step, get the paths from the dependencies. 
         # TODO: We need a way to check for circular dependencies
         for dep in self.deps:
             # Only process the dep if it was not already processed
@@ -147,142 +116,238 @@ class Component(object):
                 if c is None:
                     env.cprint('[error] %s depends on %s which could not be found' % (self.name, dep), 'red')
                     continue
-                (depIncs, depLibs, depLibPaths, depProcessedComp) = c._getDependenciesPaths(env,processedComponents,depth+1)
-                libpaths.extend(depLibPaths)
-                libs.extend(depLibs)
+                (depIncs, depProcessedComp) = c._getIncludePaths(env,processedComponents,depth+1)
                 incs.extend(depIncs)
-        return (incs, libs, libpaths, processedComponents)
+        return (incs, processedComponents)
+    
+    def Process(self, env):
+        Component.Process(self,env)
+        hLib = RecursiveInstall(env, self.dir, self.extInc, self.name, headersFilter)
+        env.Alias(self.name, hLib, 'Install ' + self.name + ' headers')
+        env.Alias('all:install', hLib, "Install all targets")
+        return hLib
 
 def CreateHeaderOnlyLibrary(env, name, ext_inc, deps):
-    if isPreProcessing:
-        componentGraph.add(env, Component(name,
-                                          Component.Type.HEADER_ONLY,
-                                          env.Dir('.'),
-                                          [],
-                                          deps,
-                                          ext_inc
-                                          ))
-    else:
-        hLib = RecursiveInstall(env, env.Dir('.'), ext_inc, name, headersFilter)
-        env.Alias(name, hLib, 'Install ' + name + ' headers')
-        env.Alias('all:install', hLib, "Install all targets")
+    componentGraph.add(env, HeaderOnlyComponent(name,
+                                                env.Dir('.'),
+                                                deps,
+                                                ext_inc))
+
+class LibraryComponent(HeaderOnlyComponent):
+    def __init__(self, name, compDir, deps, extInc, inc, src):
+        HeaderOnlyComponent.__init__(self, name, compDir, deps, extInc)
+        self.inc = []
+        if inc:
+            if isinstance(inc,list) or isinstance(inc,tuple):
+                for i in inc:
+                    self.inc.append( os.path.relpath(i.abspath, compDir.abspath) )
+            else:
+                self.inc.append( os.path.relpath(inc.abspath, compDir.abspath) )
+        self.src = []
+        if src:
+            if isinstance(src, list):
+                for s in src:
+                    if isinstance(s, str):
+                        self.src.append(os.path.abspath(s))
+                    else:
+                        self.src.append(os.path.abspath(compDir.rel_path(s)))
+            else:
+                if isinstance(src, str):
+                    self.src.append(os.path.abspath(src))
+                else:
+                    self.src.append(os.path.abspath(compDir.rel_path(src)))
+        
+    def getIncludePaths(self,env):
+        (incs, processedComponents) = self._getIncludePaths(env, [], 0)
+        return incs
+    
+    def _getIncludePaths(self, env, processedComponents, depth):
+        incs = []
+        includeModulePath = os.path.join(env['INSTALL_HEADERS_DIR'], self.name)
+        if depth > 0:
+            # external headers will always be referred from the parent folder
+            # and have to be from the install directory
+            for i in self.extInc:
+                hDir = os.path.join(includeModulePath, i)
+                (hDirHead, hDirTail) = os.path.split(hDir)
+                incs.append(hDirHead)
+        else:
+            # local headers can be referred explicitely (they are relative to the
+            # current build directory) and are not from the install directory
+            for i in self.inc:
+                hDir = os.path.join(self.dir, i)
+                incs.append(hDir)
+        # Because we are building from #, we include also compDir as an include
+        # path so it finds local includes
+        incs.append(self.dir)
+        processedComponents.append(self.name)
+
+        # TODO: We need a way to check for circular dependencies
+        for dep in self.deps:
+            # Only process the dep if it was not already processed
+            if not (dep in processedComponents):
+                c = componentGraph.get(dep)
+                if c is None:
+                    env.cprint('[error] %s depends on %s which could not be found' % (self.name, dep), 'red')
+                    continue
+                (depIncs, depProcessedComp) = c._getIncludePaths(env,processedComponents,depth+1)
+                incs.extend(depIncs)
+        return (incs, processedComponents)
+    
+    def getLibs(self,env):
+        (libs, libpaths, processedComponents) = self._getLibs(env, [], 0)
+        libs = utils.removeDuplicates(libs)
+        libpaths = utils.removeDuplicates(libpaths)
+        return (libs, libpaths)
+        
+    def _getLibs(self, env, processedComponents, depth):
+        libpaths = []
+        libs = []
+        if depth > 0:
+            libs.append(self.name)
+            libDir = os.path.join(env['BUILD_DIR'], self.name)
+            libpaths.append(libDir)
+        processedComponents.append(self.name)
+
+        # TODO: We need a way to check for circular dependencies
+        for dep in self.deps:
+            # Only process the dep if it was not already processed
+            if not (dep in processedComponents):
+                c = componentGraph.get(dep)
+                if c is None:
+                    env.cprint('[error] %s depends on %s which could not be found' % (self.name, dep), 'red')
+                    continue
+                if hasattr(c, '_getLibs'):
+                    (depLibs, depLibPaths, depProcessedComp) = c._getLibs(env,processedComponents,depth+1)
+                    libpaths.extend(depLibPaths)
+                    libs.extend(depLibs)
+        return (libs, libpaths, processedComponents)
+    
+    def Process(self, env):
+        return HeaderOnlyComponent.Process(self, env)
+
+def CreateLibraryComponent(env, name, ext_inc, deps):
+    componentGraph.add(env, LibraryComponent(name,
+                                             env.Dir('.'),
+                                             deps,
+                                             ext_inc,
+                                             [],
+                                             []))
+
+class StaticLibraryComponent(LibraryComponent):
+    def __init__(self, name, compDir, deps, extInc, inc, src):
+        LibraryComponent.__init__(self, name, compDir, deps, extInc, inc, src)
+    
+    def Process(self, env):
+        LibraryComponent.Process(self, env)
+        incpaths = self.getIncludePaths(env)
+        (libs,libpaths) = self.getLibs(env)
+        self.srcabsSrcs = []
+        sLib = env.StaticLibrary(self.name, self.src, CPPPATH=incpaths)
+        env.Alias(self.name, sLib, "Build " + self.name)
+        env.Alias('all:build', sLib, "build all targets")
+        return sLib
+
+def CreateStaticLibrary(env, name, inc, ext_inc, src, deps):
+    componentGraph.add(env, StaticLibraryComponent(name,
+                                                   env.Dir('.'),
+                                                   deps,
+                                                   ext_inc,
+                                                   inc,
+                                                   src))
+
+class DynamicLibraryComponent(LibraryComponent):
+    def __init__(self, name, compDir, deps, extInc, inc, src):
+        LibraryComponent.__init__(self, name, compDir, deps, extInc, inc, src)
+    
+    def Process(self, env):
+        LibraryComponent.Process(self, env)
+        incpaths = self.getIncludePaths(env)
+        (libs,libpaths) = self.getLibs(env)
+        dLib = env.SharedLibrary(self.name, self.src, CPPPATH=incpaths, LIBS=libs, LIBPATH=libpaths)
+        iLib = env.Install(env['INSTALL_BIN_DIR'], dLib)
+        env.Alias(self.name, iLib, "Build and install " + self.name)
+        env.Alias('all:build', dLib, "build all targets")
+        return dLib
+
+def CreateSharedLibrary(env, name, inc, ext_inc, src, deps):
+    componentGraph.add(env, DynamicLibraryComponent(name,
+                                                    env.Dir('.'),
+                                                    deps,
+                                                    ext_inc,
+                                                    inc,
+                                                    src))
+
+class ProgramComponent(LibraryComponent):
+    def __init__(self, name, compDir, deps, inc, src):
+        LibraryComponent.__init__(self, name, compDir, deps, [], inc, src)
+    
+    def Process(self,env):
+        # TODO: add the header thing
+        #LibraryComponent.Process(self, env)
+        incpaths = self.getIncludePaths(env)
+        (libs,libpaths) = self.getLibs(env)
+        prog = env.Program(self.name, self.src, CPPPATH=incpaths, LIBS=libs, LIBPATH=libpaths)
+        iProg = env.Install(env['INSTALL_BIN_DIR'], prog)
+        env.Alias(self.name, iProg, "Build and install " + self.name)
+        env.Alias('all:build', prog, "Build all targets")
+        env.Alias('all:install', iProg, "Install all targets")
+        return prog
 
 def CreateProgram(env, name, inc, src, deps):
-    if isPreProcessing:
-        componentGraph.add(env, Component(name,
-                                          Component.Type.PROGRAM,
-                                          env.Dir('.'),
-                                          inc,
-                                          deps))
-    else:
-        (incpaths,libs,libpaths) = componentGraph.get(name).GetDependenciesPaths(env)
-        prog = env.Program(name, src, CPPPATH=incpaths, LIBS=libs, LIBPATH=libpaths)
+    componentGraph.add(env, ProgramComponent(name,
+                                             env.Dir('.'),
+                                             deps,
+                                             inc,
+                                             src))
 
-        #allDeps = componentGraph.get(name).deps
-        #for dep in allDeps:
-        #    env.Depends(prog, env.HookedAlias(dep))
+class UnitTestComponent(ProgramComponent):
+    def __init__(self, name, compDir, deps, inc, src):
+        ProgramComponent.__init__(self, name, compDir, deps, inc, src)
 
-        env.Alias('all:build', prog, "Build all targets")
-        
-        iProg = env.Install(env['INSTALL_BIN_DIR'], prog)
-        env.Alias(name, iProg, "Build and install " + name)
-        env.Alias('all:install', iProg, "Install all targets")
-    
+    def Process(self, env):
+        prog = ProgramComponent.Process(self, env)
+        tTest = env.RunUnittest(self.name + '.passed', prog)
+        env.Alias(self.name, tTest, "Run test for " + self.name)
+        env.Alias('all:test', tTest, "Run all tests")
+
 def CreateTest(env, name, inc, src, deps):
     testName = name + ':test'
-    if isPreProcessing:
-        componentGraph.add(env, Component(testName,
-                                          Component.Type.UNITTEST,
-                                          env.Dir('.'),
-                                          inc,
-                                          deps))
-    else:
-        (incpaths,libs,libpaths) = componentGraph.get(testName).GetDependenciesPaths(env)
-        tProg = env.Program(testName, src, CPPPATH=incpaths, LIBS=libs, LIBPATH=libpaths)
-        
-        #allDeps = componentGraph.get(testName).deps
-        #for dep in allDeps:
-        #    env.Depends(tProg, env.HookedAlias(dep))
-        
-        env.Alias('all:build', tProg, "Build all targets")
-        
-        tTest = env.RunUnittest(testName + '.passed', tProg)
-        env.Alias(testName, tTest, "Run test for " + name)
-        env.Alias('all:test', tTest, "Run all tests")
-    
-def CreateStaticLibrary(env, name, inc, ext_inc, src, deps):
-    if isPreProcessing:
-        componentGraph.add(env, Component(name,
-                                          Component.Type.STATIC_LIBRARY,
-                                          env.Dir('.'),
-                                          inc,
-                                          deps,
-                                          ext_inc))
-    else:
-        hLib = RecursiveInstall(env, env.Dir('.'), ext_inc, name, headersFilter)
-        env.Alias('all:install', hLib, "Install all targets")
-        
-        (incpaths,libs,libpaths) = componentGraph.get(name).GetDependenciesPaths(env)
-        
-        #allDeps = componentGraph.get(name).deps
-        #for dep in allDeps:
-        #    env.Depends(hLib, env.HookedAlias(dep))
-            
-        sLib = env.Library(name, src, CPPPATH=incpaths)
-        env.Alias(name, sLib, "Build " + name)
-        env.Alias('all:build', sLib, "install all targets")
-    
-def CreateSharedLibrary(env, name, inc, ext_inc, src, deps):
-    if isPreProcessing:
-        componentGraph.add(env, Component(name,
-                                          Component.Type.SHARED_LIBRARY,
-                                          env.Dir('.'),
-                                          inc,
-                                          deps,
-                                          ext_inc))
-    else:
-        hLib = RecursiveInstall(env, env.Dir('.'), ext_inc, name, headersFilter)
-        env.Alias('all:install', hLib, "Install all targets")
-        
-        (incpaths,libs,libpaths) = componentGraph.get(name).GetDependenciesPaths(env)
+    # the test automatically depends on the thing that is testing
+    deps.append(name)
+    componentGraph.add(env, UnitTestComponent(testName,
+                                              env.Dir('.'),
+                                              deps,
+                                              inc,
+                                              src))
 
-        #allDeps = componentGraph.get(name).deps
-        #for dep in allDeps:
-        #    env.Depends(hLib, env.HookedAlias(dep))
-            
-        dLib = env.SharedLibrary(name, src, CPPPATH=incpaths, LIBS=libs, LIBPATH=libpaths)
-        iLib = env.Install(env['INSTALL_BIN_DIR'], dLib)
-        env.Alias(name, iLib, "Build and install " + name)
-        env.Alias('all:build', sLib, "install all targets")
+class DocComponent(Component):
+    def __init__(self, name, compDir, doxyfile):
+        Component.__init__(self, name, compDir, [])
+        self.doxyfile = doxyfile
     
+    def Process(self, env):
+        Component.Process(self, env)
+        targetDocDir = env.Dir(env['INSTALL_DOC_DIR']).Dir(self.name)
+        doc = env.RunDoxygen(targetDocDir, self.doxyfile)
+        env.Clean(doc, targetDocDir)
+        env.Alias(self.name, doc, 'Generate documentation for ' + self.name)
+
+def CreateDoc(env, name, doxyfile=None):
+    docName = name + ':doc'
+    if doxyfile == None:
+        doxyfile = os.path.abspath(env['DEFAULT_DOXYFILE'])
+    componentGraph.add(env, DocComponent(docName,
+                                         env.Dir('.'),
+                                         doxyfile))
+
 #def CreateAutoToolsProject(env, name, libfile, configureFile, ext_inc):
 #    if isPreProcessing:
 #        componentGraph.add(env, Component(name))
-    
-def CreateDoc(env, name, doxyfile=None):
-    docName = name + ':doc'
-    if isPreProcessing:
-        componentGraph.add(env, Component(docName,
-                                          Component.Type.DOC,
-                                          env.Dir('.')))
-    else:
-        if doxyfile == None:
-            doxyfile = env.Glob('SConscript')
-        targetDocDir = env.Dir(env['INSTALL_DOC_DIR']).Dir(name)
-        doc = env.RunDoxygen(targetDocDir, doxyfile)
-        env.Clean(doc, targetDocDir)
-        env.Alias(docName, doc, 'Generate documentation for ' + name)
-        
-        allDeps = componentGraph.get(name).deps
-        for dep in allDeps:
-            env.Depends(doc, env.HookedAlias(dep))
 
 def WalkDirsForSconscripts(env, topdir, ignore = []):
-    global isPreProcessing
     global componentGraph
-    global downloadDependencies
     
-    isPreProcessing = True
     # Step 1: load all the components in the dependency graph
     # if we find a download dependency, we download it and re-process everything
     # to be sure that all the components are downloaded and loaded in the
@@ -321,11 +386,8 @@ def WalkDirsForSconscripts(env, topdir, ignore = []):
 
     # Step 2: real processing we have everything loaded in the dependency graph
     # now we process it
-    isPreProcessing = False
-    for root, dirnames, filenames in os.walk(topdir):
-        if ignore.count(os.path.relpath(root, topdir)) == 0:
-            for filename in fnmatch.filter(filenames, 'SConscript'):
-                pathname = os.path.join(root, filename)
-                env.SConscript(pathname, 
-                               exports='env')
-
+    for componentName in componentGraph.getComponentsNames():
+        component = componentGraph.get(componentName)
+        os.chdir(component.dir)
+        clonedEnv = env.Clone()
+        component.Process(clonedEnv)

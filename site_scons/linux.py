@@ -23,5 +23,5 @@ import glob
 import component
 
 def init(env):
-    env.CreateStaticLibrary('pthread', [], [], [], [])
+    env.CreateLibraryComponent('pthread', [], [])
 

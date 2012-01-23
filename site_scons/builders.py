@@ -45,22 +45,16 @@ def RunUnittest(env, source, target):
 
 def RunDoxygen(target, source, env):
     (pathHead, pathTail) = os.path.split(source[0].abspath)
-    if pathTail == 'SConscript':
-        fsrc = open(os.path.abspath(env['DEFAULT_DOXYFILE']), 'r')
-        doxygenSrc = fsrc.read()
-        fsrc.close()
-    else:
-        fsrc = open(source[0].abspath, 'r')
-        doxygenSrc = fsrc.read()
-        fsrc.close()
+    fsrc = open(source[0].abspath, 'r')
+    doxygenSrc = fsrc.read()
+    fsrc.close()
     
     tmpdoxyFile = pathHead + '/tmp_doxyfile'
     targetName = os.path.basename(target[0].abspath)[:-4]
-    targetDir = env['INSTALL_DOC_DIR'] + '/' + targetName
     
     ftgt = open(tmpdoxyFile, "w")
     ftgt.write(doxygenSrc.replace('$PROJECT_NAME', targetName)\
-                         .replace('$OUTPUT_DIR', targetDir))
+                         .replace('$OUTPUT_DIR', target[0].abspath))
     ftgt.flush()
     ftgt.close()
     subprocess.call('cd ' + pathHead + ' ; doxygen ' + tmpdoxyFile, shell=True)
@@ -101,14 +95,13 @@ def RecursiveInstall(env, sourceDir, sourcesRel, targetName, fileFilter='*.*'):
     nodes = []
     if isinstance(sourcesRel, list or tuple):
         for source in sourcesRel:
-            nodes.extend( recursive_install(env, sourceDir.rel_path(source), fileFilter ) )
+            nodes.extend( recursive_install(env, os.path.join(sourceDir,source), fileFilter ) )
     else:
-        nodes.extend( recursive_install(env, sourceDir.rel_path(sourcesRel), fileFilter ) )
-    l = len(sourceDir.abspath) + 1
+        nodes.extend( recursive_install(env, os.path.join(sourceDir,sourcesRel), fileFilter ) )
+    l = len(sourceDir) + 1
     relnodes = [ n.abspath[l:] for n in nodes ]
-    
     targetHeaderDir = env.Dir(env['INSTALL_HEADERS_DIR']).Dir(targetName).abspath
     for n in relnodes:
         t = os.path.join(targetHeaderDir, n)
-        s = os.path.join(sourceDir.abspath, n)
+        s = os.path.join(sourceDir, n)
         env.HookedAlias(targetName, env.InstallAs(env.File(t), env.File(s)))
