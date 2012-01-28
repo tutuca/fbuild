@@ -70,6 +70,11 @@ if [ ! "$(which doxygen)" ]; then
     ubuntuInstall doxygen 
 fi
 
+if [ ! "$(which pdflatex)" ]; then
+    echo "warning: pdflatex was not found, pdflatex is not required to continue"
+    ubuntuInstall texlive-latex-base 
+fi
+
 if [ ! "$(which dot)" ]; then
     echo "warning: graphviz was not found, graphviz is not required to continue"
     ubuntuInstall graphviz

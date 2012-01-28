@@ -141,6 +141,11 @@ SConsEnvironment.CreateTest = component.CreateTest
 SConsEnvironment.CreateAutoToolsProject = component.CreateAutoToolsProject
 SConsEnvironment.AddComponent = component.AddComponent
 SConsEnvironment.CreateDoc = component.CreateDoc
+SConsEnvironment.CreatePdf = component.CreatePdf
+## Commands wrapped for platform independent file manipulation in builders
+SConsEnvironment.Mkdir = Mkdir
+SConsEnvironment.Move = Move
+SConsEnvironment.Delete = Delete
 
 # Register builders
 # Register tools
@@ -157,6 +162,12 @@ import doxygen
 doxygenBuilder = Builder(action = doxygen.runDoxygen)
 env.Append(BUILDERS = {'Doxygen':  doxygenBuilder})
 env['DEFAULT_DOXYFILE'] = env.File('#/conf/doxygenTemplate').abspath
+
+# Create a latex2pdf builder 
+import pdflatex
+pdfLatexBuilder = Builder(action = pdflatex.runPdfLatex)
+env.Append(BUILDERS = {'PdfLatex':  pdfLatexBuilder})
+env['PDFLATEX_OPTIONS'] = '' 
 
 # Add Qt
 import qtutil

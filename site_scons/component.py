@@ -175,6 +175,13 @@ def CreateDoc(env, name, doxyfile=None):
         createDoc = docEnv.Doxygen(name + ':doc', doxyfile)
         docEnv.jAlias(name + ':doc', createDoc, "generates documentation for " + name)
 
+def CreatePdf(env, name, latexfile):
+    if isPreProcessing:
+        pdfEnv = env.Clone()
+        filename = os.path.basename(latexfile[:-4])
+        createPdf = pdfEnv.PdfLatex(env['INSTALL_DOC_DIR'] + '/' + name + "/" + filename + ".pdf", latexfile)
+        pdfEnv.jAlias(name + ":" + filename, createPdf, "generates pdf documentation for " + name)
+
 # For static libraries we will make a version header only
 # of the lib so a component can depend on this one in a light way
 def CreateSharedLibrary(env, name, inc, ext_inc, src, deps):
