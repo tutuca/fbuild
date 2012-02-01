@@ -28,6 +28,12 @@ def init(env):
               help='this flag is used to test the build environment, it will parse the buildtests folder instead of the projects folder',
               default=False)
     
+    AddOption('--printresults',
+              dest='printresults',
+              action='store_true',
+              help='if indicated, the results will also be printed to console',
+              default=False)
+    
     AddOption('--nostdin',
               dest='nostdin',
               action='store_true',

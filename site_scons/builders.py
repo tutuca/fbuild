@@ -36,14 +36,18 @@ def PrintDummy(env, source, target):
 
 def RunUnittest(env, source, target):
     rc = 0
+    t = target[0].abspath;
     for s in source:
-        app = str(s.abspath)
+        app = s.abspath
         (dir, appbin) = os.path.split(app)
-        rc = subprocess.call("cd %s; ./%s" % (dir, appbin), shell=True)
+        cmd = "cd %s; ./%s > %s" % (dir, appbin, t)
+        rc = subprocess.call(cmd, shell=True)
+        if env.GetOption('printresults'):
+            subprocess.call("cat %s" % t, shell=True)
         if rc:
-            env.cprint('[error] %s failed, error: %s' % (app, rc), 'red')
+            env.cprint('[failed] %s, error: %s' % (t, rc), 'red')
         else:
-            env.cprint('[passed] %s passed' % app, 'green')
+            env.cprint('[passed] %s' % t, 'green')
     return rc
 
 def RunDoxygen(target, source, env):

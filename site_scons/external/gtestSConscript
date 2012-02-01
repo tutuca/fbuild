@@ -3,7 +3,7 @@ Import ('env')
 gtestEnv = env.Clone()
 gtestEnv.Replace(CXXFLAGS=[], CFLAGS=[])
 name = 'gtest'
-inc = gtestEnv.Dir('.'), gtestEnv.Dir('include'), gtestEnv.Dir('include/gtest')
+inc = gtestEnv.Dir('include')
 ext_inc = gtestEnv.Dir('include/gtest')
 src = ['src/gtest-all.cc']
 deps = []
