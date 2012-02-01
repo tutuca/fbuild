@@ -14,3 +14,5 @@ buildtests/mili
 syntax: re
 ^.*\.pyc$
 ^.*\.swp$
+^.*.svn/*$
+^.*\.*~$

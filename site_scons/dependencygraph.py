@@ -378,7 +378,12 @@ def WalkDirsForSconscripts(env, topdir, ignore = []):
             if ignore.count(os.path.relpath(root, topdir)) == 0:
                 for filename in fnmatch.filter(filenames, 'SConscript'):
                     pathname = os.path.join(root, filename)
-                    env.SConscript(pathname, exports='env')
+                    vdir = os.path.join(env['BUILD_DIR'],
+                                        os.path.relpath(root,env['WS_DIR']))
+                    env.SConscript(pathname, 
+                                   exports='env',
+                                   variant_dir=vdir,
+                                   duplicate=1)
         # Check if there is a component that we dont know how to build
         for component in componentGraph.getComponentsNames():
             c = componentGraph.get(component)
@@ -406,5 +411,4 @@ def WalkDirsForSconscripts(env, topdir, ignore = []):
     # now we process it
     for componentName in componentGraph.getComponentsNames():
         component = componentGraph.get(componentName)
-        os.chdir(component.dir)
         component.Process()
