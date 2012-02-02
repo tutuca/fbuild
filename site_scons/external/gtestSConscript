@@ -4,7 +4,7 @@ gtestEnv = env.Clone()
 gtestEnv.Replace(CXXFLAGS=[], CFLAGS=[])
 name = 'gtest'
 inc = gtestEnv.Dir('include')
-ext_inc = gtestEnv.Dir('include/gtest')
+ext_inc = gtestEnv.Dir('include/gtest'), gtestEnv.Dir('include/gtest/internal')
 src = ['src/gtest-all.cc']
 deps = []
 

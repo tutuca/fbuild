@@ -34,6 +34,12 @@ def init(env):
               help='if indicated, the results will also be printed to console',
               default=False)
     
+    AddOption('--forcerun',
+              dest='forcerun',
+              action='store_true',
+              help='if indicated, tests will run regardless something they depend on changed, if not indicated, tests will only run if something that they depend on changed',
+              default=False)
+    
     AddOption('--nostdin',
               dest='nostdin',
               action='store_true',

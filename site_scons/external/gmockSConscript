@@ -4,7 +4,7 @@ gmockEnv = env.Clone()
 gmockEnv.Replace(CXXFLAGS=[], CFLAGS=[])
 name = 'gmock'
 inc = gmockEnv.Dir('gtest'), gmockEnv.Dir('gtest/include'), gmockEnv.Dir('.'), gmockEnv.Dir('include')
-ext_inc = gmockEnv.Dir('include/gmock')
+ext_inc = gmockEnv.Dir('include/gmock'), gmockEnv.Dir('include/gmock/internal')
 src = ['gtest/src/gtest-all.cc','src/gmock-all.cc']
 deps = ['pthread']
 

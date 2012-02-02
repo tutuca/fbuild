@@ -155,10 +155,10 @@ class WGET(Dependencies):
         return self.afterCheckout()
     
     def update(self):
-        #TODO: this is not supported, should be? should we download the version
+        # this is not supported, should be? should we download the version
         # again an update? that will be time consuming and update should be
         # fast. This should be supported once we mark the version and there
-        # is a way to know that the version didnt changed from last download
+        # is a way to know that the version didn't changed from last download
         return 0
 
 def createDependency(env, name, type, node):

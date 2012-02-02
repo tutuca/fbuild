@@ -17,6 +17,8 @@
 # You should have received a copy of the GNU General Public License
 # along with fudepan-build.  If not, see <http://www.gnu.org/licenses/>.
 
+import os
+
 def removeDuplicates(alist):
     if alist and isinstance(alist, list):
         alist.sort()
@@ -27,3 +29,28 @@ def removeDuplicates(alist):
             else:
                 last = alist[i]
     return alist
+
+def recursive_flatten(env, path, fileFilter):
+    out = []
+    fileNodes = []
+    if isinstance(fileFilter, list or tuple):
+        for ff in fileFilter:
+            fileNodes.extend(env.Glob(os.path.join(path, ff), strings=False))
+    else:
+        fileNodes.extend(env.Glob(os.path.join(path, fileFilter), strings=False))
+    for f in fileNodes:
+        out.append(f)
+    dirNodes = env.Glob(os.path.join(path, '*'), strings=False)
+    for n in dirNodes:
+        if n.isdir():
+            out.extend( recursive_flatten(env, n.abspath, fileFilter ))
+    return out
+
+def recursive_dir_flatten(env, path):
+    out = []
+    dirNodes = env.Glob(os.path.join(path, '*'), strings=False)
+    for n in dirNodes:
+        if n.isdir():
+            out.append( n.abspath )
+            out.extend( recursive_dir_flatten(env, n.abspath ))
+    return out

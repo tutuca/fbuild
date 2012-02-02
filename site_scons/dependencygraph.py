@@ -77,8 +77,7 @@ class Component(object):
         self.env = env
 
     def Process(self):
-        for dep in self.deps:
-            self.env.Depends(self.env.HookedAlias(self.name), self.env.HookedAlias(dep))
+        return None
 
 class HeaderOnlyComponent(Component):
     def __init__(self, env, name, compDir, deps, extInc):
@@ -104,6 +103,7 @@ class HeaderOnlyComponent(Component):
                 hDir = os.path.join(includeModulePath, i)
                 (hDirHead, hDirTail) = os.path.split(hDir)
                 incs.append(hDirHead)
+
         # Because we are building from #, we include also compDir as an include
         # path so it finds local includes
         incs.append(self.dir)
@@ -113,7 +113,6 @@ class HeaderOnlyComponent(Component):
         # dangerous since it will be possible to refer to other modules
         incs.append(self.env['INSTALL_HEADERS_DIR'])
         
-        # TODO: We need a way to check for circular dependencies
         for dep in self.deps:
             # Only process the dep if it was not already processed
             if not (dep in processedComponents):
@@ -127,10 +126,16 @@ class HeaderOnlyComponent(Component):
     
     def Process(self):
         Component.Process(self)
-        hLib = RecursiveInstall(self.env, self.dir, self.extInc, self.name, headersFilter)
-        self.env.Alias(self.name, hLib, 'Install ' + self.name + ' headers')
-        self.env.Alias('all:install', hLib, "Install all targets")
-        return hLib
+        # If the component doesnt have external headers, we dont process it since
+        # there is nothing to install
+        if len(self.extInc) > 0:
+            hLib = RecursiveInstall(self.env, self.dir, self.extInc, self.name, headersFilter)
+            self.env.Alias(self.name, hLib, 'Install ' + self.name + ' headers')
+            self.env.Clean(self.name, hLib)
+            self.env.Alias('all:install', hLib, "Install all targets")
+            return hLib
+        else:
+            return None
 
 def CreateHeaderOnlyLibrary(env, name, ext_inc, deps):
     componentGraph.add(HeaderOnlyComponent(env,
@@ -196,7 +201,6 @@ class LibraryComponent(HeaderOnlyComponent):
             libpaths.append(self.env['INSTALL_BIN_DIR'])
         processedComponents.append(self.name)
 
-        # TODO: We need a way to check for circular dependencies
         for dep in self.deps:
             # Only process the dep if it was not already processed
             if not (dep in processedComponents):
@@ -285,7 +289,7 @@ class ProgramComponent(LibraryComponent):
     def _getLibs(self, processedComponents, depth):
         libpaths = []
         libs = []
-        # TODO: We need a way to check for circular dependencies
+
         for dep in self.deps:
             # Only process the dep if it was not already processed
             if not (dep in processedComponents):
@@ -300,8 +304,7 @@ class ProgramComponent(LibraryComponent):
         return (libs, libpaths, processedComponents)
 
     def Process(self):
-        # TODO: add the header thing
-        #LibraryComponent.Process(self)
+        LibraryComponent.Process(self)
         incpaths = self.getIncludePaths()
         (libs,libpaths) = self.getLibs()
         target = os.path.join(self.dir, self.name)
@@ -325,6 +328,8 @@ class UnitTestComponent(ProgramComponent):
         ProgramComponent.__init__(self, env, name, compDir, deps, inc, src)
 
     def Process(self):
+        LibraryComponent.Process(self)
+        
         incpaths = self.getIncludePaths()
         (libs,libpaths) = self.getLibs()
         target = os.path.join(self.dir, self.name)
@@ -334,13 +339,16 @@ class UnitTestComponent(ProgramComponent):
         
         target = os.path.join(self.dir, self.name + '.passed')
         tTest = self.env.RunUnittest(target, prog)
+        if self.env.GetOption('forcerun'):
+            self.env.AlwaysBuild(tTest)
         self.env.Alias(self.name, tTest, "Run test for " + self.name)
         self.env.Alias('all:test', tTest, "Run all tests")
 
 def CreateTest(env, name, inc, src, deps):
     testName = name + ':test'
     # the test automatically depends on the thing that is testing
-    deps.append(name)
+    if deps.count(name) == 0:
+        deps.append(name)
     componentGraph.add(UnitTestComponent(env,
                                          testName,
                                          env.Dir('.'),

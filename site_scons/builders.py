@@ -22,6 +22,7 @@ from SCons.Script import *
 import SCons.Builder
 import shutil
 import subprocess
+import utils
 
 def init(env):
     from SCons.Script import Builder
@@ -79,36 +80,23 @@ def RunDoxygen(target, source, env):
 #
 #    return subprocess.call(configure + configureOpts + ' ; make; make install', cwd=buildDir, shell=True, env=procEnv)
 
-# The following build is based on: 
-# http://xtargets.com/2010/04/21/recursive-install-builder-for-scons/
-
-def recursive_install(env, path, fileFilter):
-    out = []
-    fileNodes = []
-    if isinstance(fileFilter, list or tuple):
-        for ff in fileFilter:
-            fileNodes.extend(env.Glob(os.path.join(path, ff), strings=False))
-    else:
-        fileNodes.extend(env.Glob(os.path.join(path, fileFilter), strings=False))
-    for f in fileNodes:
-        out.append(f)
-    dirNodes = env.Glob(os.path.join(path, '*'), strings=False)
-    for n in dirNodes:
-        if n.isdir():
-            out.extend( recursive_install(env, n.abspath, fileFilter ))
-    return out
-
 def RecursiveInstall(env, sourceDir, sourcesRel, targetName, fileFilter='*.*'):
     nodes = []
     if isinstance(sourcesRel, list or tuple):
         for source in sourcesRel:
-            nodes.extend( recursive_install(env, os.path.join(sourceDir,source), fileFilter ) )
+            nodes.extend( utils.recursive_flatten(env, os.path.join(sourceDir,source), fileFilter ) )
     else:
-        nodes.extend( recursive_install(env, os.path.join(sourceDir,sourcesRel), fileFilter ) )
+        nodes.extend( utils.recursive_flatten(env, os.path.join(sourceDir,sourcesRel), fileFilter ) )
     l = len(sourceDir) + 1
     relnodes = [ n.abspath[l:] for n in nodes ]
     targetHeaderDir = env.Dir(env['INSTALL_HEADERS_DIR']).Dir(targetName).abspath
+    targets = []
+    sources = []
     for n in relnodes:
-        t = os.path.join(targetHeaderDir, n)
-        s = os.path.join(sourceDir, n)
-        env.HookedAlias(targetName, env.InstallAs(env.File(t), env.File(s)))
+        t = env.File(os.path.join(targetHeaderDir, n))
+        s = env.File(os.path.join(sourceDir, n))
+        
+        targets.append( t )
+        sources.append( s )
+    iAs = env.InstallAs(targets, sources)
+    return iAs
