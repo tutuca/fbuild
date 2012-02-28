@@ -1,3 +1,4 @@
+#!/usr/bin/python
 # fudepan-build: The build system for FuDePAN projects 
 #
 # Copyright (C) 2012 Hugo Arregui FuDePAN
