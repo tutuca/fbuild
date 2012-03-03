@@ -58,6 +58,12 @@ check_install doxygen doxygen
 if [ "$?" -ne "0" ]; then return $?; fi
 check_install dot graphviz
 if [ "$?" -ne "0" ]; then return $?; fi
+check_install astyle astyle true 
+
+if [ "$(astyle -V 2>&1 | cut -f4 -d' ' | bc | sed 's/\.//')" -lt "124" ]; then
+    echo -e "\e[0;31m[error] AStyle version should be >= 1.24\e[0m"
+    return 1
+fi
 
 # Backward compatibility
 alias fbuild=scons

@@ -17,16 +17,10 @@
 # You should have received a copy of the GNU General Public License
 # along with fudepan-build.  If not, see <http://www.gnu.org/licenses/>.
 
-import os
-import sys
-import glob
-
-def addBoostComponents(env):
-    # This is a base component, it will include the qt base include path
+def init(env):
     validModules = [
-	'boost_system',
+        'boost_system',
         'boost_thread'
         ]
     for module in validModules:
-        env.AddComponent(module, [], [], '', True)
-
+        env.CreateExternalLibraryComponent(module, [], env.Dir('/usr/lib'), [], True)

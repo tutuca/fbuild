@@ -31,6 +31,9 @@ def init(env):
     bldDoxygen = Builder(action = SCons.Action.Action(RunDoxygen, PrintDummy))
     env.Append(BUILDERS = {'RunDoxygen' : bldDoxygen})
     env['DEFAULT_DOXYFILE'] = env.File('#/conf/doxygenTemplate').abspath
+    env.Tool('makebuilder')
+    bldAStyle = Builder(action = SCons.Action.Action(AStyle, PrintDummy))
+    env.Append(BUILDERS = {'RunAStyle' : bldAStyle})
 
 def PrintDummy(env, source, target):
     return ""
@@ -117,3 +120,15 @@ def RecursiveInstall(env, sourceDir, sourcesRel, targetName, fileFilter='*.*'):
         sources.append( s )
     iAs = env.InstallAs(targets, sources)
     return iAs
+
+def AStyle(target, source, env):
+    rc = 0
+    t = target[0].abspath
+    cmd = "astyle -k1 --options=none --convert-tabs -bSKpUH %s"
+    fileList = ' '.join(s.abspath for s in source)
+    rc = subprocess.call(cmd % fileList, shell=True)
+    if rc:
+        env.cprint('[error] %s, error: %s' % (t, rc), 'red')
+    else:
+        env.cprint('[astyle] %s' % t, 'green')
+    return rc

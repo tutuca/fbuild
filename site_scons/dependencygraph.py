@@ -30,6 +30,7 @@ import SCons
 downloadedDependencies = False
 
 headersFilter = ['*.h','*.hpp']
+sourceFilters = ['*.c','*.cpp','*.cc']
 
 def init(env):
     from SCons.Script.SConscript import SConsEnvironment
@@ -198,6 +199,19 @@ class HeaderOnlyComponent(Component):
 
     def Process(self):
         Component.Process(self)
+        
+        # we add astyle to all the components that can have a header (includes
+        # the ones that have source)
+        filters = []
+        filters.extend(headersFilter)
+        filters.extend(sourceFilters)
+        projDir = os.path.join(self.env['WS_DIR'],
+                               os.path.relpath(self.dir,self.env['BUILD_DIR']))
+        sources = utils.files_flatten(self.env, projDir, filters)
+        target = self.env.Dir(self.env['BUILD_DIR']).Dir('astyle').Dir(self.name)
+        astyleOut = self.env.RunAStyle(target, sources)
+        self.env.Alias(self.name + ':astyle', astyleOut, "Runs astyle on " + self.name)
+        
         # If the component doesnt have external headers, we dont process it since
         # there is nothing to install
         if len(self.extInc) > 0:
@@ -285,6 +299,9 @@ class SourcedComponent(HeaderOnlyComponent):
                     libpaths.extend(depLibPaths)
                     libs.extend(depLibs)
         return (libs, libpaths, processedComponents)
+    
+    def Process(self):
+        HeaderOnlyComponent.Process(self)
 
 class StaticLibraryComponent(SourcedComponent):
     def __init__(self, env, name, compDir, deps, inc, extInc, src):
