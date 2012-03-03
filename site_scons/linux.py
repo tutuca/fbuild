@@ -23,6 +23,6 @@ import glob
 import component
 
 def init(env):
-    env.CreateLibraryComponent('pthread', [], [])
-    env.CreateLibraryComponent('dl', [], [])
+    env.CreateExternalLibraryComponent('pthread', [], env.Dir('/usr/lib'), [], True)
+    env.CreateExternalLibraryComponent('dl', [], env.Dir('/usr/lib'), [], True)
 

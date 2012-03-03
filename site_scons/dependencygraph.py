@@ -34,7 +34,7 @@ headersFilter = ['*.h','*.hpp']
 def init(env):
     from SCons.Script.SConscript import SConsEnvironment
     SConsEnvironment.CreateProgram = CreateProgram
-    SConsEnvironment.CreateLibraryComponent = CreateLibraryComponent
+    SConsEnvironment.CreateExternalLibraryComponent = CreateExternalLibraryComponent
     SConsEnvironment.CreateStaticLibrary = CreateStaticLibrary
     SConsEnvironment.CreateSharedLibrary = CreateSharedLibrary
     SConsEnvironment.CreateHeaderOnlyLibrary = CreateHeaderOnlyLibrary
@@ -46,9 +46,10 @@ def init(env):
 class ComponentDictionary:
     components = {}
     
-    def add(self, component):
-        if not component.name.lower() == component.name:
-            component.env.cprint('[warn] modules names should be lower case: ' + name, 'yellow')
+    def add(self, component, check = True):
+        if check:
+            if not component.name.lower() == component.name:
+                component.env.cprint('[warn] modules names should be lower case: ' + component.name, 'yellow')
         # Its possible that a component is tried to be added twice because a new
         # dependency was downloaded and 
         if not self.components.has_key(component.name):
@@ -79,6 +80,77 @@ class Component(object):
     def Process(self):
         return None
 
+class ExternalLibraryComponent(Component):
+    def __init__(self, env, name, compDir, deps, extInc, shouldBeLinked):
+        Component.__init__(self, env, name, compDir, deps)
+        self.extInc = []
+        if extInc:
+            if isinstance(extInc,list) or isinstance(extInc,tuple):
+                for i in extInc:
+                    self.extInc.append( i )
+            else:
+                self.extInc.append( extInc )
+        self.shouldBeLinked = shouldBeLinked
+
+    def getLibs(self):
+        (libs, libpaths, processedComponents) = self._getLibs([], 0)
+        return (utils.removeDuplicates(libs), utils.removeDuplicates(libpaths))
+        
+    def _getLibs(self, processedComponents, depth):
+        libpaths = []
+        libs = []
+        if self.shouldBeLinked and depth > 0:
+            libs.append(self.name)
+            libpaths.append(self.dir)
+        processedComponents.append(self.name)
+
+        for dep in self.deps:
+            # Only process the dep if it was not already processed
+            if not (dep in processedComponents):
+                c = componentGraph.get(dep)
+                if c is None:
+                    self.env.cprint('[error] %s depends on %s which could not be found' % (self.name, dep), 'red')
+                    continue
+                if hasattr(c, '_getLibs'):
+                    (depLibs, depLibPaths, depProcessedComp) = c._getLibs(processedComponents,depth+1)
+                    libpaths.extend(depLibPaths)
+                    libs.extend(depLibs)
+        return (libs, libpaths, processedComponents)
+    
+    def getIncludePaths(self):
+        (incs, processedComponents) = self._getIncludePaths([], 0)
+        return utils.removeDuplicates(incs)
+    
+    def _getIncludePaths(self, processedComponents, depth):
+        incs = []
+        if depth > 0:
+            incs.extend(self.extInc)
+        
+        processedComponents.append(self.name)
+        
+        for dep in self.deps:
+            # Only process the dep if it was not already processed
+            if not (dep in processedComponents):
+                c = componentGraph.get(dep)
+                if c is None:
+                    dep.env.cprint('[error] %s depends on %s which could not be found' % (self.name, dep), 'red')
+                    continue
+                (depIncs, depProcessedComp) = c._getIncludePaths(processedComponents,depth+1)
+                incs.extend(depIncs)
+        return (incs, processedComponents)
+    
+    def Process(self):
+        return Component.Process(self)
+
+def CreateExternalLibraryComponent(env, name, ext_inc, libPath, deps, shouldBeLinked):
+    componentGraph.add(ExternalLibraryComponent(env,
+                                                name,
+                                                libPath,
+                                                deps,
+                                                ext_inc,
+                                                shouldBeLinked),
+                       False)
+
 class HeaderOnlyComponent(Component):
     def __init__(self, env, name, compDir, deps, extInc):
         Component.__init__(self, env, name, compDir, deps)
@@ -92,7 +164,6 @@ class HeaderOnlyComponent(Component):
     
     def getIncludePaths(self):
         (incs, processedComponents) = self._getIncludePaths([], 0)
-        incs = utils.removeDuplicates(incs)
         return incs
     
     def _getIncludePaths(self, processedComponents, depth):
@@ -108,10 +179,11 @@ class HeaderOnlyComponent(Component):
         # path so it finds local includes
         incs.append(self.dir)
         processedComponents.append(self.name)
+
         # Some modules export env.Dir('.') as a path, in those cases, we
         # need to include env['INSTALL_HEADERS_DIR'] as include path, this is
         # dangerous since it will be possible to refer to other modules
-        incs.append(self.env['INSTALL_HEADERS_DIR'])
+        #incs.append(self.env['INSTALL_HEADERS_DIR'])
         
         for dep in self.deps:
             # Only process the dep if it was not already processed
@@ -123,7 +195,7 @@ class HeaderOnlyComponent(Component):
                 (depIncs, depProcessedComp) = c._getIncludePaths(processedComponents,depth+1)
                 incs.extend(depIncs)
         return (incs, processedComponents)
-    
+
     def Process(self):
         Component.Process(self)
         # If the component doesnt have external headers, we dont process it since
@@ -136,16 +208,16 @@ class HeaderOnlyComponent(Component):
             return hLib
         else:
             return None
-
+    
 def CreateHeaderOnlyLibrary(env, name, ext_inc, deps):
     componentGraph.add(HeaderOnlyComponent(env,
                                            name,
                                            env.Dir('.'),
                                            deps,
                                            ext_inc))
-
-class LibraryComponent(HeaderOnlyComponent):
-    def __init__(self, env, name, compDir, deps, extInc, inc, src):
+    
+class SourcedComponent(HeaderOnlyComponent):
+    def __init__(self, env, name, compDir, deps, inc, extInc, src):
         HeaderOnlyComponent.__init__(self, env, name, compDir, deps, extInc)
         self.inc = []
         if inc:
@@ -167,7 +239,8 @@ class LibraryComponent(HeaderOnlyComponent):
                     self.src.append(os.path.abspath(src))
                 else:
                     self.src.append(os.path.abspath(compDir.rel_path(src)))
-        
+        self.shouldBeLinked = False
+    
     def getIncludePaths(self):
         (incs, processedComponents) = self._getIncludePaths([], 0)
         return incs
@@ -183,18 +256,17 @@ class LibraryComponent(HeaderOnlyComponent):
                 hDir = os.path.join(self.dir, i)
                 incs.append(hDir)
         return (incs, processedComponents)
-    
+     
     def getLibs(self):
         (libs, libpaths, processedComponents) = self._getLibs([], 0)
-        libs = utils.removeDuplicates(libs)
-        libpaths = utils.removeDuplicates(libpaths)
-        return (libs, libpaths)
+        return (utils.removeDuplicates(libs), utils.removeDuplicates(libpaths))
         
     def _getLibs(self, processedComponents, depth):
         libpaths = []
         libs = []
-        if depth > 0:
+        if self.shouldBeLinked and depth > 0:
             libs.append(self.name)
+            # TODO: just add the one that matters here
             # For static libraries lookup:
             libpaths.append(self.env['INSTALL_LIB_DIR'])
             # For dynamic libraries lookup:
@@ -213,25 +285,14 @@ class LibraryComponent(HeaderOnlyComponent):
                     libpaths.extend(depLibPaths)
                     libs.extend(depLibs)
         return (libs, libpaths, processedComponents)
+
+class StaticLibraryComponent(SourcedComponent):
+    def __init__(self, env, name, compDir, deps, inc, extInc, src):
+        SourcedComponent.__init__(self, env, name, compDir, deps, inc, extInc, src)
+        self.shouldBeLinked = True
     
     def Process(self):
-        return HeaderOnlyComponent.Process(self)
-
-def CreateLibraryComponent(env, name, ext_inc, deps):
-    componentGraph.add(LibraryComponent(env,
-                                        name,
-                                        env.Dir('.'),
-                                        deps,
-                                        ext_inc,
-                                        [],
-                                        []))
-
-class StaticLibraryComponent(LibraryComponent):
-    def __init__(self, env, name, compDir, deps, extInc, inc, src):
-        LibraryComponent.__init__(self, env, name, compDir, deps, extInc, inc, src)
-    
-    def Process(self):
-        LibraryComponent.Process(self)
+        SourcedComponent.Process(self)
         incpaths = self.getIncludePaths()
         (libs,libpaths) = self.getLibs()
         target = os.path.join(self.dir, self.name)
@@ -247,16 +308,17 @@ def CreateStaticLibrary(env, name, inc, ext_inc, src, deps):
                                               name,
                                               env.Dir('.'),
                                               deps,
-                                              ext_inc,
                                               inc,
+                                              ext_inc,
                                               src))
 
-class DynamicLibraryComponent(LibraryComponent):
-    def __init__(self, env, name, compDir, deps, extInc, inc, src):
-        LibraryComponent.__init__(self, env, name, compDir, deps, extInc, inc, src)
+class DynamicLibraryComponent(SourcedComponent):
+    def __init__(self, env, name, compDir, deps, inc, extInc, src):
+        SourcedComponent.__init__(self, env, name, compDir, deps, inc, extInc, src)
+        self.shouldBeLinked = True
     
     def Process(self):
-        LibraryComponent.Process(self)
+        SourcedComponent.Process(self)
         incpaths = self.getIncludePaths()
         (libs,libpaths) = self.getLibs()
         target = os.path.join(self.dir, self.name)
@@ -272,40 +334,19 @@ def CreateSharedLibrary(env, name, inc, ext_inc, src, deps):
                                                name,
                                                env.Dir('.'),
                                                deps,
-                                               ext_inc,
                                                inc,
+                                               ext_inc,
                                                src))
 
-class ProgramComponent(LibraryComponent):
+class ProgramComponent(SourcedComponent):
     def __init__(self, env, name, compDir, deps, inc, src):
-        LibraryComponent.__init__(self, env, name, compDir, deps, [], inc, src)
+        SourcedComponent.__init__(self, env, name, compDir, deps, [], inc, src)
+        self.shouldBeLinked = False
     
-    def getLibs(self):
-        (libs, libpaths, processedComponents) = self._getLibs([], 0)
-        libs = utils.removeDuplicates(libs)
-        libpaths = utils.removeDuplicates(libpaths)
-        return (libs, libpaths)
-        
-    def _getLibs(self, processedComponents, depth):
-        libpaths = []
-        libs = []
-
-        for dep in self.deps:
-            # Only process the dep if it was not already processed
-            if not (dep in processedComponents):
-                c = componentGraph.get(dep)
-                if c is None:
-                    self.env.cprint('[error] %s depends on %s which could not be found' % (self.name, dep), 'red')
-                    continue
-                if hasattr(c, '_getLibs'):
-                    (depLibs, depLibPaths, depProcessedComp) = c._getLibs(processedComponents,depth+1)
-                    libpaths.extend(depLibPaths)
-                    libs.extend(depLibs)
-        return (libs, libpaths, processedComponents)
-
     def Process(self):
-        LibraryComponent.Process(self)
+        SourcedComponent.Process(self)
         incpaths = self.getIncludePaths()
+
         (libs,libpaths) = self.getLibs()
         target = os.path.join(self.dir, self.name)
         prog = self.env.Program(target, self.src, CPPPATH=incpaths, LIBS=libs, LIBPATH=libpaths)
@@ -328,7 +369,7 @@ class UnitTestComponent(ProgramComponent):
         ProgramComponent.__init__(self, env, name, compDir, deps, inc, src)
 
     def Process(self):
-        LibraryComponent.Process(self)
+        SourcedComponent.Process(self)
         
         incpaths = self.getIncludePaths()
         (libs,libpaths) = self.getLibs()

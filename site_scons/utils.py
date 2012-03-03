@@ -17,40 +17,94 @@
 # You should have received a copy of the GNU General Public License
 # along with fudepan-build.  If not, see <http://www.gnu.org/licenses/>.
 
+import fnmatch
 import os
 
-def removeDuplicates(alist):
-    if alist and isinstance(alist, list):
-        alist.sort()
-        last = alist[-1]
-        for i in range(len(alist)-2, -1, -1):
-            if last == alist[i]:
-                del alist[i]
-            else:
-                last = alist[i]
-    return alist
+## {{{ http://code.activestate.com/recipes/52560/ (r1)
+def removeDuplicates(s):
+    """Return a list of the elements in s, but without duplicates.
 
-def recursive_flatten(env, path, fileFilter):
+    For example, unique([1,2,3,1,2,3]) is some permutation of [1,2,3],
+    unique("abcabc") some permutation of ["a", "b", "c"], and
+    unique(([1, 2], [2, 3], [1, 2])) some permutation of
+    [[2, 3], [1, 2]].
+
+    For best speed, all sequence elements should be hashable.  Then
+    unique() will usually work in linear time.
+
+    If not possible, the sequence elements should enjoy a total
+    ordering, and if list(s).sort() doesn't raise TypeError it's
+    assumed that they do enjoy a total ordering.  Then unique() will
+    usually work in O(N*log2(N)) time.
+
+    If that's not possible either, the sequence elements must support
+    equality-testing.  Then unique() will usually work in quadratic
+    time.
+    """
+
+    n = len(s)
+    if n == 0:
+        return []
+
+    # Try using a dict first, as that's the fastest and will usually
+    # work.  If it doesn't work, it will usually fail quickly, so it
+    # usually doesn't cost much to *try* it.  It requires that all the
+    # sequence elements be hashable, and support equality comparison.
+    u = {}
+    try:
+        for x in s:
+            u[x] = 1
+    except TypeError:
+        del u  # move on to the next method
+    else:
+        return u.keys()
+
+    # We can't hash all the elements.  Second fastest is to sort,
+    # which brings the equal elements together; then duplicates are
+    # easy to weed out in a single pass.
+    # NOTE:  Python's list.sort() was designed to be efficient in the
+    # presence of many duplicate elements.  This isn't true of all
+    # sort functions in all languages or libraries, so this approach
+    # is more effective in Python than it may be elsewhere.
+    try:
+        t = list(s)
+        t.sort()
+    except TypeError:
+        del t  # move on to the next method
+    else:
+        assert n > 0
+        last = t[0]
+        lasti = i = 1
+        while i < n:
+            if t[i] != last:
+                t[lasti] = last = t[i]
+                lasti += 1
+            i += 1
+        return t[:lasti]
+
+    # Brute force is all that's left.
+    u = []
+    for x in s:
+        if x not in u:
+            u.append(x)
+    return u
+## end of http://code.activestate.com/recipes/52560/ }}}
+
+def files_flatten(env, path, fileFilter):
     out = []
-    fileNodes = []
     if isinstance(fileFilter, list or tuple):
         for ff in fileFilter:
-            fileNodes.extend(env.Glob(os.path.join(path, ff), strings=False))
+            for root, dirnames, filenames in os.walk(path):
+                for filename in fnmatch.filter(filenames, ff):
+                    out.append(env.File(os.path.join(root, filename)))
     else:
-        fileNodes.extend(env.Glob(os.path.join(path, fileFilter), strings=False))
-    for f in fileNodes:
-        out.append(f)
-    dirNodes = env.Glob(os.path.join(path, '*'), strings=False)
-    for n in dirNodes:
-        if n.isdir():
-            out.extend( recursive_flatten(env, n.abspath, fileFilter ))
+        for root, dirnames, filenames in os.walk(path):
+            for filename in fnmatch.filter(filenames, fileFilter):
+                out.append(env.File(os.path.join(root, filename)))
     return out
 
-def recursive_dir_flatten(env, path):
+def dirs_flatten(env, path):
     out = []
-    dirNodes = env.Glob(os.path.join(path, '*'), strings=False)
-    for n in dirNodes:
-        if n.isdir():
-            out.append( n.abspath )
-            out.extend( recursive_dir_flatten(env, n.abspath ))
+    for root, dirnames, filenames in os.walk(path):
+        out.append(env.Dir(os.path.join(root, dirnames)))
     return out

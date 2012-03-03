@@ -68,6 +68,10 @@ dependencies.init(env)
 import linux
 linux.init(env)
 
+# Add Qt
+import qtutil
+qtutil.init(env)
+
 #
 ## Register builders
 ## Register tools
@@ -85,10 +89,7 @@ linux.init(env)
 #env.Append(BUILDERS = {'Doxygen':  doxygenBuilder})
 #env['DEFAULT_DOXYFILE'] = env.File('#/conf/doxygenTemplate').abspath
 #
-## Add Qt
-#import qtutil
-#qtutil.preDetectQt(env)
-#qtutil.addQtComponents(env)
+
 #import boostutil
 #boostutil.addBoostComponents(env)
 #
@@ -108,9 +109,9 @@ linux.init(env)
 dependencygraph.WalkDirsForSconscripts(env, topdir = env['WS_DIR'],
                                        ignore = [
                                                  #'gmock/scons',
-                                                 'test_doc',
+                                                 #'test_doc',
                                                  #'test_program',
-                                                 'test_qt',
+                                                 #'test_qt',
                                                  #'test_shared',
                                                  #'test_static',
                                                  #'test_ut'

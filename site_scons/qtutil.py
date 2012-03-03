@@ -21,24 +21,34 @@ import glob
 import os
 import sys
 
-def preDetectQt(env):
+def init(env):
+    hasQt = False
     moc4 = env.WhereIs('moc-qt4') or env.WhereIs('moc4')
     if moc4:
         qtdir = os.path.split(os.path.split(moc4)[0])[0]
         os.environ['QT4DIR'] = qtdir
         env.Tool('qt4')
+        hasQt = True
     else:
         moc = env.WhereIs('moc')
         if moc:
             qtdir = os.path.split(os.path.split(moc)[0])[0]
             os.environ['QTDIR'] = qtdir
             env.Tool('qt')
-
-def addQtComponents(env):
+            hasQt = True
+    
+    if not hasQt:
+        return
+    
     # This is a base component, it will include the qt base include path
     qtdir =  os.environ.get('QT4DIR') or os.environ.get('QTDIR')
     QT_INCLUDE_ROOT = os.getenv("QT_INCLUDE_ROOT", os.path.join(qtdir, 'include', 'qt4'))
-    env.AddComponent('QtInc', os.getenv("QT_INCLUDE", env.Dir(QT_INCLUDE_ROOT)), [])
+    env.CreateExternalLibraryComponent('QtInc',
+                                       os.getenv("QT_INCLUDE", env.Dir(QT_INCLUDE_ROOT)), 
+                                       env.Dir('/usr/lib/x86_64-linux-gnu'), 
+                                       [],
+                                       False)
+    
     validModules = [
         'QtCore',
         'QtGui',
@@ -65,5 +75,9 @@ def addQtComponents(env):
         'QtMultimedia',
         ]
     for module in validModules:
-        env.AddComponent(module, env.Dir(os.path.join(QT_INCLUDE_ROOT, module)), ['QtInc'], '', True)
+        env.CreateExternalLibraryComponent(module,
+                                           env.Dir(os.path.join(QT_INCLUDE_ROOT, module)), 
+                                           env.Dir('/usr/lib/x86_64-linux-gnu'), 
+                                           ['QtInc'],
+                                           True)
 

@@ -37,8 +37,9 @@ def PrintDummy(env, source, target):
 
 def RunUnittest(env, source, target):
     rc = 0
-    t = target[0].abspath;
+    tindex = 0
     for s in source:
+        t = target[tindex].abspath;
         app = s.abspath
         (dir, appbin) = os.path.split(app)
         cmd = "cd %s; ./%s > %s" % (dir, appbin, t)
@@ -49,24 +50,41 @@ def RunUnittest(env, source, target):
             env.cprint('[failed] %s, error: %s' % (t, rc), 'red')
         else:
             env.cprint('[passed] %s' % t, 'green')
+        tindex = tindex + 1
     return rc
 
 def RunDoxygen(target, source, env):
-    (pathHead, pathTail) = os.path.split(source[0].abspath)
-    fsrc = open(source[0].abspath, 'r')
-    doxygenSrc = fsrc.read()
-    fsrc.close()
-    
-    tmpdoxyFile = pathHead + '/tmp_doxyfile'
-    targetName = os.path.basename(target[0].abspath)[:-4]
-    
-    ftgt = open(tmpdoxyFile, "w")
-    ftgt.write(doxygenSrc.replace('$PROJECT_NAME', targetName)\
-                         .replace('$OUTPUT_DIR', target[0].abspath))
-    ftgt.flush()
-    ftgt.close()
-    subprocess.call('cd ' + pathHead + ' ; doxygen ' + tmpdoxyFile, shell=True)
-    os.remove(tmpdoxyFile)
+    rc = 0
+    tindex = 0
+    for s in source:
+        t = target[tindex].abspath;
+        os.mkdir(t)
+        (pathHead, pathTail) = os.path.split(s.abspath)
+        
+        fsrc = open(source[0].abspath, 'r')
+        doxygenSrc = fsrc.read()
+        fsrc.close()
+        
+        tmpdoxyFile = pathHead + '/__tmp_doxyfile'
+        targetName = os.path.basename(t)[:-4]
+        
+        ftgt = open(tmpdoxyFile, "w")
+        ftgt.write(doxygenSrc.replace('$PROJECT_NAME', targetName)\
+                             .replace('$OUTPUT_DIR', t))
+        ftgt.flush()
+        ftgt.close()
+        cmdOutput = os.path.join(t,'doxyfile_generation.output')
+        cmd = "cd %s; doxygen %s > %s" % (pathHead, tmpdoxyFile, cmdOutput)
+        rc = subprocess.call(cmd, shell=True)
+        if env.GetOption('printresults'):
+            subprocess.call("cat %s" % cmdOutput, shell=True)
+        os.remove(tmpdoxyFile)
+        if rc:
+            env.cprint('[failed] %s, error: %s' % (t, rc), 'red')
+        else:
+            env.cprint('[generated] %s' % t, 'green')
+        tindex = tindex + 1
+    return rc
 
 #def configure(target, source, env):
 #    buildDir = env['buildDir']
@@ -84,9 +102,9 @@ def RecursiveInstall(env, sourceDir, sourcesRel, targetName, fileFilter='*.*'):
     nodes = []
     if isinstance(sourcesRel, list or tuple):
         for source in sourcesRel:
-            nodes.extend( utils.recursive_flatten(env, os.path.join(sourceDir,source), fileFilter ) )
+            nodes.extend( utils.files_flatten(env, os.path.join(sourceDir,source), fileFilter ) )
     else:
-        nodes.extend( utils.recursive_flatten(env, os.path.join(sourceDir,sourcesRel), fileFilter ) )
+        nodes.extend( utils.files_flatten(env, os.path.join(sourceDir,sourcesRel), fileFilter ) )
     l = len(sourceDir) + 1
     relnodes = [ n.abspath[l:] for n in nodes ]
     targetHeaderDir = env.Dir(env['INSTALL_HEADERS_DIR']).Dir(targetName).abspath
@@ -95,7 +113,6 @@ def RecursiveInstall(env, sourceDir, sourcesRel, targetName, fileFilter='*.*'):
     for n in relnodes:
         t = env.File(os.path.join(targetHeaderDir, n))
         s = env.File(os.path.join(sourceDir, n))
-        
         targets.append( t )
         sources.append( s )
     iAs = env.InstallAs(targets, sources)
