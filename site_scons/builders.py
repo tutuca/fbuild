@@ -20,6 +20,7 @@
 from SCons.Script.SConscript import SConsEnvironment
 from SCons.Script import *
 import SCons.Builder
+import platform
 import shutil
 import subprocess
 import utils
@@ -34,6 +35,8 @@ def init(env):
     env.Tool('makebuilder')
     bldAStyle = Builder(action = SCons.Action.Action(AStyle, PrintDummy))
     env.Append(BUILDERS = {'RunAStyle' : bldAStyle})
+    makeBuilder = Builder(action = SCons.Action.Action(MakeTool, PrintDummy))
+    env.Append(BUILDERS = {'RunMakeTool' : makeBuilder})
 
 def PrintDummy(env, source, target):
     return ""
@@ -89,17 +92,16 @@ def RunDoxygen(target, source, env):
         tindex = tindex + 1
     return rc
 
-#def configure(target, source, env):
-#    buildDir = env['buildDir']
-#    configure = env['configurePath']
-#    configureOpts = (' --bindir=%(INSTALL_BIN_DIR)s --libdir=%(INSTALL_LIB_DIR)s --includedir=%(INSTALL_HEADERS_DIR)s' % env)
-#    procEnv = os.environ
-#    (arch,binType) = platform.architecture()
-#    if arch == '64bit':
-#        procEnv["CXXFLAGS"] = str(env["CXXFLAGS"])
-#        procEnv["CFLAGS"] = '-fPIC'
-#
-#    return subprocess.call(configure + configureOpts + ' ; make; make install', cwd=buildDir, shell=True, env=procEnv)
+def MakeTool(target, source, env):
+    s = source[0].abspath;
+    (pathHead, pathTail) = os.path.split(s)
+    configureOpts = ('--bindir=%(INSTALL_BIN_DIR)s --libdir=%(INSTALL_LIB_DIR)s --includedir=%(INSTALL_HEADERS_DIR)s' % env)
+    procEnv = os.environ
+    (arch,binType) = platform.architecture()
+    if arch == '64bit':
+        procEnv["CXXFLAGS"] = str(env["CXXFLAGS"])
+        procEnv["CFLAGS"] = '-fPIC'
+    return subprocess.call('./configure %s ; make; make install' % configureOpts, cwd=pathHead, shell=True, env=procEnv)
 
 def RecursiveInstall(env, sourceDir, sourcesRel, targetName, fileFilter='*.*'):
     nodes = []

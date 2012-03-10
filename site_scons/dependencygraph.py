@@ -40,8 +40,7 @@ def init(env):
     SConsEnvironment.CreateSharedLibrary = CreateSharedLibrary
     SConsEnvironment.CreateHeaderOnlyLibrary = CreateHeaderOnlyLibrary
     SConsEnvironment.CreateTest = CreateTest
-    #TODO: re-enable this
-    #SConsEnvironment.CreateAutoToolsProject = CreateAutoToolsProject
+    SConsEnvironment.CreateAutoToolsProject = CreateAutoToolsProject
     SConsEnvironment.CreateDoc = CreateDoc
 
 class ComponentDictionary:
@@ -460,9 +459,27 @@ def CreateDoc(env, name, doxyfile=None, aliasGroups = []):
                                     doxyfile,
                                     aliasGroups))
 
-#def CreateAutoToolsProject(env, name, libfile, configureFile, ext_inc):
-#    if isPreProcessing:
-#        componentGraph.add(env, Component(name))
+class AutoToolsProject(Component):
+    def __init__(self, env, name, compDir, configurationFile, aliasGroups):
+        Component.__init__(self, env, name, compDir, [], aliasGroups)
+        self.configurationFile = configurationFile
+        
+    def Process(self):
+        Component.Process(self)
+        targetMake = self.env.Dir(self.env['INSTALL_LIB_DIR']).Dir(self.name)
+        make = self.env.RunMakeTool(targetMake, self.configurationFile)
+        self.env.Clean(make, targetMake)
+        self.env.Alias(self.name, make, 'Make ' + self.name)
+        
+        for alias in self.aliasGroups:
+            self.env.Alias(alias, make, "Build group " + alias)
+        
+def CreateAutoToolsProject(env, name, libfile, configurationFile, aliasGroups = []):
+    componentGraph.add(AutoToolsProject(env,
+                                        name,
+                                        env.Dir('.'),
+                                        configurationFile,
+                                        aliasGroups))
 
 def WalkDirsForSconscripts(env, topdir, ignore = []):
     global componentGraph
