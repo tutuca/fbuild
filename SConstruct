@@ -68,6 +68,12 @@ dependencies.init(env)
 import linux
 linux.init(env)
 
+# Create a latex2pdf builder 
+import pdflatex
+pdfLatexBuilder = Builder(action = pdflatex.runPdfLatex)
+env.Append(BUILDERS = {'PdfLatex':  pdfLatexBuilder})
+env['PDFLATEX_OPTIONS'] = '' 
+
 # Add Qt
 import qtutil
 qtutil.init(env)
