@@ -102,3 +102,15 @@ unplugged:
     type: `HG`,
     url: "http://code.google.com/p/fx-parser/"
 }
+
+visi:
+{
+	type: `HG`,
+    url: "http://code.google.com/p/visi/"
+}
+
+visiPluginAR:
+{
+	type: `HG`,
+    url: "http://code.google.com/p/visi.pluginar/"
+}
