@@ -13,5 +13,6 @@ buildtests/
 syntax: re
 ^.*\.pyc$
 ^.*\.swp$
+^.*\.un~$
 ^.*.svn/*$
 ^.*\.*~$
