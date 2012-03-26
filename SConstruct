@@ -28,13 +28,13 @@ Export('env')
 vars = Variables('SConfig')
 Export('vars')
 
-# default configuration options
-import scons_defaults
-scons_defaults.init(env,vars)
-
 # Color pretty printing
 import termcolor
 termcolor.init(env, ARGUMENTS)
+
+# default configuration options
+import scons_defaults
+scons_defaults.init(env, vars, ARGUMENTS)
 
 # things to debug the environment
 import debug
@@ -78,40 +78,10 @@ env['PDFLATEX_OPTIONS'] = ''
 import qtutil
 qtutil.init(env)
 
-#
-## Register builders
-## Register tools
-#env.Tool('makebuilder')
-#
-## Create a builder for tests
-#import builders
-#bld = Builder(action = builders.runTest)
-#configure = Builder(action = builders.configure)
-#env.Append(BUILDERS = {'Test':  bld, 'Configure': configure})
-#
-## Create a builder for doxygen
-#import doxygen
-#doxygenBuilder = Builder(action = doxygen.runDoxygen)
-#env.Append(BUILDERS = {'Doxygen':  doxygenBuilder})
-#env['DEFAULT_DOXYFILE'] = env.File('#/conf/doxygenTemplate').abspath
-#
+import boostutil
+boostutil.init(env)
 
-#import boostutil
-#boostutil.addBoostComponents(env)
-#
-#
-#
-## call to fudepan.py where
-#import fudepan
-#fudepan.setDefines(env)
-#
-#env.cprint('Install information:', 'green')
-#env.cprint('    bin dir    : ' + env['INSTALL_BIN_DIR'], 'green')
-#env.cprint('    lib dir    : ' + env['INSTALL_LIB_DIR'], 'green')
-#env.cprint('    headers dir: ' + env['INSTALL_HEADERS_DIR'], 'green')
-#
 ## Walk over the tree finding components
-#from component import WalkDirsForComponents
 dependencygraph.WalkDirsForSconscripts(env, topdir = env['WS_DIR'],
                                        ignore = [
                                                  #'gmock/scons',
@@ -122,9 +92,3 @@ dependencygraph.WalkDirsForSconscripts(env, topdir = env['WS_DIR'],
                                                  #'test_static',
                                                  #'test_ut'
                                                 ])
-
-#component.initializeDependencies(env)
-#
-#for target in list(component.components): #make a copy
-#    component.process(env, target)
-

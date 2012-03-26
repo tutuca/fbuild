@@ -21,7 +21,7 @@
 # Description: this file contains default configuration options for scons
 #
 
-def init(env,vars):
+def init(env,vars,args):
     # Add parallelism to the build system
     if not env.GetOption('num_jobs'):
         from multiprocessing import cpu_count
@@ -77,3 +77,10 @@ def init(env,vars):
             PathVariable.PathIsDirCreate))
     
     vars.Update(env)
+
+    if args.get('VERBOSE') == '1':
+        env.cprint('Install information:', 'green')
+        env.cprint('    bin dir    : ' + env['INSTALL_BIN_DIR'], 'green')
+        env.cprint('    lib dir    : ' + env['INSTALL_LIB_DIR'], 'green')
+        env.cprint('    headers dir: ' + env['INSTALL_HEADERS_DIR'], 'green')
+        env.cprint('    doc dir: ' + env['INSTALL_DOC_DIR'], 'green')
