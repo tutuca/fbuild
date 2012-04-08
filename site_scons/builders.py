@@ -1,6 +1,6 @@
 # fudepan-build: The build system for FuDePAN projects 
 #
-# Copyright (C) 2011 Esteban Papp, Hugo Arregui FuDePAN
+# Copyright (C) 2011 Esteban Papp, Hugo Arregui, Alejandro Kondrasky FuDePAN
 # 
 # This file is part of the fudepan-build build system.
 # 
@@ -27,16 +27,24 @@ import utils
 
 def init(env):
     from SCons.Script import Builder
+    
     bldRUT = Builder(action = SCons.Action.Action(RunUnittest, PrintDummy))
     env.Append(BUILDERS = {'RunUnittest' : bldRUT})
+    
     bldDoxygen = Builder(action = SCons.Action.Action(RunDoxygen, PrintDummy))
     env.Append(BUILDERS = {'RunDoxygen' : bldDoxygen})
     env['DEFAULT_DOXYFILE'] = env.File('#/conf/doxygenTemplate').abspath
-    env.Tool('makebuilder')
+    
     bldAStyle = Builder(action = SCons.Action.Action(AStyle, PrintDummy))
     env.Append(BUILDERS = {'RunAStyle' : bldAStyle})
+    
+    env.Tool('makebuilder')
     makeBuilder = Builder(action = SCons.Action.Action(MakeTool, PrintDummy))
     env.Append(BUILDERS = {'RunMakeTool' : makeBuilder})
+    
+    pdfLatexBuilder = Builder(action = runPdfLatex)
+    env.Append(BUILDERS = {'PdfLatex':  pdfLatexBuilder})
+    env['PDFLATEX_OPTIONS'] = '' 
 
 def PrintDummy(env, source, target):
     return ""
@@ -134,3 +142,19 @@ def AStyle(target, source, env):
     else:
         env.cprint('[astyle] %s' % t, 'green')
     return rc
+
+def runPdfLatex(target, source, env):
+    (pathHead, pathTail) = os.path.split(source[0].abspath)
+    
+    tmpPdf2TexDir = pathHead + '/tmp_Pdf2Texfile/'
+    if not os.path.exists(tmpPdf2TexDir):
+        env.Execute(env.Mkdir(tmpPdf2TexDir))
+    
+    targetDir = os.path.split(target[0].abspath)[0]
+    if not os.path.exists(targetDir):
+        env.Execute(env.Mkdir(targetDir))
+    
+    subprocess.call('cd ' + pathHead + ' ; pdflatex ' + env['PDFLATEX_OPTIONS'] + 
+        ' -output-directory "' + tmpPdf2TexDir + '" ' + pathTail, shell=True)
+    env.Execute(env.Move(targetDir, tmpPdf2TexDir + pathTail[:-4] +".pdf"))
+    env.Execute(env.Delete(tmpPdf2TexDir))
