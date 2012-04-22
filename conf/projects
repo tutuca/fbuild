@@ -114,3 +114,9 @@ visiPluginAR:
 	type: `HG`,
     url: "http://code.google.com/p/visi.pluginar/"
 }
+
+lav:
+{
+  type: `HG`,
+  url: "https://code.google.com/p/lav"
+}
