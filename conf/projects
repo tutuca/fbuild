@@ -1,7 +1,7 @@
 mili:
 {
-    type: `SVN`,
-    url: "http://mili.googlecode.com/svn/trunk"
+    type: `HG`,
+    url: "https://mili.googlecode.com/hg"
 }
 
 biopp:
@@ -74,9 +74,9 @@ xdrfile:
 }
 
 "backbones-generator":
-{
-    type: `SVN`,
-    url: "http://backbones-generator.googlecode.com/svn/trunk"
+{ 
+    type: `HG`,
+    url: "https://backbones-generator.googlecode.com/hg"
 }
 
 nuca:
@@ -112,7 +112,7 @@ visi:
 visiPluginAR:
 {
 	type: `HG`,
-    url: "http://code.google.com/p/visi.pluginar/"
+  url: "http://code.google.com/p/visi.pluginar/"
 }
 
 lav:
