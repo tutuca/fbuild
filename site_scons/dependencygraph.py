@@ -1,19 +1,19 @@
-# fudepan-build: The build system for FuDePAN projects 
+# fudepan-build: The build system for FuDePAN projects
 #
 # Copyright (C) 2011 Esteban Papp, Hugo Arregui FuDePAN
-# 
+#
 # This file is part of the fudepan-build build system.
-# 
+#
 # fudepan-build is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
-# 
+#
 # fudepan-build is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU General Public License
 # along with fudepan-build.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -42,27 +42,28 @@ def init(env):
     SConsEnvironment.CreateTest = CreateTest
     SConsEnvironment.CreateAutoToolsProject = CreateAutoToolsProject
     SConsEnvironment.CreateDoc = CreateDoc
+    SConsEnvironment.CreatePdfLatex = CreatePdfLatex
 
 class ComponentDictionary:
     components = {}
-    
+
     def add(self, component, check = True):
         if check:
             if not component.name.lower() == component.name:
                 component.env.cprint('[warn] modules names should be lower case: ' + component.name, 'yellow')
         # Its possible that a component is tried to be added twice because a new
-        # dependency was downloaded and 
+        # dependency was downloaded and
         if not self.components.has_key(component.name):
             self.components[component.name] = component
         else:
             component.env.cprint('[warn] component tried to be re-added %s' % component.name, 'red')
-    
+
     def get(self, name):
         if self.components.has_key(name):
             return self.components[name]
         else:
             return None
-        
+
     def getComponentsNames(self):
         return self.components.keys()
 
@@ -96,7 +97,7 @@ class ExternalLibraryComponent(Component):
     def getLibs(self):
         (libs, libpaths, processedComponents) = self._getLibs([], 0)
         return (utils.removeDuplicates(libs), utils.removeDuplicates(libpaths))
-        
+
     def _getLibs(self, processedComponents, depth):
         libpaths = []
         libs = []
@@ -117,18 +118,18 @@ class ExternalLibraryComponent(Component):
                     libpaths.extend(depLibPaths)
                     libs.extend(depLibs)
         return (libs, libpaths, processedComponents)
-    
+
     def getIncludePaths(self):
         (incs, processedComponents) = self._getIncludePaths([], 0)
         return utils.removeDuplicates(incs)
-    
+
     def _getIncludePaths(self, processedComponents, depth):
         incs = []
         if depth > 0:
             incs.extend(self.extInc)
-        
+
         processedComponents.append(self.name)
-        
+
         for dep in self.deps:
             # Only process the dep if it was not already processed
             if not (dep in processedComponents):
@@ -139,7 +140,7 @@ class ExternalLibraryComponent(Component):
                 (depIncs, depProcessedComp) = c._getIncludePaths(processedComponents,depth+1)
                 incs.extend(depIncs)
         return (incs, processedComponents)
-    
+
     def Process(self):
         return Component.Process(self)
 
@@ -163,11 +164,11 @@ class HeaderOnlyComponent(Component):
                     self.extInc.append( os.path.relpath(i.abspath, compDir.abspath) )
             else:
                 self.extInc.append( os.path.relpath(extInc.abspath, compDir.abspath) )
-    
+
     def getIncludePaths(self):
         (incs, processedComponents) = self._getIncludePaths([], 0)
         return incs
-    
+
     def _getIncludePaths(self, processedComponents, depth):
         includeModulePath = os.path.join(self.env['INSTALL_HEADERS_DIR'],self.name)
         incs = []
@@ -186,7 +187,7 @@ class HeaderOnlyComponent(Component):
         # need to include env['INSTALL_HEADERS_DIR'] as include path, this is
         # dangerous since it will be possible to refer to other modules
         #incs.append(self.env['INSTALL_HEADERS_DIR'])
-        
+
         for dep in self.deps:
             # Only process the dep if it was not already processed
             if not (dep in processedComponents):
@@ -200,7 +201,7 @@ class HeaderOnlyComponent(Component):
 
     def Process(self):
         Component.Process(self)
-        
+
         # we add astyle to all the components that can have a header (includes
         # the ones that have source)
         filters = []
@@ -212,7 +213,7 @@ class HeaderOnlyComponent(Component):
         target = self.env.Dir(self.env['BUILD_DIR']).Dir('astyle').Dir(self.name)
         astyleOut = self.env.RunAStyle(target, sources)
         self.env.Alias(self.name + ':astyle', astyleOut, "Runs astyle on " + self.name)
-        
+
         # If the component doesnt have external headers, we dont process it since
         # there is nothing to install
         if len(self.extInc) > 0:
@@ -225,7 +226,7 @@ class HeaderOnlyComponent(Component):
             return hLib
         else:
             return None
-    
+
 def CreateHeaderOnlyLibrary(env, name, ext_inc, deps, aliasGroups = []):
     componentGraph.add(HeaderOnlyComponent(env,
                                            name,
@@ -233,7 +234,7 @@ def CreateHeaderOnlyLibrary(env, name, ext_inc, deps, aliasGroups = []):
                                            deps,
                                            ext_inc,
                                            aliasGroups))
-    
+
 class SourcedComponent(HeaderOnlyComponent):
     def __init__(self, env, name, compDir, deps, inc, extInc, src, aliasGroups):
         HeaderOnlyComponent.__init__(self, env, name, compDir, deps, extInc, aliasGroups)
@@ -261,11 +262,11 @@ class SourcedComponent(HeaderOnlyComponent):
                 else:
                     self.src.append(os.path.abspath(compDir.rel_path(src)))
         self.shouldBeLinked = False
-    
+
     def getIncludePaths(self):
         (incs, processedComponents) = self._getIncludePaths([], 0)
         return incs
-    
+
     def _getIncludePaths(self, processedComponents, depth):
         incs = []
         (extIncs, processedComponents) = HeaderOnlyComponent._getIncludePaths(self, processedComponents, depth)
@@ -277,11 +278,11 @@ class SourcedComponent(HeaderOnlyComponent):
                 hDir = os.path.join(self.dir, i)
                 incs.append(hDir)
         return (incs, processedComponents)
-     
+
     def getLibs(self):
         (libs, libpaths, processedComponents) = self._getLibs([], 0)
         return (utils.removeDuplicates(libs), utils.removeDuplicates(libpaths))
-        
+
     def _getLibs(self, processedComponents, depth):
         libpaths = []
         libs = []
@@ -306,7 +307,7 @@ class SourcedComponent(HeaderOnlyComponent):
                     libpaths.extend(depLibPaths)
                     libs.extend(depLibs)
         return (libs, libpaths, processedComponents)
-    
+
     def Process(self):
         HeaderOnlyComponent.Process(self)
 
@@ -314,7 +315,7 @@ class StaticLibraryComponent(SourcedComponent):
     def __init__(self, env, name, compDir, deps, inc, extInc, src, aliasGroups):
         SourcedComponent.__init__(self, env, name, compDir, deps, inc, extInc, src, aliasGroups)
         self.shouldBeLinked = True
-    
+
     def Process(self):
         SourcedComponent.Process(self)
         incpaths = self.getIncludePaths()
@@ -343,7 +344,7 @@ class DynamicLibraryComponent(SourcedComponent):
     def __init__(self, env, name, compDir, deps, inc, extInc, src, aliasGroups):
         SourcedComponent.__init__(self, env, name, compDir, deps, inc, extInc, src, aliasGroups)
         self.shouldBeLinked = True
-    
+
     def Process(self):
         SourcedComponent.Process(self)
         incpaths = self.getIncludePaths()
@@ -372,7 +373,7 @@ class ProgramComponent(SourcedComponent):
     def __init__(self, env, name, compDir, deps, inc, src, aliasGroups):
         SourcedComponent.__init__(self, env, name, compDir, deps, [], inc, src, aliasGroups)
         self.shouldBeLinked = False
-    
+
     def Process(self):
         SourcedComponent.Process(self)
         incpaths = self.getIncludePaths()
@@ -403,21 +404,21 @@ class UnitTestComponent(ProgramComponent):
 
     def Process(self):
         SourcedComponent.Process(self)
-        
+
         incpaths = self.getIncludePaths()
         (libs,libpaths) = self.getLibs()
         target = os.path.join(self.dir, self.name)
         prog = self.env.Program(target, self.src, CPPPATH=incpaths, LIBS=libs, LIBPATH=libpaths)
         self.env.Alias(self.name, prog, "Build and install " + self.name)
         self.env.Alias('all:build', prog, "Build all targets")
-        
+
         target = os.path.join(self.dir, self.name + '.passed')
         tTest = self.env.RunUnittest(target, prog)
         if self.env.GetOption('forcerun'):
             self.env.AlwaysBuild(tTest)
         self.env.Alias(self.name, tTest, "Run test for " + self.name)
         self.env.Alias('all:test', tTest, "Run all tests")
-        
+
         for alias in self.aliasGroups:
             self.env.Alias(alias, tTest, "Build group " + alias)
 
@@ -434,21 +435,46 @@ def CreateTest(env, name, inc, src, deps, aliasGroups = []):
                                          src,
                                          aliasGroups))
 
+class PdfLatexComponent(Component):
+    def __init__(self, env, name, compDir, latexfile, aliasGroups):
+        Component.__init__(self, env, name, compDir, [], aliasGroups)
+        self.latexfile = latexfile
+
+    def Process(self):
+        Component.Process(self)
+        targetDocDir = self.env.Dir(self.env['INSTALL_DOC_DIR']).Dir(self.name)
+        pdf = self.env.RunPdfLatex(targetDocDir, self.latexfile)
+        self.env.Clean(pdf, targetDocDir)
+        self.env.Alias(self.name, pdf, 'Generate pdf from ' + self.latexfile
+            + 'for ' + self.name)
+
+        for alias in self.aliasGroups:
+            self.env.Alias(alias, pdf, "Build group " + alias)
+
+def CreatePdfLatex(env, name, latexfile = '', options='', aliasGroups = []):
+    docName = name + ':pdf'
+    env['PDFLATEX_OPTIONS'] = options
+    componentGraph.add(PdfLatexComponent(env,
+                                    docName,
+                                    env.Dir('.'),
+                                    latexfile,
+                                    aliasGroups))
+
 class DocComponent(Component):
     def __init__(self, env, name, compDir, doxyfile, aliasGroups):
         Component.__init__(self, env, name, compDir, [], aliasGroups)
         self.doxyfile = doxyfile
-    
+
     def Process(self):
         Component.Process(self)
         targetDocDir = self.env.Dir(self.env['INSTALL_DOC_DIR']).Dir(self.name)
         doc = self.env.RunDoxygen(targetDocDir, self.doxyfile)
         self.env.Clean(doc, targetDocDir)
         self.env.Alias(self.name, doc, 'Generate documentation for ' + self.name)
-        
+
         for alias in self.aliasGroups:
             self.env.Alias(alias, doc, "Build group " + alias)
-        
+
 def CreateDoc(env, name, doxyfile=None, aliasGroups = []):
     docName = name + ':doc'
     if doxyfile == None:
@@ -463,17 +489,17 @@ class AutoToolsProject(Component):
     def __init__(self, env, name, compDir, configurationFile, aliasGroups):
         Component.__init__(self, env, name, compDir, [], aliasGroups)
         self.configurationFile = configurationFile
-        
+
     def Process(self):
         Component.Process(self)
         targetMake = self.env.Dir(self.env['INSTALL_LIB_DIR']).Dir(self.name)
         make = self.env.RunMakeTool(targetMake, self.configurationFile)
         self.env.Clean(make, targetMake)
         self.env.Alias(self.name, make, 'Make ' + self.name)
-        
+
         for alias in self.aliasGroups:
             self.env.Alias(alias, make, "Build group " + alias)
-        
+
 def CreateAutoToolsProject(env, name, libfile, configurationFile, aliasGroups = []):
     componentGraph.add(AutoToolsProject(env,
                                         name,
@@ -483,7 +509,7 @@ def CreateAutoToolsProject(env, name, libfile, configurationFile, aliasGroups = 
 
 def WalkDirsForSconscripts(env, topdir, ignore = []):
     global componentGraph
-    
+
     # Step 1: load all the components in the dependency graph
     # if we find a download dependency, we download it and re-process everything
     # to be sure that all the components are downloaded and loaded in the
@@ -498,7 +524,7 @@ def WalkDirsForSconscripts(env, topdir, ignore = []):
                     pathname = os.path.join(root, filename)
                     vdir = os.path.join(env['BUILD_DIR'],
                                         os.path.relpath(root,env['WS_DIR']))
-                    env.SConscript(pathname, 
+                    env.SConscript(pathname,
                                    exports='env',
                                    variant_dir=vdir,
                                    duplicate=1)
