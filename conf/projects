@@ -1,3 +1,9 @@
+fideo:
+{
+    type: `HG`,
+    url: "https://fideo.googlecode.com/hg"
+}
+
 mili:
 {
     type: `HG`,
