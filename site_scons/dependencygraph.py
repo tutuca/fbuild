@@ -43,6 +43,7 @@ def init(env):
     SConsEnvironment.CreateAutoToolsProject = CreateAutoToolsProject
     SConsEnvironment.CreateDoc = CreateDoc
     SConsEnvironment.CreatePdfLatex = CreatePdfLatex
+    SConsEnvironment.CreateMemReport = CreateMemReport
 
 class ComponentDictionary:
     components = {}
@@ -442,23 +443,52 @@ class PdfLatexComponent(Component):
 
     def Process(self):
         Component.Process(self)
-        targetDocDir = self.env.Dir(self.env['INSTALL_DOC_DIR']).Dir(self.name)
+        project_name = self.name.split(':')[0]
+        targetDocDir = self.env.Dir(self.env['INSTALL_DOC_DIR']).Dir(project_name)
         pdf = self.env.RunPdfLatex(targetDocDir, self.latexfile)
         self.env.Clean(pdf, targetDocDir)
         self.env.Alias(self.name, pdf, 'Generate pdf from ' + self.latexfile
-            + 'for ' + self.name)
+            + ' for ' + project_name)
 
         for alias in self.aliasGroups:
             self.env.Alias(alias, pdf, "Build group " + alias)
 
 def CreatePdfLatex(env, name, latexfile = '', options='', aliasGroups = []):
-    docName = name + ':pdf'
+    docName = name + ':pdf:' + latexfile
     env['PDFLATEX_OPTIONS'] = options
     componentGraph.add(PdfLatexComponent(env,
                                     docName,
                                     env.Dir('.'),
                                     latexfile,
                                     aliasGroups))
+
+
+class ValgrindComponent(Component):
+    def __init__(self, env, name, compDir, aliasGroups, project_name=""):
+        Component.__init__(self, env, name, compDir, [], aliasGroups)
+        self.project_name = project_name
+
+    def Process(self):
+        Component.Process(self)
+        targetExecDir = self.env.Dir(self.env['BUILD_DIR'])\
+                                .Dir(self.project_name).Dir("tests")
+        txt = self.env.RunValgrind('mili.txt', targetExecDir.abspath + "/" + self.project_name + ":test")
+        self.env.Clean(txt, targetExecDir)
+        self.env.Alias(self.name, txt, 'Generate ' + self.project_name +
+            ' memory report for ' + self.project_name)
+
+        for alias in self.aliasGroups:
+            self.env.Alias(alias, txt, "Build group " + alias)
+
+
+def CreateMemReport(env, name, options='', aliasGroups=[]):
+    docName = name + ':memreport'
+    env['VALGRIND_OPTIONS'] = options
+    componentGraph.add(ValgrindComponent(env,
+                                    docName,
+                                    env.Dir('.'),
+                                    aliasGroups,
+                                    project_name=name))
 
 class DocComponent(Component):
     def __init__(self, env, name, compDir, doxyfile, aliasGroups):

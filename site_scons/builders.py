@@ -46,6 +46,10 @@ def init(env):
     env.Append(BUILDERS = {'RunPdfLatex':  bldPdfLatex})
     env['PDFLATEX_OPTIONS'] = ''
 
+    bldValgrind = Builder(action = SCons.Action.Action(RunValgrind, PrintDummy))
+    env.Append(BUILDERS = {'RunValgrind':  bldValgrind})
+    env['VALGRIND_OPTIONS'] = ''
+
 def PrintDummy(env, source, target):
     return ""
 
@@ -157,9 +161,18 @@ def RunPdfLatex(target, source, env):
 #        env.Execute(env.Mkdir(targetDir))
         os.mkdir(targetDir)
 
-    subprocess.call('cd ' + pathHead + ' ; pdflatex ' + env['PDFLATEX_OPTIONS']
+    rt = subprocess.call('cd ' + pathHead + ' ; pdflatex ' + env['PDFLATEX_OPTIONS']
         + ' -output-directory "' + tmpPdf2TexDir + '" ' + pathTail, shell=True)
     shutil.move(targetDir, tmpPdf2TexDir + pathTail[:-4] + ".pdf")
     shutil.rmtree(tmpPdf2TexDir)
+    return rt
 #    env.Execute(env.Move(targetDir, tmpPdf2TexDir + pathTail[:-4] +".pdf"))
 #    env.Execute(env.Delete(tmpPdf2TexDir))
+
+def RunValgrind(target, source, env):
+
+
+    return subprocess.call(
+        'valgrind ' + env['VALGRIND_OPTIONS']
+        + '--leak-check=full --show-reachable=yes --error-limit=no ' +
+        source[0].abspath + ' > ' + source[0].abspath.split(":")[0] + '.txt', shell=True)
