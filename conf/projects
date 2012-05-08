@@ -126,3 +126,10 @@ lav:
   type: `HG`,
   url: "https://code.google.com/p/lav"
 }
+
+sequtils:
+{
+    type: `HG`,
+    url: "https://sequtils.googlecode.com/hg"
+}
+
