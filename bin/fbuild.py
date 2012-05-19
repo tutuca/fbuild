@@ -83,8 +83,8 @@ for arg in args.project or []:
             scons_args.add('--gcoverage')
             scons_targets.append(project)
         elif task == 'test':
-            if os.path.exists('projects/%s/tests/SConscript' % project):
-                scons_targets.append(project + ':test')
+            #if os.path.exists('projects/%s/tests/SConscript' % project):
+            scons_targets.append(project + ':test')
         else:
             cmd = original.replace(project_name, project)
             scons_targets.append(cmd)
