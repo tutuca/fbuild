@@ -1,0 +1,9 @@
+Import ('env')
+
+name = 'odeint'
+inc = env.Dir('.')
+ext_inc = env.Dir('.')
+src = []
+deps = ['boost']
+
+env.AddComponent(name, inc, deps, env.Dir('.'))

@@ -54,6 +54,30 @@ getoptpp:
     url: "https://stl-debug.googlecode.com/hg"
 }
 
+boost:
+{
+    type: `WGET`,
+    url: "http://hivelocity.dl.sourceforge.net/project/boost/boost/1.49.0/boost_1_49_0.tar.gz"
+    executeAfter: ["tar zxvf #projects/boost/boost_1_49_0.tar.gz -C #projects/boost",
+                   "rm -r #projects/boost/boost_1_49_0.tar.gz",
+                   "mv #projects/boost/boost_1_49_0/* #projects/boost/",
+                   "rm -r #projects/boost/boost_1_49_0",
+                   "cp #external/boostSConscript #projects/boost/SConscript"]
+
+}
+
+odeint:
+{
+    type: `WGET`,
+    url: "http://github.com/headmyshoulder/odeint-v2/tarball/master"
+    executeAfter: ["tar zxvf #projects/odeint/master -C #/projects/odeint",
+                   "rm -r #projects/odeint/master",
+                   "mv #projects/odeint/head*/* #projects/odeint/",
+                   "rm -r #projects/odeint/head*",
+                   "cp #external/odeintSConscript #projects/odeint/SConscript"]
+
+}
+
 "prot-filer":
 {
     type: `HG`,
