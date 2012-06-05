@@ -58,10 +58,11 @@ boost:
 {
     type: `WGET`,
     url: "http://hivelocity.dl.sourceforge.net/project/boost/boost/1.49.0/boost_1_49_0.tar.gz"
-    executeAfter: ["tar zxvf #projects/boost/boost_1_49_0.tar.gz -C #projects/boost",
-                   "rm -r #projects/boost/boost_1_49_0.tar.gz",
-                   "mv #projects/boost/boost_1_49_0/* #projects/boost/",
-                   "rm -r #projects/boost/boost_1_49_0",
+    executeAfter: ["mkdir #/boost",
+                   "tar zxvf #projects/boost/boost_1_49_0.tar.gz -C #/boost",
+                   "rm -r #projects/boost",
+                   "mv #/boost/boost_1_49_0 #projects/boost/",
+                   "rmdir #/boost",
                    "cp #external/boostSConscript #projects/boost/SConscript"]
 
 }
@@ -70,10 +71,11 @@ odeint:
 {
     type: `WGET`,
     url: "http://github.com/headmyshoulder/odeint-v2/tarball/master"
-    executeAfter: ["tar zxvf #projects/odeint/master -C #/projects/odeint",
-                   "rm -r #projects/odeint/master",
-                   "mv #projects/odeint/head*/* #projects/odeint/",
-                   "rm -r #projects/odeint/head*",
+    executeAfter: ["mkdir #/odeint",
+                   "tar zxvf #projects/odeint/master -C #/odeint",
+                   "rm -r #projects/odeint",
+                   "mv #/odeint/headmyshoulder-odeint-v2-47dbdac #projects/odeint",
+                   "rmdir #/odeint",
                    "cp #external/odeintSConscript #projects/odeint/SConscript"]
 
 }
@@ -92,7 +94,7 @@ xdrfile:
                    "tar zxvf #projects/xdrfile/xdrfile-1.1.tar.gz -C #/xdrfile2",
                    "rm -r #projects/xdrfile", 
                    "mv #/xdrfile2/xdrfile-1.1b #projects/xdrfile",
-                   "rmdir xdrfile2",
+                   "rmdir #/xdrfile2",
                    "cp #external/xdrfileSConscript #projects/xdrfile/SConscript"]
 
 }
