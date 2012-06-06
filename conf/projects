@@ -1,7 +1,7 @@
 aso:
 {
-    type: `SVN`,
-    url: "http://aso.googlecode.com/svn/trunk"
+    type: `HG`,
+    url: "http://aso.googlecode.com/hg"
 }
 
 fideo:
@@ -80,7 +80,7 @@ odeint:
     executeAfter: ["mkdir #/odeint",
                    "tar zxvf #projects/odeint/master -C #/odeint",
                    "rm -r #projects/odeint",
-                   "mv #/odeint/headmyshoulder-odeint-v2-47dbdac #projects/odeint",
+                   "mv #/odeint/headmyshoulder-odeint-v2-* #projects/odeint",
                    "rmdir #/odeint",
                    "cp #external/odeintSConscript #projects/odeint/SConscript"]
 

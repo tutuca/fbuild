@@ -52,7 +52,7 @@ class BasePrjDownload(object):
                  .replace('#projects', self.env['WS_DIR'])\
                  .replace('#', self.env['ROOT'])
         cprint('About to execute: %s' % cmd, 'purple')
-        rc = subprocess.call(cmd.split(' '))
+        rc = subprocess.call(cmd, shell=True)
         success = rc == 0
         if not success:
             cprint('failed to execute post command: %s' % cmd, 'red')
