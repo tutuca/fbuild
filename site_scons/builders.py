@@ -29,11 +29,13 @@ def runTest(target, source, env):
     origWD = os.getcwd() # remember our original working directory
     os.chdir(dir)
     appbin = './' + appbin
-    if subprocess.call(appbin):
+    r = subprocess.call(appbin)
+    if r:
         cprint('TEST ERROR: %s' % appbin, 'red')
     else:
         cprint('TEST OK: %s' % appbin, 'green')
     os.chdir(origWD) # get back to our original working directory
+    return r
 
 def configure(target, source, env):
     buildDir = env['buildDir']

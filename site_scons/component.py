@@ -105,6 +105,7 @@ def CreateHeaderOnlyLibrary(env, name, inc, ext_inc, deps):
         _addComponent(env, name, setupComponent(env, 'header_only', name, inc, deps, ext_inc))
     else:
         _findComponent(name).copyHeaders(env)
+        env.Alias(name)
 
 def CreateProgram(env, name, inc, src, deps):
     if isPreProcessing:

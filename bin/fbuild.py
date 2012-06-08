@@ -20,7 +20,8 @@
 import os
 import sys
 
-BUILD_SCRIPTS_DIR = os.path.join(os.getcwd(), "site_scons")
+FBUILD_DIR = os.path.abspath(os.path.dirname(os.path.dirname(__file__)))
+BUILD_SCRIPTS_DIR = os.path.join(FBUILD_DIR, "site_scons")
 sys.path.append(BUILD_SCRIPTS_DIR)
 
 import argparse
@@ -29,9 +30,11 @@ from termcolor import cprint
 from tasks import tasks
 
 def invoke_scons(args):
+    r = 0
     if args:
-        cmd = 'scons ' + ' '.join(args)
-        call(cmd, shell=True)
+        cmd = 'cd ' + FBUILD_DIR + ';scons ' + ' '.join(args)
+        r = call(cmd, shell=True)
+    return r 
 
 def parse_project_arg(arg):
     splitted = arg.split(':')
@@ -40,56 +43,60 @@ def parse_project_arg(arg):
 def find_installed_projects():
     return os.listdir('projects')
 
-parser = argparse.ArgumentParser(description="invokes the fudepan-build system")
-parser.add_argument('--type', dest='type', nargs=1, action='store', help='type of build, options: dbg, opt')
-parser.add_argument('--efective', dest='commands', help="adds -Weffc flag", action='append_const', const='efective')
-parser.add_argument('-l', '--list', dest='commands', help="list projects", action='append_const', const='projects')
-parser.add_argument('project', nargs='*', help="use project[:task]. Possibles tasks are: test, clear, clear-test, " + ", ".join(tasks.keys()) + " or use 'targets' to list the possible targets")
-args = parser.parse_args()
+def __main__():
+    parser = argparse.ArgumentParser(description="invokes the fudepan-build system")
+    parser.add_argument('--type', dest='type', nargs=1, action='store', help='type of build, options: dbg, opt')
+    parser.add_argument('--efective', dest='commands', help="adds -Weffc flag", action='append_const', const='efective')
+    parser.add_argument('-l', '--list', dest='commands', help="list projects", action='append_const', const='projects')
+    parser.add_argument('project', nargs='*', help="use project[:task]. Possibles tasks are: test, clear, clear-test, " + ", ".join(tasks.keys()) + " or use 'targets' to list the possible targets")
+    args = parser.parse_args()
 
-missing_args = True
+    missing_args = True
 
-from dependencies import downloadDependency, findLoadableDependencies
-deps = findLoadableDependencies({}, "conf")
+    from dependencies import downloadDependency, findLoadableDependencies
+    deps = findLoadableDependencies({}, os.path.join(FBUILD_DIR, "conf"))
 
-scons_args = set()
+    scons_args = set()
 
-if args.type:
-    scons_args.add('--type=%s' % args.type[0])
+    if args.type:
+        scons_args.add('--type=%s' % args.type[0])
 
-for command in args.commands or []:
-    if command in ['effective']:
-        scons_args.add(command)
-    if command == 'projects':
+    for command in args.commands or []:
+        if command in ['effective']:
+            scons_args.add(command)
+        if command == 'projects':
+            missing_args = False
+            print " ".join(deps.keys())
+
+    scons_targets = []
+    env = dict(projects=deps)
+    for arg in args.project or []:
         missing_args = False
-        print " ".join(deps.keys())
-
-scons_targets = []
-env = dict(projects=deps)
-for arg in args.project or []:
-    missing_args = False
-    original, project_name, task = parse_project_arg(arg)
-    for project in ([project_name] if project_name != 'all' else find_installed_projects()):
-        if task in tasks:
-            env['original'] = original
-            tasks[task](project, task, env)
-        elif task == 'clear':
-            scons_args.add('-c')
-            scons_targets.append(project)
-        elif task == 'clear-test':
-            scons_args.add('-c')
-            scons_targets.append(project + ':test')
-        elif task == 'gcov':
-            scons_args.add('--gcoverage')
-            scons_targets.append(project)
-        elif task == 'test':
-            if os.path.exists('projects/%s/tests/SConscript' % project):
+        original, project_name, task = parse_project_arg(arg)
+        for project in ([project_name] if project_name != 'all' else find_installed_projects()):
+            if task in tasks:
+                env['original'] = original
+                tasks[task](project, task, env)
+            elif task == 'clear':
+                scons_args.add('-c')
+                scons_targets.append(project)
+            elif task == 'clear-test':
+                scons_args.add('-c')
                 scons_targets.append(project + ':test')
-        else:
-            cmd = original.replace(project_name, project)
-            scons_targets.append(cmd)
+            elif task == 'gcov':
+                scons_args.add('--gcoverage')
+                scons_targets.append(project)
+            elif task == 'test':
+                scons_targets.append(project + ':test')
+            else:
+                cmd = original.replace(project_name, project)
+                scons_targets.append(cmd)
 
-invoke_scons(list(scons_args) + scons_targets)
+    r = invoke_scons(list(scons_args) + scons_targets)
 
-if missing_args:
-    parser.print_help()
+    if missing_args:
+        parser.print_help()
+
+    return r
+
+sys.exit(__main__())
