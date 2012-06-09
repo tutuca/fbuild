@@ -1,3 +1,9 @@
+aso:
+{
+    type: `HG`,
+    url: "http://aso.googlecode.com/hg"
+}
+
 fideo:
 {
     type: `HG`,
@@ -52,6 +58,32 @@ getoptpp:
 {
     type: `HG`,
     url: "https://stl-debug.googlecode.com/hg"
+}
+
+boost:
+{
+    type: `WGET`,
+    url: "http://hivelocity.dl.sourceforge.net/project/boost/boost/1.49.0/boost_1_49_0.tar.gz"
+    executeAfter: ["mkdir #/boost",
+                   "tar zxvf #projects/boost/boost_1_49_0.tar.gz -C #/boost",
+                   "rm -r #projects/boost",
+                   "mv #/boost/boost_1_49_0 #projects/boost/",
+                   "rmdir #/boost",
+                   "cp #external/boostSConscript #projects/boost/SConscript"]
+
+}
+
+odeint:
+{
+    type: `WGET`,
+    url: "http://github.com/headmyshoulder/odeint-v2/tarball/master"
+    executeAfter: ["mkdir #/odeint",
+                   "tar zxvf #projects/odeint/master -C #/odeint",
+                   "rm -r #projects/odeint",
+                   "mv #/odeint/headmyshoulder-odeint-v2-* #projects/odeint",
+                   "rmdir #/odeint",
+                   "cp #external/odeintSConscript #projects/odeint/SConscript"]
+
 }
 
 "prot-filer":
