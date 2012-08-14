@@ -37,7 +37,7 @@ else
 fi
 
 # Update the fudepan environment
-if [ "$(which hg)" ]; then
+if [[ "$(which hg)" && -z $FBUILD_NO_UPDATE ]]; then
     if [ $internet_connection = "ok" ]; then
         echo -e "\e[0;35mChecking for updates in the environment\e[0m"
         hg pull -u
