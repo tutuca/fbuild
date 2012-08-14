@@ -21,8 +21,8 @@
 
 function check_install {
     declare -A mappings
-    mappings['make']='build-essential'
-    mappings['moc']='qt4-dev-tools'
+    mappings['make']='base-devel'
+    mappings['moc']='qt'
     mappings['dot']='graphviz'
 
     pkg=${mappings[$1]}
@@ -36,18 +36,18 @@ function check_install {
         else
             echo -e "\e[0;33m[warn] $pkg not found, suggest to install it to continue\e[0m"
         fi
-        echo "info: 'sudo apt-get install $pkg' should do the job, do you want"
+        echo "info: 'sudo pacman -S $pkg' should do the job, do you want"
         echo "      me to do it? (your password could be required)"
         read -p "Install (y/n)?" REPLY
         if [ "$REPLY" = "y" ]; then
-            sudo apt-get install $pkg
+            sudo pacman -S $pkg
             if [ "$?" -ne "0" ]; then
                 echo -e "\e[0;31m[error] $pkg could not be installed, exiting\e[0m"
                 return 1
             fi
         else
             if [ "$3" ]; then
-                echo -e "\e[0;31m[error] $pkg required, exiting\e[0m"
+                echo -e "\e[0;31m[error] $2 required, exiting\e[0m"
                 return 1
             fi
         fi

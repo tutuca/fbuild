@@ -51,27 +51,34 @@ fi
 # function interface
 if [ "$(which apt-get)" ]; then
     source ./site_scons/installer_aptget.sh
+elif [ "$(which pacman)" ]; then
+    source ./site_scons/installer_pacman.sh
+else
+    function check_install {
+        if [ "$3" ]; then     
+           echo -e "\e[0;31m[error] $2 not found, need to install it to continue\e[0m"
+        fi
+    }
 fi
-
 # three parameters: 
 # 1) binary to check for existance
 # 2) package to install
 # 3) required?
-check_install make build-essential true
+check_install make true
 if [ "$?" -ne "0" ]; then return $?; fi
-check_install python python true
+check_install python true
 if [ "$?" -ne "0" ]; then return $?; fi
-check_install scons scons true
+check_install scons true
 if [ "$?" -ne "0" ]; then return $?; fi
-check_install moc qt4-dev-tools
+check_install moc
 if [ "$?" -ne "0" ]; then return $?; fi
-check_install doxygen doxygen
+check_install doxygen
 if [ "$?" -ne "0" ]; then return $?; fi
-check_install dot graphviz
+check_install dot
 if [ "$?" -ne "0" ]; then return $?; fi
-check_install astyle astyle true 
+check_install astyle true 
 
-if [ "$(astyle -V 2>&1 | cut -f4 -d' ' | bc | sed 's/\.//')" -lt "124" ]; then
+if [ "$(astyle -V 2>&1 | cut -f4 -d' ' | sed 's/\..*//' | bc)" -lt "2" ]; then
     echo -e "\e[0;31m[error] AStyle version should be >= 1.24\e[0m"
     return 1
 fi
