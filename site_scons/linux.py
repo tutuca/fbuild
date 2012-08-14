@@ -26,7 +26,8 @@ def addOSComponents(env):
     # This is a base component, it will include the qt base include path
     modules = [
         'pthread',
-        'dl'
+        'dl',
+        'gcov'
     ]
     for module in modules:
         env.AddComponent(module, [], [], '', True)
