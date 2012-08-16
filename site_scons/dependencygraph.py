@@ -45,7 +45,7 @@ def init(env):
     SConsEnvironment.CreatePdfLatex = CreatePdfLatex
     SConsEnvironment.CreateMemReport = CreateMemReport
 
-class ComponentDictionary:
+class ComponentDictionary(object):
     components = {}
 
     def add(self, component, check = True):
@@ -60,10 +60,7 @@ class ComponentDictionary:
             component.env.cprint('[warn] component tried to be re-added %s' % component.name, 'red')
 
     def get(self, name):
-        if self.components.has_key(name):
-            return self.components[name]
-        else:
-            return None
+        return self.components.get(name)
 
     def getComponentsNames(self):
         return self.components.keys()
@@ -109,7 +106,7 @@ class ExternalLibraryComponent(Component):
 
         for dep in self.deps:
             # Only process the dep if it was not already processed
-            if not (dep in processedComponents):
+            if dep not in processedComponents:
                 c = componentGraph.get(dep)
                 if c is None:
                     self.env.cprint('[error] %s depends on %s which could not be found' % (self.name, dep), 'red')
@@ -133,7 +130,7 @@ class ExternalLibraryComponent(Component):
 
         for dep in self.deps:
             # Only process the dep if it was not already processed
-            if not (dep in processedComponents):
+            if dep not in processedComponents:
                 c = componentGraph.get(dep)
                 if c is None:
                     dep.env.cprint('[error] %s depends on %s which could not be found' % (self.name, dep), 'red')
@@ -298,7 +295,7 @@ class SourcedComponent(HeaderOnlyComponent):
 
         for dep in self.deps:
             # Only process the dep if it was not already processed
-            if not (dep in processedComponents):
+            if dep not in processedComponents:
                 c = componentGraph.get(dep)
                 if c is None:
                     self.env.cprint('[error] %s depends on %s which could not be found' % (self.name, dep), 'red')
