@@ -67,7 +67,7 @@ class ExternalLibraryComponent(Component):
             if dep not in processedComponents:
                 c = self.componentGraph.get(dep)
                 if c is None:
-                    self.env.cprint('[error] %s depends on %s which could not be found' % (self.name, dep), 'red')
+                    self.env.cerror('[error] %s depends on %s which could not be found' % (self.name, dep))
                     continue
                 if hasattr(c, '_getLibs'):
                     (depLibs, depLibPaths, depProcessedComp) = c._getLibs(processedComponents,depth+1)
@@ -91,7 +91,7 @@ class ExternalLibraryComponent(Component):
             if dep not in processedComponents:
                 c = self.componentGraph.get(dep)
                 if c is None:
-                    dep.env.cprint('[error] %s depends on %s which could not be found' % (self.name, dep), 'red')
+                    dep.env.cerror('[error] %s depends on %s which could not be found' % (self.name, dep))
                     continue
                 (depIncs, depProcessedComp) = c._getIncludePaths(processedComponents,depth+1)
                 incs.extend(depIncs)
@@ -139,7 +139,7 @@ class HeaderOnlyComponent(Component):
             if dep not in processedComponents:
                 c = self.componentGraph.get(dep)
                 if c is None:
-                    dep.env.cprint('[error] %s depends on %s which could not be found' % (self.name, dep), 'red')
+                    dep.env.cerror('[error] %s depends on %s which could not be found' % (self.name, dep))
                     continue
                 (depIncs, depProcessedComp) = c._getIncludePaths(processedComponents,depth+1)
                 incs.extend(depIncs)
@@ -238,7 +238,7 @@ class SourcedComponent(HeaderOnlyComponent):
             if dep not in processedComponents:
                 c = self.componentGraph.get(dep)
                 if c is None:
-                    self.env.cprint('[error] %s depends on %s which could not be found' % (self.name, dep), 'red')
+                    self.env.cerror('[error] %s depends on %s which could not be found' % (self.name, dep))
                     continue
                 if hasattr(c, '_getLibs'):
                     (depLibs, depLibPaths, depProcessedComp) = c._getLibs(processedComponents,depth+1)
@@ -279,7 +279,7 @@ class DynamicLibraryComponent(SourcedComponent):
         (libs,libpaths) = self.getLibs()
         target = os.path.join(self.dir, self.name)
         dLib = self.env.SharedLibrary(target, self.src, CPPPATH=incpaths, LIBS=libs, LIBPATH=libpaths)
-        iLib = self.env.Install(self.env['INSTALL_BIN_DIR'], dLib)
+        iLib = self.env.Install(self.env['INSTALL_LIB_DIR'], dLib)
         self.env.Alias(self.name, iLib, "Build and install " + self.name)
         self.env.Alias('all:build', dLib, "build all targets")
         self.env.Alias('all:install', iLib, "Install all targets")

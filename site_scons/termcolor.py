@@ -49,6 +49,9 @@ def init(env, args):
     if args.get('VERBOSE') != '1':
         prettyMessages(env)
     env.cprint = cprint
+    env.cdebug = lambda m: cprint(m, 'green')
+    env.cwarn = lambda m: cprint(m, 'yellow')
+    env.cerror = lambda m: cprint(m, 'red')
     env.cformat = cformat
 
 def ask_user(message, color, alternatives):

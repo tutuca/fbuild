@@ -66,7 +66,7 @@ def RunUnittest(env, source, target):
         if env.GetOption('printresults'):
             subprocess.call("cat %s" % t, shell=True)
         if rc:
-            env.cprint('[failed] %s, error: %s' % (t, rc), 'red')
+            env.cerror('[failed] %s, error: %s' % (t, rc))
         else:
             env.cprint('[passed] %s' % t, 'green')
         tindex = tindex + 1
@@ -99,7 +99,7 @@ def RunDoxygen(target, source, env):
             subprocess.call("cat %s" % cmdOutput, shell=True)
         os.remove(tmpdoxyFile)
         if rc:
-            env.cprint('[failed] %s, error: %s' % (t, rc), 'red')
+            env.cerror('[failed] %s, error: %s' % (t, rc))
         else:
             env.cprint('[generated] %s' % t, 'green')
         tindex = tindex + 1
@@ -142,7 +142,7 @@ def AStyle(target, source, env):
     fileList = ' '.join(s.abspath for s in source)
     rc = subprocess.call(cmd % fileList, shell=True)
     if rc:
-        env.cprint('[error] %s, error: %s' % (t, rc), 'red')
+        env.cerror('[error] %s, error: %s' % (t, rc))
     else:
         env.cprint('[astyle] %s' % t, 'green')
     return rc

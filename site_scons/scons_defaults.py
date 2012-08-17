@@ -79,8 +79,8 @@ def init(env,vars,args):
     vars.Update(env)
 
     if args.get('VERBOSE') == '1':
-        env.cprint('Install information:', 'green')
-        env.cprint('    bin dir    : ' + env['INSTALL_BIN_DIR'], 'green')
-        env.cprint('    lib dir    : ' + env['INSTALL_LIB_DIR'], 'green')
-        env.cprint('    headers dir: ' + env['INSTALL_HEADERS_DIR'], 'green')
-        env.cprint('    doc dir: ' + env['INSTALL_DOC_DIR'], 'green')
+        env.cdebug('Install information:')
+        env.cdebug('    bin dir    : ' + env['INSTALL_BIN_DIR'])
+        env.cdebug('    lib dir    : ' + env['INSTALL_LIB_DIR'])
+        env.cdebug('    headers dir: ' + env['INSTALL_HEADERS_DIR'])
+        env.cdebug('    doc dir    : ' + env['INSTALL_DOC_DIR'])
