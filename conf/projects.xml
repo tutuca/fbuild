@@ -4,8 +4,8 @@
              repository_type="HG" 
              repository_url="https://esteban.papp@code.google.com/p/aso/" />
     <project name="backbones-generator"
-             repository_type="SVN" 
-             repository_url="http://backbones-generator.googlecode.com/svn/trunk" />
+             repository_type="HG" 
+             repository_url="http://backbones-generator.googlecode.com/hg" />
     <project name="backbones-selector"
              repository_type="HG" 
              repository_url="http://code.google.com/p/backbones-selector" />
@@ -38,8 +38,8 @@
         <execute_after>cp #/site_scons/external/gtestSConscript {WS_DIR}/gtest/SConscript</execute_after>
     </project>
     <project name="mili"
-             repository_type="SVN" 
-             repository_url="http://mili.googlecode.com/svn/trunk" />
+             repository_type="HG" 
+             repository_url="http://mili.googlecode.com/hg" />
     <project name="nuca"
              repository_type="HG" 
              repository_url="https://code.google.com/p/nuca" />

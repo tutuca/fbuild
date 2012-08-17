@@ -31,7 +31,7 @@ class Component(object):
         # SConscript)
         self.dir = compDir.abspath
         self.deps = deps
-        self.env = env
+        self.env = env.Clone()
         self.aliasGroups = aliasGroups
         self.componentGraph = componentGraph
 
@@ -312,6 +312,10 @@ class UnitTestComponent(ProgramComponent):
         ProgramComponent.__init__(self, componentGraph, env, name, compDir, deps, inc, src, aliasGroups)
 
     def Process(self):
+        CXXFLAGS = [f for f in self.env['CXXFLAGS'] if f not in ['-ansi', '-pedantic']]
+        CXXFLAGS.append('-Wno-sign-compare')
+        self.env.Replace(CXXFLAGS=CXXFLAGS, CFLAGS=CXXFLAGS)
+
         SourcedComponent.Process(self)
 
         incpaths = self.getIncludePaths()
