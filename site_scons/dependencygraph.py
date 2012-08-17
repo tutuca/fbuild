@@ -47,7 +47,7 @@ class ComponentDictionary(object):
 
     def add(self, component, check = True):
         if check:
-            if not component.name.lower() == component.name:
+            if not component.name.islower():
                 component.env.cprint('[warn] modules names should be lower case: ' + component.name, 'yellow')
         # Its possible that a component is tried to be added twice because a new
         # dependency was downloaded and

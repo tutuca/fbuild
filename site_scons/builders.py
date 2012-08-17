@@ -24,6 +24,7 @@ import platform
 import shutil
 import subprocess
 import utils
+import os
 
 def init(env):
     from SCons.Script import Builder
@@ -117,11 +118,10 @@ def MakeTool(target, source, env):
 
 def RecursiveInstall(env, sourceDir, sourcesRel, targetName, fileFilter='*.*'):
     nodes = []
-    if isinstance(sourcesRel, list or tuple):
-        for source in sourcesRel:
-            nodes.extend( utils.files_flatten(env, os.path.join(sourceDir,source), fileFilter ) )
-    else:
-        nodes.extend( utils.files_flatten(env, os.path.join(sourceDir,sourcesRel), fileFilter ) )
+    for filter in fileFilter:
+        for s in sourcesRel:
+            n = os.path.join(sourceDir, s, filter)
+            nodes.extend(env.Glob(n))
     l = len(sourceDir) + 1
     relnodes = [ n.abspath[l:] for n in nodes ]
     targetHeaderDir = env.Dir(env['INSTALL_HEADERS_DIR']).Dir(targetName).abspath
