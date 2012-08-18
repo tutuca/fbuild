@@ -29,6 +29,7 @@ class Component(object):
         self.name = name
         # Directory where the component lives (the directory that contains the
         # SConscript)
+        self.compDir = compDir
         self.dir = compDir.abspath
         self.deps = deps
         self.env = env.Clone()
@@ -82,7 +83,7 @@ class ExternalLibraryComponent(Component):
     def _getIncludePaths(self, processedComponents, depth):
         incs = []
         if depth > 0:
-            incs.extend(self.extInc)
+            incs.extend([i.abspath for i in self.extInc])
 
         processedComponents.append(self.name)
 
@@ -105,11 +106,10 @@ class HeaderOnlyComponent(Component):
         Component.__init__(self, componentGraph, env, name, compDir, deps, aliasGroups)
         self.extInc = []
         if extInc:
-            if isinstance(extInc,list) or isinstance(extInc,tuple):
-                for i in extInc:
-                    self.extInc.append( os.path.relpath(i.abspath, compDir.abspath) )
+            if isinstance(extInc, (list, tuple)):
+                self.extInc.extend(extInc)
             else:
-                self.extInc.append( os.path.relpath(extInc.abspath, compDir.abspath) )
+                self.extInc.append(extInc)
 
     def getIncludePaths(self):
         (incs, processedComponents) = self._getIncludePaths([], 0)
@@ -120,7 +120,8 @@ class HeaderOnlyComponent(Component):
         incs = []
         if depth > 0:
             for i in self.extInc:
-                hDir = os.path.join(includeModulePath, i)
+                rel = os.path.relpath(i.abspath, self.compDir.abspath)
+                hDir = os.path.join(includeModulePath, rel)
                 (hDirHead, hDirTail) = os.path.split(hDir)
                 incs.append(hDirHead)
 

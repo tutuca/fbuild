@@ -25,6 +25,7 @@ import shutil
 import subprocess
 import utils
 import os
+from fnmatch import fnmatch
 
 def init(env):
     from SCons.Script import Builder
@@ -116,12 +117,18 @@ def MakeTool(target, source, env):
         procEnv["CFLAGS"] = '-fPIC'
     return subprocess.call('./configure %s ; make; make install' % configureOpts, cwd=pathHead, shell=True, env=procEnv)
 
+from SCons.Node.FS import Dir
+
 def RecursiveInstall(env, sourceDir, sourcesRel, targetName, fileFilter='*.*'):
     nodes = []
     for filter in fileFilter:
         for s in sourcesRel:
-            n = os.path.join(sourceDir, s, filter)
-            nodes.extend(env.Glob(n))
+            if isinstance(s, Dir): #s.isdir doesn't work as expected in variant dir (when the dir is not created)
+                n = os.path.join(s.abspath, filter)
+                nodes.extend(env.Glob(n))
+            else:
+                if fnmatch(s.abspath, filter):
+                    nodes.append(s)
     l = len(sourceDir) + 1
     relnodes = [ n.abspath[l:] for n in nodes ]
     targetHeaderDir = env.Dir(env['INSTALL_HEADERS_DIR']).Dir(targetName).abspath
