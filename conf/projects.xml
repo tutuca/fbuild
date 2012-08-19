@@ -18,12 +18,15 @@
     <project name="feca"
              repository_type="HG" 
              repository_url="https://feca.googlecode.com/hg" />
-    <project name="fx-parser"
+    <project name="fideo"
              repository_type="HG" 
-             repository_url="http://code.google.com/p/fx-parser/" />
+             repository_url="https://fideo.googlecode.com/hg" />
     <project name="fudepan-sandbox"
              repository_type="HG" 
              repository_url="https://fudepan-sandbox.googlecode.com/hg" />
+    <project name="fx-parser"
+             repository_type="HG" 
+             repository_url="http://code.google.com/p/fx-parser/" />
     <project name="getoptpp"
              repository_type="HG" 
              repository_url="https://getoptpp.googlecode.com/hg" />
@@ -37,12 +40,18 @@
              repository_url="http://googletest.googlecode.com/svn/tags/release-1.6.0">
         <execute_after>cp #/site_scons/external/gtestSConscript {WS_DIR}/gtest/SConscript</execute_after>
     </project>
+    <project name="lav"
+             repository_type="HG" 
+             repository_url="https://code.google.com/p/lav" />
     <project name="mili"
              repository_type="HG" 
              repository_url="http://mili.googlecode.com/hg" />
     <project name="nuca"
              repository_type="HG" 
              repository_url="https://code.google.com/p/nuca" />
+    <project name="phylopp"
+             repository_type="HG" 
+             repository_url="https://phylopp.googlecode.com/hg" />
     <project name="prot-filer"
              repository_type="HG" 
              repository_url="https://prot-filer.googlecode.com/hg" />

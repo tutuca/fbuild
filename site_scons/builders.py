@@ -124,6 +124,8 @@ def RecursiveInstall(env, sourceDir, sourcesRel, targetName, fileFilter='*.*'):
     for filter in fileFilter:
         for s in sourcesRel:
             if isinstance(s, Dir): #s.isdir doesn't work as expected in variant dir (when the dir is not created)
+                n = os.path.join(s.abspath, '**/' + filter)
+                nodes.extend(env.Glob(n))
                 n = os.path.join(s.abspath, filter)
                 nodes.extend(env.Glob(n))
             else:
