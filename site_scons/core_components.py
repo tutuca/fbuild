@@ -116,7 +116,7 @@ class HeaderOnlyComponent(Component):
         return incs
 
     def _getIncludePaths(self, processedComponents, depth):
-        includeModulePath = os.path.join(self.env['INSTALL_HEADERS_DIR'],self.name)
+        includeModulePath = os.path.join(self.env['INSTALL_HEADERS_DIR'], self.name)
         incs = []
         if depth > 0:
             for i in self.extInc:
@@ -142,8 +142,9 @@ class HeaderOnlyComponent(Component):
                 if c is None:
                     dep.env.cerror('[error] %s depends on %s which could not be found' % (self.name, dep))
                     continue
-                (depIncs, depProcessedComp) = c._getIncludePaths(processedComponents,depth+1)
-                incs.extend(depIncs)
+                if hasattr(c, '_getIncludePaths'):
+                    (depIncs, depProcessedComp) = c._getIncludePaths(processedComponents,depth+1)
+                    incs.extend(depIncs)
         return (incs, processedComponents)
 
     def Process(self):
@@ -164,7 +165,7 @@ class HeaderOnlyComponent(Component):
         # If the component doesnt have external headers, we dont process it since
         # there is nothing to install
         if len(self.extInc) > 0:
-            hLib = RecursiveInstall(self.env, self.dir, self.extInc, self.name, headersFilter)
+            hLib = RecursiveInstall(self.env, self.compDir, self.extInc, self.name, headersFilter)
             self.env.Alias(self.name, hLib, 'Install ' + self.name + ' headers')
             self.env.Clean(self.name, hLib)
             self.env.Alias('all:install', hLib, "Install all targets")
@@ -179,18 +180,18 @@ class SourcedComponent(HeaderOnlyComponent):
         HeaderOnlyComponent.__init__(self, componentGraph, env, name, compDir, deps, extInc, aliasGroups)
         self.inc = []
         if inc:
-            if isinstance(inc,list) or isinstance(inc,tuple):
+            if isinstance(inc, (list, tuple)):
                 for i in inc:
                     self.inc.append( os.path.relpath(i.abspath, compDir.abspath) )
             else:
                 self.inc.append( os.path.relpath(inc.abspath, compDir.abspath) )
         self.src = []
         if src:
-            if isinstance(src, list) or isinstance(src,tuple):
+            if isinstance(src, (list, tuple)):
                 for s in src:
                     if isinstance(s, str):
                         self.src.append(os.path.abspath(s))
-                    elif isinstance(s, list) or isinstance(s,tuple):
+                    elif isinstance(s, (list, tuple)):
                         for subS in s:
                             self.src.append(os.path.abspath(compDir.rel_path(subS)))
                     else:

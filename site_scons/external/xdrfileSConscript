@@ -1,9 +1,8 @@
 Import ('env')
 
-target = 'libxdrfile.a'
 configurePath = env.File( env['WS_DIR'] + '/xdrfile/configure')
-ext_inc = env.Glob('./include/*.h')
+ext_dir = 'include'
+lib_targets = ['libxdrfile.a']
 
-env.CreateAutoToolsProject('xdrfile-make', target, configurePath, ['xdrfile'])
-env.CreateHeaderOnlyLibrary('xdrfile-headers', ext_inc, ['xdrfile-make'], ['xdrfile'])
+env.CreateAutoToolsProject('xdrfile', ext_dir, lib_targets, configurePath)
 env.CreateDoc('xdrfile-doc')

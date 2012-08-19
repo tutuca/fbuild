@@ -161,11 +161,13 @@ def CreateDoc(env, name, doxyfile=None, aliasGroups = []):
                                     doxyfile,
                                     aliasGroups))
 
-def CreateAutoToolsProject(env, name, libfile, configurationFile, aliasGroups = []):
+def CreateAutoToolsProject(env, name, ext_dir, lib_targets, configurationFile, aliasGroups = []):
     componentGraph.add(AutoToolsProjectComponent(componentGraph,
                                         env,
                                         name,
                                         env.Dir('.'),
+                                        ext_dir,
+                                        lib_targets,
                                         configurationFile,
                                         aliasGroups))
 
