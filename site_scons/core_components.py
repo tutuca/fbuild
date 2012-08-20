@@ -140,7 +140,7 @@ class HeaderOnlyComponent(Component):
             if dep not in processedComponents:
                 c = self.componentGraph.get(dep)
                 if c is None:
-                    dep.env.cerror('[error] %s depends on %s which could not be found' % (self.name, dep))
+                    self.env.cerror('[error] %s depends on %s which could not be found' % (self.name, dep))
                     continue
                 if hasattr(c, '_getIncludePaths'):
                     (depIncs, depProcessedComp) = c._getIncludePaths(processedComponents,depth+1)
@@ -194,6 +194,8 @@ class SourcedComponent(HeaderOnlyComponent):
                     elif isinstance(s, (list, tuple)):
                         for subS in s:
                             self.src.append(os.path.abspath(compDir.rel_path(subS)))
+                    elif isinstance(s, ObjectComponent):
+                        self.src.extend(s.Process())
                     else:
                         self.src.append(os.path.abspath(compDir.rel_path(s)))
             else:
@@ -289,9 +291,30 @@ class DynamicLibraryComponent(SourcedComponent):
             self.env.Alias(alias, iLib, "Build group " + alias)
         return dLib
 
+class ObjectComponent(SourcedComponent):
+    def __init__(self, componentGraph, env, name, compDir, deps, inc, src, aliasGroups):
+        SourcedComponent.__init__(self, componentGraph, env, name, compDir, deps, inc, [], src, aliasGroups)
+        self.shouldBeLinked = False
+        self.obj = None
+
+    def Process(self):
+        SourcedComponent.Process(self)
+        incpaths = self.getIncludePaths()
+
+        (libs,libpaths) = self.getLibs()
+        target = os.path.join(self.dir, self.name)
+
+        if not self.obj:
+            self.obj = self.env.Object(target, self.src, CPPPATH=incpaths, LIBS=libs, LIBPATH=libpaths)
+            self.env.Alias(self.name, self.obj, "Build " + self.name)
+            self.env.Alias('all:build', self.obj, "Build all targets")
+            for alias in self.aliasGroups:
+                self.env.Alias(alias, self.obj, "Build group " + alias)
+        return self.obj
+
 class ProgramComponent(SourcedComponent):
     def __init__(self, componentGraph, env, name, compDir, deps, inc, src, aliasGroups):
-        SourcedComponent.__init__(self, componentGraph, env, name, compDir, deps, [], inc, src, aliasGroups)
+        SourcedComponent.__init__(self, componentGraph, env, name, compDir, deps, inc, [], src, aliasGroups)
         self.shouldBeLinked = False
 
     def Process(self):

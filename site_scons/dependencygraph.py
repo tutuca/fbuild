@@ -31,6 +31,7 @@ downloadedDependencies = False
 
 def init(env):
     from SCons.Script.SConscript import SConsEnvironment
+    SConsEnvironment.CreateObject = CreateObject
     SConsEnvironment.CreateProgram = CreateProgram
     SConsEnvironment.CreateExternalLibraryComponent = CreateExternalLibraryComponent
     SConsEnvironment.CreateStaticLibrary = CreateStaticLibrary
@@ -53,6 +54,7 @@ class ComponentDictionary(object):
         # dependency was downloaded and
         if not self.components.has_key(component.name):
             self.components[component.name] = component
+            return component
         else:
             component.env.cprint('[warn] component tried to be re-added %s' % component.name, 'red')
 
@@ -65,7 +67,7 @@ class ComponentDictionary(object):
 componentGraph = ComponentDictionary()
 
 def CreateExternalLibraryComponent(env, name, ext_inc, libPath, deps, shouldBeLinked, aliasGroups = []):
-    componentGraph.add(ExternalLibraryComponent(componentGraph,
+    return componentGraph.add(ExternalLibraryComponent(componentGraph,
                                                 env,
                                                 name,
                                                 libPath,
@@ -76,7 +78,7 @@ def CreateExternalLibraryComponent(env, name, ext_inc, libPath, deps, shouldBeLi
                        False)
 
 def CreateHeaderOnlyLibrary(env, name, ext_inc, deps, aliasGroups = []):
-    componentGraph.add(HeaderOnlyComponent(componentGraph,
+    return componentGraph.add(HeaderOnlyComponent(componentGraph,
                                            env,
                                            name,
                                            env.Dir('.'),
@@ -85,7 +87,7 @@ def CreateHeaderOnlyLibrary(env, name, ext_inc, deps, aliasGroups = []):
                                            aliasGroups))
 
 def CreateStaticLibrary(env, name, inc, ext_inc, src, deps, aliasGroups = []):
-    componentGraph.add(StaticLibraryComponent(componentGraph,
+    return componentGraph.add(StaticLibraryComponent(componentGraph,
                                               env,
                                               name,
                                               env.Dir('.'),
@@ -96,7 +98,7 @@ def CreateStaticLibrary(env, name, inc, ext_inc, src, deps, aliasGroups = []):
                                               aliasGroups))
 
 def CreateSharedLibrary(env, name, inc, ext_inc, src, deps, aliasGroups = []):
-    componentGraph.add(DynamicLibraryComponent(componentGraph,
+    return componentGraph.add(DynamicLibraryComponent(componentGraph,
                                                env,
                                                name,
                                                env.Dir('.'),
@@ -106,8 +108,18 @@ def CreateSharedLibrary(env, name, inc, ext_inc, src, deps, aliasGroups = []):
                                                src,
                                                aliasGroups))
 
+def CreateObject(env, name, inc, src, deps, aliasGroups = []):
+    return componentGraph.add(ObjectComponent(componentGraph,
+                                       env,
+                                       name,
+                                       env.Dir('.'),
+                                       deps,
+                                       inc,
+                                       src,
+                                       aliasGroups))
+
 def CreateProgram(env, name, inc, src, deps, aliasGroups = []):
-    componentGraph.add(ProgramComponent(componentGraph,
+    return componentGraph.add(ProgramComponent(componentGraph,
                                         env,
                                         name,
                                         env.Dir('.'),
@@ -121,7 +133,7 @@ def CreateTest(env, name, inc, src, deps, aliasGroups = []):
     # the test automatically depends on the thing that is testing
     if deps.count(name) == 0:
         deps.append(name)
-    componentGraph.add(UnitTestComponent(componentGraph,
+    return componentGraph.add(UnitTestComponent(componentGraph,
                                          env,
                                          testName,
                                          env.Dir('.'),
@@ -133,7 +145,7 @@ def CreateTest(env, name, inc, src, deps, aliasGroups = []):
 def CreatePdfLatex(env, name, latexfile = '', options='', aliasGroups = []):
     docName = name + ':pdf:' + latexfile
     env['PDFLATEX_OPTIONS'] = options
-    componentGraph.add(PdfLatexComponent(componentGraph,
+    return componentGraph.add(PdfLatexComponent(componentGraph,
                                     env,
                                     docName,
                                     env.Dir('.'),
@@ -143,7 +155,7 @@ def CreatePdfLatex(env, name, latexfile = '', options='', aliasGroups = []):
 def CreateMemReport(env, name, options='', aliasGroups=[]):
     docName = name + ':memreport'
     env['VALGRIND_OPTIONS'] = options
-    componentGraph.add(ValgrindComponent(componentGraph,
+    return componentGraph.add(ValgrindComponent(componentGraph,
                                     env,
                                     docName,
                                     env.Dir('.'),
@@ -154,7 +166,7 @@ def CreateDoc(env, name, doxyfile=None, aliasGroups = []):
     docName = name + ':doc'
     if doxyfile == None:
         doxyfile = os.path.abspath(env['DEFAULT_DOXYFILE'])
-    componentGraph.add(DocComponent(componentGraph,
+    return componentGraph.add(DocComponent(componentGraph,
                                     env,
                                     docName,
                                     env.Dir('.'),
@@ -162,7 +174,7 @@ def CreateDoc(env, name, doxyfile=None, aliasGroups = []):
                                     aliasGroups))
 
 def CreateAutoToolsProject(env, name, ext_dir, lib_targets, configurationFile, aliasGroups = []):
-    componentGraph.add(AutoToolsProjectComponent(componentGraph,
+    return componentGraph.add(AutoToolsProjectComponent(componentGraph,
                                         env,
                                         name,
                                         env.Dir('.'),

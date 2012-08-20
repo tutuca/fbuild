@@ -44,7 +44,7 @@ def init(env):
     qtdir =  os.environ.get('QT4DIR') or os.environ.get('QTDIR')
     QT_INCLUDE_ROOT = os.getenv("QT_INCLUDE_ROOT", os.path.join(qtdir, 'include', 'qt4'))
     env.CreateExternalLibraryComponent('QtInc',
-                                       os.getenv("QT_INCLUDE", env.Dir(QT_INCLUDE_ROOT)), 
+                                       env.Dir(os.getenv("QT_INCLUDE", QT_INCLUDE_ROOT)), 
                                        env.Dir('/usr/lib/x86_64-linux-gnu'), 
                                        [],
                                        False)

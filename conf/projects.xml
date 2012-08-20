@@ -49,6 +49,16 @@
     <project name="nuca"
              repository_type="HG" 
              repository_url="https://code.google.com/p/nuca" />
+    <project name="odeint"
+             repository_type="WGET" 
+             repository_url="http://github.com/headmyshoulder/odeint-v2/tarball/master">
+        <execute_after>mkdir #/odeint
+tar zxvf #/projects/odeint/master -C #/odeint
+rm -r #/projects/odeint
+mv #/odeint/headmyshoulder-odeint-v2-* #/projects/odeint
+rmdir #/odeint
+cp #/site_scons/external/odeintSConscript #/projects/odeint/SConscript</execute_after>
+    </project>
     <project name="phylopp"
              repository_type="HG" 
              repository_url="https://phylopp.googlecode.com/hg" />

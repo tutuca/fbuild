@@ -105,7 +105,7 @@ class Dependencies(object):
                 cmd = cmd.replace('{WS_DIR}', self.env['WS_DIR'])
                 cmd = cmd.replace('#', self.env.Dir('#').abspath)
                 cprint('[info] execute post-checkout command: %s' % cmd, 'purple')
-                rc = subprocess.call(cmd.split(' '))
+                rc = subprocess.call(cmd, shell=True)
                 if rc != 0:
                     return cformat('[error] failed to execute post-checkout command: %s, error: %s' % (cmd, rc), 'red')
         return 0
@@ -124,6 +124,23 @@ class HG(Dependencies):
         rc = subprocess.call("cd %s; hg pull -u" % self.target, shell=True)
         if rc != 0:
             return cforamt('[error] hg failed to update target %s from %s, error: %s' 
+                           %(self.target, self.url, rc), 'red')
+        return 0
+
+class GIT(Dependencies):
+    def checkout(self):
+        cprint('[git] checkout %s => %s' % (self.url, self.target), 'purple')
+        rc = subprocess.call(['git', 'clone', self.url, self.target])
+        if rc != 0:
+            return cformat('[error] git failed to checkout target %s from %s, error: %s' 
+                           % (self.target, self.url, rc), 'red')
+        return self.afterCheckout()
+
+    def update(self):
+        cprint('[git] updating %s => %s' % (self.url, self.target), 'purple')
+        rc = subprocess.call("cd %s; git pull" % self.target, shell=True)
+        if rc != 0:
+            return cforamt('[error] git failed to update target %s from %s, error: %s' 
                            %(self.target, self.url, rc), 'red')
         return 0
 
@@ -169,6 +186,8 @@ def createDependency(env, name, type, node):
         return SVN(name, target, node, env)
     elif type == 'WGET':
         return WGET(name, target, node, env)
+    elif type == 'GIT':
+        return GIT(name, target, node, env)
     else:
         cprint('[error] project %s has repository %s which is not supported' 
                % (name, type), 'red')
