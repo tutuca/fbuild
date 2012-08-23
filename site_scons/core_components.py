@@ -19,7 +19,7 @@
 
 import os
 import utils
-from builders import RecursiveInstall
+from builders import RecursiveInstall, findFiles
 
 headersFilter = ['*.h','*.hpp']
 sourceFilters = ['*.c','*.cpp','*.cc']
@@ -355,6 +355,8 @@ class UnitTestComponent(ProgramComponent):
         if self.env.GetOption('forcerun'):
             self.env.AlwaysBuild(tTest)
         self.env.Alias(self.name, tTest, "Run test for " + self.name)
+        for refFile in findFiles(self.env, self.compDir.Dir('ref')):
+            self.env.Depends(tTest, refFile)
         self.env.Alias('all:test', tTest, "Run all tests")
 
         for alias in self.aliasGroups:

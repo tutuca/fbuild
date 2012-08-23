@@ -119,18 +119,21 @@ def MakeTool(target, source, env):
 
 from SCons.Node.FS import Dir
 
-def RecursiveInstall(env, sourceDir, sourcesRel, targetName, fileFilter='*.*'):
+def findFiles(env, fromDir, filters=['*']):
+    path = fromDir.abspath
+    files = []
+    for s in env.Glob(path + '/*'):
+        if isinstance(s, Dir): #s.isdir doesn't work as expected in variant dir (when the dir is not created)
+            files.extend(findFiles(env, s, filters))
+        else:
+            if any([fnmatch(s.abspath, filter) for filter in filters]):
+                files.append(s)
+    return files
+
+def RecursiveInstall(env, sourceDir, sourcesRel, targetName, fileFilter=['*.*']):
     nodes = []
-    for filter in fileFilter:
-        for s in sourcesRel:
-            if isinstance(s, Dir): #s.isdir doesn't work as expected in variant dir (when the dir is not created)
-                n = os.path.join(s.abspath, '**/' + filter)
-                nodes.extend(env.Glob(n))
-                n = os.path.join(s.abspath, filter)
-                nodes.extend(env.Glob(n))
-            else:
-                if fnmatch(s.abspath, filter):
-                    nodes.append(s)
+    for s in sourcesRel:
+        nodes.extend(findFiles(env, s, fileFilter))
     l = len(sourceDir.abspath) + 1
     relnodes = [ n.abspath[l:] for n in nodes ]
 
