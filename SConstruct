@@ -21,8 +21,15 @@
 #import platform
 #import sys
 import SCons
+import qtutil
 
 env = Environment()
+
+hasQt = qtutil.hasQt(env)
+
+if hasQt:
+    env = Environment(tools=['default', 'qt4'])
+
 Export('env')
 
 vars = Variables('SConfig')
@@ -69,8 +76,8 @@ import linux
 linux.init(env)
 
 # Add Qt
-import qtutil
-qtutil.init(env)
+if hasQt:
+    qtutil.init(env)
 
 import boostutil
 boostutil.init(env)

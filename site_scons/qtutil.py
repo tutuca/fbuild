@@ -21,25 +21,21 @@ import glob
 import os
 import sys
 
-def init(env):
+def hasQt(env):
     hasQt = False
     moc4 = env.WhereIs('moc-qt4') or env.WhereIs('moc4')
     if moc4:
         qtdir = os.path.split(os.path.split(moc4)[0])[0]
         os.environ['QT4DIR'] = qtdir
-        env.Tool('qt4')
-        hasQt = True
     else:
         moc = env.WhereIs('moc')
         if moc:
             qtdir = os.path.split(os.path.split(moc)[0])[0]
             os.environ['QTDIR'] = qtdir
-            env.Tool('qt')
             hasQt = True
+    return hasQt
     
-    if not hasQt:
-        return
-    
+def init(env):
     # This is a base component, it will include the qt base include path
     qtdir =  os.environ.get('QT4DIR') or os.environ.get('QTDIR')
     QT_INCLUDE_ROOT = os.getenv("QT_INCLUDE_ROOT", os.path.join(qtdir, 'include', 'qt4'))
