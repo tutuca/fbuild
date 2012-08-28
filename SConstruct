@@ -30,6 +30,8 @@ hasQt = qtutil.hasQt(env)
 if hasQt:
     env = Environment(tools=['default', 'qt4'])
 
+env['hasQt'] = hasQt
+
 Export('env')
 
 vars = Variables('SConfig')

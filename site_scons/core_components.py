@@ -194,8 +194,6 @@ class SourcedComponent(HeaderOnlyComponent):
                     elif isinstance(s, (list, tuple)):
                         for subS in s:
                             self.src.append(os.path.abspath(compDir.rel_path(subS)))
-                    elif isinstance(s, ObjectComponent):
-                        self.src.extend(s.Process())
                     else:
                         self.src.append(os.path.abspath(compDir.rel_path(s)))
             else:
@@ -295,26 +293,25 @@ class ObjectComponent(SourcedComponent):
     def __init__(self, componentGraph, env, name, compDir, deps, inc, src, aliasGroups):
         SourcedComponent.__init__(self, componentGraph, env, name, compDir, deps, inc, [], src, aliasGroups)
         self.shouldBeLinked = False
-        self.obj = None
+        self.objs = []
 
     def Process(self):
-        SourcedComponent.Process(self)
-        incpaths = self.getIncludePaths()
+        if not self.objs:
+            SourcedComponent.Process(self)
+            incpaths = self.getIncludePaths()
 
-        (libs,libpaths) = self.getLibs()
-        target = os.path.join(self.dir, self.name)
-
-        if not self.obj:
-            self.obj = self.env.Object(target, self.src, CPPPATH=incpaths, LIBS=libs, LIBPATH=libpaths)
-            self.env.Alias(self.name, self.obj, "Build " + self.name)
-            self.env.Alias('all:build', self.obj, "Build all targets")
-            for alias in self.aliasGroups:
-                self.env.Alias(alias, self.obj, "Build group " + alias)
-        return self.obj
+            (libs,libpaths) = self.getLibs()
+            target = os.path.join(self.dir, self.name)
+            for src in self.src:
+                target = src.split('.')[0]
+                obj = self.env.Object(target, src, CPPPATH=incpaths, LIBS=libs, LIBPATH=libpaths)
+                self.objs.append(obj)
+        return self.objs
 
 class ProgramComponent(SourcedComponent):
-    def __init__(self, componentGraph, env, name, compDir, deps, inc, src, aliasGroups):
+    def __init__(self, componentGraph, env, name, compDir, deps, inc, src, objs, aliasGroups):
         SourcedComponent.__init__(self, componentGraph, env, name, compDir, deps, inc, [], src, aliasGroups)
+        self.objs = objs
         self.shouldBeLinked = False
 
     def Process(self):
@@ -323,7 +320,10 @@ class ProgramComponent(SourcedComponent):
 
         (libs,libpaths) = self.getLibs()
         target = os.path.join(self.dir, self.name)
-        prog = self.env.Program(target, self.src, CPPPATH=incpaths, LIBS=libs, LIBPATH=libpaths)
+        src = self.src
+        for o in self.objs:
+            src.extend(o.Process())
+        prog = self.env.Program(target, src, CPPPATH=incpaths, LIBS=libs, LIBPATH=libpaths)
         iProg = self.env.Install(self.env['INSTALL_BIN_DIR'], prog)
         self.env.Alias(self.name, iProg, "Build and install " + self.name)
         self.env.Alias('all:build', prog, "Build all targets")
@@ -333,8 +333,8 @@ class ProgramComponent(SourcedComponent):
         return prog
 
 class UnitTestComponent(ProgramComponent):
-    def __init__(self, componentGraph, env, name, compDir, deps, inc, src, aliasGroups):
-        ProgramComponent.__init__(self, componentGraph, env, name, compDir, deps, inc, src, aliasGroups)
+    def __init__(self, componentGraph, env, name, compDir, deps, inc, src, objs, aliasGroups):
+        ProgramComponent.__init__(self, componentGraph, env, name, compDir, deps, inc, src, objs, aliasGroups)
 
     def Process(self):
         CXXFLAGS = [f for f in self.env['CXXFLAGS'] if f not in ['-ansi', '-pedantic']]

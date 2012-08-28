@@ -118,7 +118,7 @@ def CreateObject(env, name, inc, src, deps, aliasGroups = []):
                                        src,
                                        aliasGroups))
 
-def CreateProgram(env, name, inc, src, deps, aliasGroups = []):
+def CreateProgram(env, name, inc, src, deps, aliasGroups = [], objs=[]):
     return componentGraph.add(ProgramComponent(componentGraph,
                                         env,
                                         name,
@@ -126,9 +126,10 @@ def CreateProgram(env, name, inc, src, deps, aliasGroups = []):
                                         deps,
                                         inc,
                                         src,
+                                        objs,
                                         aliasGroups))
 
-def CreateTest(env, name, inc, src, deps, aliasGroups = []):
+def CreateTest(env, name, inc, src, deps, aliasGroups = [], objs=[]):
     testName = name + ':test'
     # the test automatically depends on the thing that is testing
     if deps.count(name) == 0:
@@ -140,6 +141,7 @@ def CreateTest(env, name, inc, src, deps, aliasGroups = []):
                                          deps,
                                          inc,
                                          src,
+                                         objs,
                                          aliasGroups))
 
 def CreatePdfLatex(env, name, latexfile = '', options='', aliasGroups = []):
@@ -229,6 +231,7 @@ def WalkDirsForSconscripts(env, topdir, ignore = []):
 
     # Step 2: real processing we have everything loaded in the dependency graph
     # now we process it
+
     for componentName in componentGraph.getComponentsNames():
         component = componentGraph.get(componentName)
         component.Process()
