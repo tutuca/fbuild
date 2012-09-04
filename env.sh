@@ -49,7 +49,7 @@ fi
 # Install section: this section install all the pre-requisites of the 
 # environment. If other installers are supported they should maintain the
 # function interface
-if [ "$(which apt-get)" ]; then
+if [ "$(which apt-get 2>/dev/null)" ]; then
     source ./site_scons/installer_aptget.sh
 elif [ "$(which pacman)" ]; then
     source ./site_scons/installer_pacman.sh
@@ -86,5 +86,11 @@ fi
 # Backward compatibility
 alias fbuild=scons
 
+echo -e "FuDePAN-build 2.0"
+echo -e "Copyright (C) 2011-2012 Esteban Papp and Hugo Arregui, FuDePAN"
+echo -e "This program comes with ABSOLUTELY NO WARRANTY; for details see http://www.gnu.org/licenses/gpl-3.0.html"
+echo -e "FuDePAN-build is free software, and you are welcome to redistribute it under certain conditions; for more information visit http://www.gnu.org/licenses/gpl-3.0.html\n"
+
 echo -e "\e[0;32mWelcome to the FuDePAN console environment\e[0m"
+
 return 0
