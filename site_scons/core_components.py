@@ -215,7 +215,8 @@ class SourcedComponent(HeaderOnlyComponent):
             # local headers can be referred explicitely (they are relative to the
             # current build directory) and are not from the install directory
             for i in self.inc:
-                hDir = os.path.join(self.dir, i)
+                projDir = os.path.join(self.env['WS_DIR'], os.path.relpath(self.dir,self.env['BUILD_DIR']))
+                hDir = os.path.join(projDir, i)
                 incs.append(hDir)
         return (incs, processedComponents)
 
