@@ -310,9 +310,8 @@ class ObjectComponent(SourcedComponent):
         return self.objs
 
 class ProgramComponent(SourcedComponent):
-    def __init__(self, componentGraph, env, name, compDir, deps, inc, src, objs, aliasGroups):
+    def __init__(self, componentGraph, env, name, compDir, deps, inc, src, aliasGroups):
         SourcedComponent.__init__(self, componentGraph, env, name, compDir, deps, inc, [], src, aliasGroups)
-        self.objs = objs
         self.shouldBeLinked = False
 
     def Process(self):
@@ -321,10 +320,7 @@ class ProgramComponent(SourcedComponent):
 
         (libs,libpaths) = self.getLibs()
         target = os.path.join(self.dir, self.name)
-        src = self.src
-        for o in self.objs:
-            src.extend(o.Process())
-        prog = self.env.Program(target, src, CPPPATH=incpaths, LIBS=libs, LIBPATH=libpaths)
+        prog = self.env.Program(target, self.find_sources(), CPPPATH=incpaths, LIBS=libs, LIBPATH=libpaths)
         iProg = self.env.Install(self.env['INSTALL_BIN_DIR'], prog)
         self.env.Alias(self.name, iProg, "Build and install " + self.name)
         self.env.Alias('all:build', prog, "Build all targets")
@@ -333,9 +329,17 @@ class ProgramComponent(SourcedComponent):
             self.env.Alias(alias, iProg, "Build group " + alias)
         return prog
 
+    def find_sources(self):
+        src = self.src
+        for dep in self.deps:
+            c = self.componentGraph.get(dep)
+            if isinstance(c, ObjectComponent):
+                src.extend(c.Process())
+        return src
+
 class UnitTestComponent(ProgramComponent):
-    def __init__(self, componentGraph, env, name, compDir, deps, inc, src, objs, aliasGroups):
-        ProgramComponent.__init__(self, componentGraph, env, name, compDir, deps, inc, src, objs, aliasGroups)
+    def __init__(self, componentGraph, env, name, compDir, deps, inc, src, aliasGroups):
+        ProgramComponent.__init__(self, componentGraph, env, name, compDir, deps, inc, src, aliasGroups)
 
     def Process(self):
         CXXFLAGS = [f for f in self.env['CXXFLAGS'] if f not in ['-ansi', '-pedantic']]
@@ -347,7 +351,7 @@ class UnitTestComponent(ProgramComponent):
         incpaths = self.getIncludePaths()
         (libs,libpaths) = self.getLibs()
         target = os.path.join(self.dir, self.name)
-        prog = self.env.Program(target, self.src, CPPPATH=incpaths, LIBS=libs, LIBPATH=libpaths)
+        prog = self.env.Program(target, self.find_sources(), CPPPATH=incpaths, LIBS=libs, LIBPATH=libpaths)
         self.env.Alias(self.name, prog, "Build and install " + self.name)
         self.env.Alias('all:build', prog, "Build all targets")
 
