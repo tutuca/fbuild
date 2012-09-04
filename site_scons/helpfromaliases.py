@@ -30,16 +30,21 @@ from SCons.Script.SConscript import SConsEnvironment
 from SCons.Script import *
 import SCons.Builder
 
+def addPrintTarget(env, name, action):
+    from SCons.Script import Builder
+    bld = Builder(action = SCons.Action.Action(action, PrintTargetsDummy))
+    builder_name = action.func_name
+    env.Append(BUILDERS = {builder_name: bld})
+    b = getattr(env, builder_name)('dummy', 'SConstruct')
+    env.AlwaysBuild(env.HookedAlias(name, b))
+
 def init(env):
     SConsEnvironment.HookedAlias = env.Alias
     SConsEnvironment.AliasHelpData = AliasHelpData()
     SConsEnvironment.Alias = AliasHelp
     SConsEnvironment.AddAliasDescription = AddAliasDescription
-    from SCons.Script import Builder
-    bld = Builder(action = SCons.Action.Action(PrintTargets, PrintTargetsDummy))
-    env.Append(BUILDERS = {'PrintTargets': bld})
-    action = env.PrintTargets('dummy','SConstruct')
-    env.AlwaysBuild(env.HookedAlias('targets', action))
+    addPrintTarget(env, 'targets', PrintTargets)
+    addPrintTarget(env, 'help', PrintFbuildHelp)
 
 class AliasHelpData:
     mHelpText = {}
@@ -70,3 +75,18 @@ def PrintTargets(env, source, target):
     for a in keys:
         s = ' %-*s : %s' % (maxlen, a, env.AliasHelpData.mHelpText[a])
         print s
+
+def PrintFbuildHelp(env, source, target):
+    print """
+usage: fbuild [help] [--type TYPE] [--efective] [target [target ...]]
+
+invokes the fudepan-build system
+
+positional arguments:
+    target           use project[:task]. Possibles tasks are: test, astyle. Or use 'targets' to list the possible targets
+
+optional arguments:
+    help             show this help message and exit
+    --type TYPE      type of build, options: dbg, opt
+    --efective       adds -Weffc flag
+"""
