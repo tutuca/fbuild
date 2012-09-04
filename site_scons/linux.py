@@ -17,12 +17,6 @@
 # You should have received a copy of the GNU General Public License
 # along with fudepan-build.  If not, see <http://www.gnu.org/licenses/>.
 
-#import os
-#import sys
-#import glob
-#import component
-
-
 def init(env):
-    env.CreateExternalLibraryComponent('pthread', [], env.Dir('/usr/lib'), [], True)
-    env.CreateExternalLibraryComponent('dl', [], env.Dir('/usr/lib'), [], True)
+    for module in ['pthread', 'dl', 'gcov']:
+        env.CreateExternalLibraryComponent(module, [], env.Dir('/usr/lib'), [], True)
