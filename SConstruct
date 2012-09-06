@@ -21,11 +21,11 @@
 #import platform
 #import sys
 import SCons
-import qtutil
+import extension_qt
 
 env = Environment()
 
-hasQt = qtutil.hasQt(env)
+hasQt = extension_qt.hasQt(env)
 
 if hasQt:
     env = Environment(tools=['default', 'qt4'])
@@ -74,15 +74,15 @@ import dependencies
 dependencies.init(env)
 
 # Add OS Components
-import linux
-linux.init(env)
+import os_specifics_linux
+os_specifics_linux.init(env)
 
 # Add Qt
 if hasQt:
-    qtutil.init(env)
+    extension_qt.init(env)
 
-import boostutil
-boostutil.init(env)
+import extension_boost
+extension_boost.init(env)
 
 ## Walk over the tree finding components
 dependencygraph.WalkDirsForSconscripts(env, topdir = env['WS_DIR'],

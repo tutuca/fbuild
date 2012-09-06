@@ -17,6 +17,9 @@
 # You should have received a copy of the GNU General Public License
 # along with fudepan-build.  If not, see <http://www.gnu.org/licenses/>.
 
+#
+# Description: linker options settings
+#
 
 def init(env):
     import platform
