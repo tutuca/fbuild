@@ -17,6 +17,10 @@
 # You should have received a copy of the GNU General Public License
 # along with fudepan-build.  If not, see <http://www.gnu.org/licenses/>.
 
+#
+# Description: linux specific modules
+#
+
 def init(env):
     for module in ['pthread', 'dl', 'gcov']:
         env.CreateExternalLibraryComponent(module, [], env.Dir('/usr/lib'), [], True)

@@ -17,6 +17,10 @@
 # You should have received a copy of the GNU General Public License
 # along with fudepan-build.  If not, see <http://www.gnu.org/licenses/>.
 
+#
+# Description: specific FuDePAN stuff
+#
+
 def setDefines(env): 
     pass
 	
