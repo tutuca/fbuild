@@ -127,23 +127,6 @@ class HG(Dependencies):
                            %(self.target, self.url, rc), 'red')
         return 0
 
-class GIT(Dependencies):
-    def checkout(self):
-        cprint('[git] checkout %s => %s' % (self.url, self.target), 'purple')
-        rc = subprocess.call(['git', 'clone', self.url, self.target])
-        if rc != 0:
-            return cformat('[error] git failed to checkout target %s from %s, error: %s' 
-                           % (self.target, self.url, rc), 'red')
-        return self.afterCheckout()
-
-    def update(self):
-        cprint('[git] updating %s => %s' % (self.url, self.target), 'purple')
-        rc = subprocess.call("cd %s; git pull" % self.target, shell=True)
-        if rc != 0:
-            return cforamt('[error] git failed to update target %s from %s, error: %s' 
-                           %(self.target, self.url, rc), 'red')
-        return 0
-
 class SVN(Dependencies):
     def checkout(self):
         cprint('[svn] checkout %s => %s' % (self.url, self.target), 'purple')
@@ -186,8 +169,6 @@ def createDependency(env, name, type, node):
         return SVN(name, target, node, env)
     elif type == 'WGET':
         return WGET(name, target, node, env)
-    elif type == 'GIT':
-        return GIT(name, target, node, env)
     else:
         cprint('[error] project %s has repository %s which is not supported' 
                % (name, type), 'red')

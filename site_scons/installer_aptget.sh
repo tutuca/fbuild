@@ -2,7 +2,7 @@
 
 # fudepan-build: The build system for FuDePAN projects 
 #
-# Copyright (C) 2011 Esteban Papp, Hugo Arregui FuDePAN
+# Copyright (C) 2011-2012 Esteban Papp, Hugo Arregui FuDePAN
 # 
 # This file is part of the fudepan-build build system.
 # 
@@ -32,9 +32,9 @@ function check_install {
 
     if [ ! "$(which $1)" ]; then
         if [ "$3" ]; then
-            echo -e "\e[0;31m[error] $pkg not found, need to install it to continue\e[0m"
+            echo -e "\e[0;31m[error] $1 (part of $pkg) not found, need to install it to continue\e[0m"
         else
-            echo -e "\e[0;33m[warn] $pkg not found, suggest to install it to continue\e[0m"
+            echo -e "\e[0;33m[warn] $1 (part of $pkg) not found, suggest to install it to continue\e[0m"
         fi
         echo "info: 'sudo apt-get install $pkg' should do the job, do you want"
         echo "      me to do it? (your password could be required)"
@@ -42,12 +42,12 @@ function check_install {
         if [ "$REPLY" = "y" ]; then
             sudo apt-get install $pkg
             if [ "$?" -ne "0" ]; then
-                echo -e "\e[0;31m[error] $pkg could not be installed, exiting\e[0m"
+                echo -e "\e[0;31m[error] $1 (part of $pkg) could not be installed, exiting\e[0m"
                 return 1
             fi
         else
             if [ "$3" ]; then
-                echo -e "\e[0;31m[error] $pkg required, exiting\e[0m"
+                echo -e "\e[0;31m[error] $1 (part of $pkg) required, exiting\e[0m"
                 return 1
             fi
         fi

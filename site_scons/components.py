@@ -1,6 +1,6 @@
 # fudepan-build: The build system for FuDePAN projects
 #
-# Copyright (C) 2011 Esteban Papp, Hugo Arregui FuDePAN
+# Copyright (C) 2011-2012 Esteban Papp, Hugo Arregui FuDePAN
 #
 # This file is part of the fudepan-build build system.
 #
