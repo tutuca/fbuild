@@ -25,7 +25,7 @@ import shutil
 import subprocess
 import utils
 import os
-from fnmatch import fnmatch
+from utils import findFiles
 
 def init(env):
     from SCons.Script import Builder
@@ -116,37 +116,6 @@ def MakeTool(target, source, env):
         procEnv["CXXFLAGS"] = str(env["CXXFLAGS"])
         procEnv["CFLAGS"] = '-fPIC'
     return subprocess.call('./configure %s ; make; make install' % configureOpts, cwd=pathHead, shell=True, env=procEnv)
-
-from SCons.Node.FS import Dir
-
-def findFiles(env, fromDir, filters=['*']):
-    path = fromDir.abspath
-    files = []
-    for s in env.Glob(path + '/*'):
-        if isinstance(s, Dir): #s.isdir doesn't work as expected in variant dir (when the dir is not created)
-            files.extend(findFiles(env, s, filters))
-        else:
-            if any([fnmatch(s.abspath, filter) for filter in filters]):
-                files.append(s)
-    return files
-
-def RecursiveInstall(env, sourceDir, sourcesRel, targetName, fileFilter=['*.*']):
-    nodes = []
-    for s in sourcesRel:
-        nodes.extend(findFiles(env, s, fileFilter))
-    l = len(sourceDir.abspath) + 1
-    relnodes = [ n.abspath[l:] for n in nodes ]
-
-    targetHeaderDir = env.Dir(env['INSTALL_HEADERS_DIR']).Dir(targetName).abspath
-    targets = []
-    sources = []
-    for n in relnodes:
-        t = env.File(os.path.join(targetHeaderDir, n))
-        s = sourceDir.File(n)
-        targets.append( t )
-        sources.append( s )
-    iAs = env.InstallAs(targets, sources)
-    return iAs
 
 def AStyle(target, source, env):
     rc = 0

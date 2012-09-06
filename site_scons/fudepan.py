@@ -18,7 +18,7 @@
 # along with fudepan-build.  If not, see <http://www.gnu.org/licenses/>.
 
 def setDefines(env): 
-	env.AppendUnique(CPPFLAGS = ['-DMILI_NAMESPACE'])
+    pass
 	
 	# this defines are only for playing with ANA
 	#env.AppendUnique(CPPFLAGS = ['-Dmiddleware=ana'])

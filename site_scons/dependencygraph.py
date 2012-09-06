@@ -21,6 +21,7 @@
 # Description: this file contains a graph with dependencies between the
 #              components to better solve include paths and library linking
 #
+
 import os
 import fnmatch
 import SCons

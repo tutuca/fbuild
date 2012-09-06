@@ -17,6 +17,10 @@
 # You should have received a copy of the GNU General Public License
 # along with fudepan-build.  If not, see <http://www.gnu.org/licenses/>.
 
+#
+# Description: color settings, pretty messages
+#
+
 # http://www.scons.org/wiki/ColorBuildMessages
 import sys
 import os

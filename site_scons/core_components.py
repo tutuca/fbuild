@@ -19,7 +19,7 @@
 
 import os
 import utils
-from builders import RecursiveInstall, findFiles
+from utils import RecursiveInstall, findFiles
 
 headersFilter = ['*.h','*.hpp']
 sourceFilters = ['*.c','*.cpp','*.cc']

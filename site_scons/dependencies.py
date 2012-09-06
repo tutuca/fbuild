@@ -17,7 +17,9 @@
 # You should have received a copy of the GNU General Public License
 # along with fudepan-build.  If not, see <http://www.gnu.org/licenses/>.
 
-# FuDePAN Bolierplate
+#
+# Description: this file contains all the dependecies parse/checkout/update
+#
 
 import os.path
 import SCons

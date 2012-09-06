@@ -17,8 +17,42 @@
 # You should have received a copy of the GNU General Public License
 # along with fudepan-build.  If not, see <http://www.gnu.org/licenses/>.
 
+#
+# Description: utils
+#
+
 import fnmatch
 import os
+from SCons.Node.FS import Dir
+
+def findFiles(env, fromDir, filters=['*']):
+    path = fromDir.abspath
+    files = []
+    for s in env.Glob(path + '/*'):
+        if isinstance(s, Dir): #s.isdir doesn't work as expected in variant dir (when the dir is not created)
+            files.extend(findFiles(env, s, filters))
+        else:
+            if any([fnmatch.fnmatch(s.abspath, filter) for filter in filters]):
+                files.append(s)
+    return files
+
+def RecursiveInstall(env, sourceDir, sourcesRel, targetName, fileFilter=['*.*']):
+    nodes = []
+    for s in sourcesRel:
+        nodes.extend(findFiles(env, s, fileFilter))
+    l = len(sourceDir.abspath) + 1
+    relnodes = [ n.abspath[l:] for n in nodes ]
+
+    targetHeaderDir = env.Dir(env['INSTALL_HEADERS_DIR']).Dir(targetName).abspath
+    targets = []
+    sources = []
+    for n in relnodes:
+        t = env.File(os.path.join(targetHeaderDir, n))
+        s = sourceDir.File(n)
+        targets.append( t )
+        sources.append( s )
+    iAs = env.InstallAs(targets, sources)
+    return iAs
 
 ## {{{ http://code.activestate.com/recipes/52560/ (r1)
 def removeDuplicates(s):
