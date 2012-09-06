@@ -32,7 +32,7 @@ class Component(object):
         self.compDir = compDir
         self.dir = compDir.abspath
         self.deps = deps
-        self.env = env.Clone()
+        self.env = env
         self.aliasGroups = aliasGroups
         self.componentGraph = componentGraph
 
