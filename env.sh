@@ -62,8 +62,7 @@ else
 fi
 # three parameters: 
 # 1) binary to check for existance
-# 2) package to install
-# 3) required?
+# 2) required?
 check_install make true
 if [ "$?" -ne "0" ]; then return $?; fi
 check_install python true
@@ -77,6 +76,8 @@ if [ "$?" -ne "0" ]; then return $?; fi
 check_install dot
 if [ "$?" -ne "0" ]; then return $?; fi
 check_install astyle true 
+if [ "$?" -ne "0" ]; then return $?; fi
+check_install wget true 
 
 if [ "$(astyle -V 2>&1 | cut -f4 -d' ' | sed 's/\..*//' | bc)" -lt "2" ]; then
     echo -e "\e[0;31m[error] AStyle version should be >= 1.24\e[0m"
