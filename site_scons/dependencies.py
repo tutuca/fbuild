@@ -184,7 +184,8 @@ def CheckoutDependency(env, source, target):
     return projects[dep].checkout()
 
 def CheckoutDependencyNow(dep):
-    return projects[dep].checkout()
+    d = projects.get(dep)
+    return d.checkout() if d else False
 
 def UpdateDependencyMessage(env, source, target):
     return ''
