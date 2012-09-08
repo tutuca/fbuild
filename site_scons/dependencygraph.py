@@ -44,8 +44,7 @@ def init(env):
     SConsEnvironment.CreatePdfLatex = CreatePdfLatex
     SConsEnvironment.CreateMemReport = CreateMemReport
 
-class ComponentDictionary(object):
-    components = {}
+class ComponentDictionary(dict):
 
     def add(self, component, check = True):
         if check:
@@ -53,17 +52,14 @@ class ComponentDictionary(object):
                 component.env.cprint('[warn] modules names should be lower case: ' + component.name, 'yellow')
         # Its possible that a component is tried to be added twice because a new
         # dependency was downloaded and
-        if not self.components.has_key(component.name):
-            self.components[component.name] = component
+        if component.name not in self:
+            self[component.name] = component
             return component
         else:
             component.env.cprint('[warn] component tried to be re-added %s' % component.name, 'red')
 
-    def get(self, name):
-        return self.components.get(name)
-
     def getComponentsNames(self):
-        return self.components.keys()
+        return self.keys()
 
 componentGraph = ComponentDictionary()
 
@@ -192,6 +188,8 @@ def WalkDirsForSconscripts(env, topdir, ignore = []):
     # to be sure that all the components are downloaded and loaded in the
     # dependency graph
     # Initial set to pass the loop test
+    originalGraph = componentGraph.copy()
+
     downloadedDependencies = True
     while downloadedDependencies:
         downloadedDependencies = False
@@ -208,7 +206,7 @@ def WalkDirsForSconscripts(env, topdir, ignore = []):
         # Check if there is a component that we dont know how to build
         for component in componentGraph.getComponentsNames():
             c = componentGraph.get(component)
-            if c == None:
+            if not c:
                 # check if we know how to download this component
                 downloadedDependencies = env.CheckoutDependencyNow(component)
             else:
@@ -224,7 +222,8 @@ def WalkDirsForSconscripts(env, topdir, ignore = []):
                 break
         if downloadedDependencies:
             # reset this to allow it to reparse those that were already added
-            componentGraph = ComponentDictionary()
+            componentGraph.clear()
+            componentGraph.update(originalGraph)
 
     # Step 2: real processing we have everything loaded in the dependency graph
     # now we process it

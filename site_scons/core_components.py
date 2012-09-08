@@ -92,7 +92,7 @@ class ExternalLibraryComponent(Component):
             if dep not in processedComponents:
                 c = self.componentGraph.get(dep)
                 if c is None:
-                    dep.env.cerror('[error] %s depends on %s which could not be found' % (self.name, dep))
+                    self.env.cerror('[error] %s depends on %s which could not be found' % (self.name, dep))
                     continue
                 (depIncs, depProcessedComp) = c._getIncludePaths(processedComponents,depth+1)
                 incs.extend(depIncs)
