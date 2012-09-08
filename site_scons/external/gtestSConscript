@@ -4,6 +4,11 @@ env = env.Clone()
 CXXFLAGS = ['-Wall', '-Wextra', '-Wno-sign-compare']
 env.Replace(CXXFLAGS=CXXFLAGS, CFLAGS=CXXFLAGS)
 
+import platform
+(arch,binType) = platform.architecture()
+if arch == '64bit':
+    env.Append(CXXFLAGS = '-fPIC', CFLAGS = '-fPIC')
+
 name = 'gtest'
 inc = env.Dir('include')
 ext_inc = env.Dir('include/gtest'), env.Dir('include/gtest/internal')
