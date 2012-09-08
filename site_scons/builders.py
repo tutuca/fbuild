@@ -153,7 +153,6 @@ def RunPdfLatex(target, source, env):
 
 def RunValgrind(target, source, env):
 
-
     return subprocess.call(
         'valgrind ' + env['VALGRIND_OPTIONS']
         + '--leak-check=full --show-reachable=yes --error-limit=no ' +
