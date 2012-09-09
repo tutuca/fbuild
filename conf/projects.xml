@@ -1,0 +1,90 @@
+<projects>
+    <!-- IMPORTANT: Please maintain alphabetical order based on name -->
+    <project name="aso"
+             repository_type="HG" 
+             repository_url="https://esteban.papp@code.google.com/p/aso/" />
+    <project name="backbones-generator"
+             repository_type="HG" 
+             repository_url="https://backbones-generator.googlecode.com/hg" />
+    <project name="backbones-selector"
+             repository_type="HG" 
+             repository_url="https://code.google.com/p/backbones-selector" />
+    <project name="biopp"
+             repository_type="HG" 
+             repository_url="https://biopp.googlecode.com/hg" />
+    <project name="biopp-filer"
+             repository_type="HG" 
+             repository_url="https://biopp-filer.googlecode.com/hg" />
+    <project name="feca"
+             repository_type="HG" 
+             repository_url="https://feca.googlecode.com/hg" />
+    <project name="fideo"
+             repository_type="HG" 
+             repository_url="https://fideo.googlecode.com/hg" />
+    <project name="fudepan-sandbox"
+             repository_type="HG" 
+             repository_url="https://fudepan-sandbox.googlecode.com/hg" />
+    <project name="fx-parser"
+             repository_type="HG" 
+             repository_url="https://code.google.com/p/fx-parser/" />
+    <project name="getoptpp"
+             repository_type="HG" 
+             repository_url="https://getoptpp.googlecode.com/hg" />
+    <project name="gmock"
+             repository_type="SVN" 
+             repository_url="https://googlemock.googlecode.com/svn/tags/release-1.6.0">
+        <execute_after>cp #/site_scons/external/gmockSConscript {WS_DIR}/gmock/SConscript</execute_after>
+    </project>
+    <project name="gtest"
+             repository_type="SVN" 
+             repository_url="https://googletest.googlecode.com/svn/tags/release-1.6.0">
+        <execute_after>cp #/site_scons/external/gtestSConscript {WS_DIR}/gtest/SConscript</execute_after>
+    </project>
+    <project name="lav"
+             repository_type="HG" 
+             repository_url="https://code.google.com/p/lav" />
+    <project name="mili"
+             repository_type="HG" 
+             repository_url="https://mili.googlecode.com/hg" />
+    <project name="nuca"
+             repository_type="HG" 
+             repository_url="https://code.google.com/p/nuca" />
+    <project name="odeint"
+             repository_type="WGET" 
+             repository_url="http://github.com/headmyshoulder/odeint-v2/tarball/master">
+        <execute_after>mkdir #/odeint
+tar zxvf #/projects/odeint/master -C #/odeint
+rm -r #/projects/odeint
+mv #/odeint/headmyshoulder-odeint-v2-* #/projects/odeint
+rmdir #/odeint
+cp #/site_scons/external/odeintSConscript #/projects/odeint/SConscript</execute_after>
+    </project>
+    <project name="phylopp"
+             repository_type="HG" 
+             repository_url="https://phylopp.googlecode.com/hg" />
+    <project name="prot-filer"
+             repository_type="HG" 
+             repository_url="https://prot-filer.googlecode.com/hg" />
+    <project name="stl-debug"
+             repository_type="HG" 
+             repository_url="https://stl-debug.googlecode.com/hg" />
+    <project name="unplugged"
+             repository_type="HG" 
+             repository_url="https://code.google.com/p/unplugged/" />
+    <project name="visi"
+             repository_type="HG"
+             repository_url="https://code.google.com/p/visi/" />
+    <project name="visiPluginAR"
+             repository_type="HG"
+             repository_url="https://code.google.com/p/visi.pluginar/" />
+    <project name="xdrfile"
+             repository_type="WGET" 
+             repository_url="ftp://ftp.gromacs.org/pub/contrib/xdrfile-1.1.tar.gz">
+        <execute_after>mkdir #/xdrfile2
+tar zxvf {WS_DIR}/xdrfile/xdrfile-1.1.tar.gz -C #/xdrfile2
+rm -r {WS_DIR}/xdrfile
+mv #/xdrfile2/xdrfile-1.1b {WS_DIR}/xdrfile
+rmdir xdrfile2
+cp #/site_scons/external/xdrfileSConscript {WS_DIR}/xdrfile/SConscript</execute_after>
+    </project>
+</projects>

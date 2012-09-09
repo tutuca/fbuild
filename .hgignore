@@ -4,8 +4,7 @@ install/
 conf/projects.local
 projects/
 bin/local.sh
-buildtests/gmock
-buildtests/mili
+buildtests/
 
 .cproject
 .project
@@ -15,3 +14,5 @@ syntax: re
 ^.*\.pyc$
 ^.*\.swp$
 ^.*\.un~$
+^.*.svn/*$
+^.*\.*~$

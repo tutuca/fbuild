@@ -1,6 +1,6 @@
 # fudepan-build: The build system for FuDePAN projects 
 #
-# Copyright (C) 2011 Esteban Papp, Hugo Arregui FuDePAN
+# Copyright (C) 2011 Esteban Papp, FuDePAN
 # 
 # This file is part of the fudepan-build build system.
 # 
@@ -17,14 +17,14 @@
 # You should have received a copy of the GNU General Public License
 # along with fudepan-build.  If not, see <http://www.gnu.org/licenses/>.
 
-# FuDePAN boilerplate requierd here
+#
+# Description: adds boost modules
+#
 
-import os
-import sys
-
-BUILD_SCRIPTS_DIR = os.path.join(os.getcwd(), "site_scons")
-sys.path.append(BUILD_SCRIPTS_DIR)
-
-# Welcome message    
-from termcolor import cprint
-cprint('Welcome to the FuDePAN console environment','green')
+def init(env):
+    validModules = [
+        'boost_system',
+        'boost_thread'
+        ]
+    for module in validModules:
+        env.CreateExternalLibraryComponent(module, [], env.Dir('/usr/lib'), [], True)

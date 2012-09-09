@@ -17,6 +17,10 @@
 # You should have received a copy of the GNU General Public License
 # along with fudepan-build.  If not, see <http://www.gnu.org/licenses/>.
 
+#
+# Description: color settings, pretty messages
+#
+
 # http://www.scons.org/wiki/ColorBuildMessages
 import sys
 import os
@@ -35,6 +39,7 @@ if not sys.stdout.isatty():
    for key, value in colors.iteritems():
       colors[key] = ''
 
+copy_message = '%s[copy] $SOURCES to $TARGETS%s' % (colors['blue'], colors['end'])
 compile_source_message = '%s[compiling] $SOURCE%s' % (colors['blue'], colors['end'])
 link_program_message = '%s[linking program] $TARGET%s' % (colors['cyan'], colors['end'])
 link_library_message = '%s[linking static] $TARGET%s' % (colors['cyan'], colors['end'])
@@ -43,6 +48,15 @@ ranlib_library_message = '%s[indexing] $TARGET%s' % (colors['purple'], colors['e
 install_message = '%s[installing] $SOURCE => $TARGET%s' % (colors['green'], colors['end'])
 qtuic_message = '%s[uic] $SOURCE%s' % (colors['blue'], colors['end'])
 qtmoc_message = '%s[moc] $SOURCE%s' % (colors['blue'], colors['end'])
+
+def init(env, args):
+    if args.get('VERBOSE') != '1':
+        prettyMessages(env)
+    env.cprint = cprint
+    env.cdebug = lambda m: cprint(m, 'green')
+    env.cwarn = lambda m: cprint(m, 'yellow')
+    env.cerror = lambda m: cprint(m, 'red')
+    env.cformat = cformat
 
 def ask_user(message, color, alternatives):
     message += ' (' + '/'.join(alternatives) + ')'
@@ -53,9 +67,14 @@ def ask_user(message, color, alternatives):
     return userResponse
 
 def cprint(msg, color):
-    print('%s%s%s' % (colors[color], msg, colors['end']))
-    
+    print(cformat(msg,color))
+
+def cformat(msg, color):
+    return '%s%s%s' % (colors[color], msg, colors['end'])
+
 def prettyMessages(env):
+    # TODO: find a way to change the "Removed" message
+    env['COPYSTR'] = copy_message
     env['CCCOMSTR'] = compile_source_message
     env['CXXCOMSTR'] = compile_source_message
     env['SHCCCOMSTR'] = compile_source_message

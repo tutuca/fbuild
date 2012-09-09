@@ -21,62 +21,72 @@
 # http://www.scons.org/wiki/AutomaticHelpFromAliases
 # It was modified to suit fudepan-build environment needs
 
-from SCons.Script.SConscript import SConsEnvironment
+#
+# Description: this file does some hooking in the aliasing to create a system
+#              of description of the targets
+#
 
-#-- ------------------
-#-- jDataClass holds data for the helper functions
-class jDataClass:
+from SCons.Script.SConscript import SConsEnvironment
+from SCons.Script import *
+import SCons.Builder
+
+def addPrintTarget(env, name, action):
+    from SCons.Script import Builder
+    bld = Builder(action = SCons.Action.Action(action, PrintTargetsDummy))
+    builder_name = action.func_name
+    env.Append(BUILDERS = {builder_name: bld})
+    b = getattr(env, builder_name)('dummy', 'SConstruct')
+    env.AlwaysBuild(env.HookedAlias(name, b))
+
+def init(env):
+    SConsEnvironment.HookedAlias = env.Alias
+    SConsEnvironment.AliasHelpData = AliasHelpData()
+    SConsEnvironment.Alias = AliasHelp
+    SConsEnvironment.AddAliasDescription = AddAliasDescription
+    addPrintTarget(env, 'targets', PrintTargets)
+    addPrintTarget(env, 'help', PrintFbuildHelp)
+
+class AliasHelpData:
     mHelpText = {}
     mHelpTextHead = []
     mHelpTextTail = []
-SConsEnvironment.jData = jDataClass()
 
-#-- ------------------
-#-- wraps Alias to put the alias name in the help text
-def jAlias(self, aliasname, tgt, helptext=None):
-    thealias = self.Alias(aliasname, tgt)
+def AliasHelp(env, aliasname, tgt, helptext=None):
+    env.AddAliasDescription(aliasname, helptext)
+    return env.HookedAlias(aliasname, tgt)
+
+def AddAliasDescription(env, aliasname, helptext=None):
     if helptext is None:
-        if not self.jData.mHelpText.has_key(aliasname):
-            self.jData.mHelpText[aliasname] = '???'
+        if not env.AliasHelpData.mHelpText.has_key(aliasname):
+            env.AliasHelpData.mHelpText[aliasname] = 'No description provided'
     else:
-        self.jData.mHelpText[aliasname] = helptext
-    return thealias
-SConsEnvironment.jAlias = jAlias
+        env.AliasHelpData.mHelpText[aliasname] = helptext
 
-def jAddAliasDescription(self, aliasname, helptext=None):
-    if helptext is None:
-        if not self.jData.mHelpText.has_key(aliasname):
-            self.jData.mHelpText[aliasname] = '???'
-    else:
-        self.jData.mHelpText[aliasname] = helptext
-SConsEnvironment.jAddAliasDescription = jAddAliasDescription
+def PrintTargetsDummy(env, source, target):
+    return ""
 
-#-- ------------------
-#-- adds a line of text to the help heading
-def jHelpHead(self, msg):
-    self.jData.mHelpTextHead.append(msg);
-SConsEnvironment.AliasesHelpHead = jHelpHead
-
-#-- ------------------
-#-- adds a line of text to the help footing
-def jHelpFoot(self, msg):
-    self.jData.mHelpTextTail.append(msg);
-SConsEnvironment.AliasesHelpFoot = jHelpFoot
-
-#-- ------------------
-#-- print the help
-def jPrintHelpAliases(self, target, source, env):
-    for head in env.jData.mHelpTextHead:
-        print head
-    keys = env.jData.mHelpText.keys()
+def PrintTargets(env, source, target):
+    print 'Targets:'
+    keys = env.AliasHelpData.mHelpText.keys()
     keys.sort()
     maxlen = 0
     for a in keys:
         if len(a) > maxlen: maxlen = len(a)
     for a in keys:
-        s = ' %-*s : %s' % (maxlen, a, env.jData.mHelpText[a])
+        s = ' %-*s : %s' % (maxlen, a, env.AliasHelpData.mHelpText[a])
         print s
-    for tail in env.jData.mHelpTextTail:
-        print tail
-SConsEnvironment.AliasesPrintHelp = jPrintHelpAliases
 
+def PrintFbuildHelp(env, source, target):
+    print """
+usage: fbuild [help] [--type TYPE] [--efective] [target [target ...]]
+
+invokes the fudepan-build system
+
+positional arguments:
+    target           use project[:task]. Possibles tasks are: test, astyle. Or use 'targets' to list the possible targets
+
+optional arguments:
+    help             show this help message and exit
+    --type TYPE      type of build, options: dbg, opt
+    --efective       adds -Weffc flag
+"""

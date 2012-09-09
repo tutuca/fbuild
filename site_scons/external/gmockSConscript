@@ -1,9 +1,18 @@
 Import ('env')
 
-env.Replace(CXXFLAGS=[], CFLAGS=[])
+env = env.Clone()
+
+CXXFLAGS = ['-Wall', '-Wextra', '-Wno-sign-compare']
+env.Replace(CXXFLAGS=CXXFLAGS, CFLAGS=CXXFLAGS)
+
+import platform
+(arch,binType) = platform.architecture()
+if arch == '64bit':
+    env.Append(CXXFLAGS = '-fPIC', CFLAGS = '-fPIC')
+
 name = 'gmock'
-inc = env.Dir('gtest'), env.Dir('gtest/include'), env.Dir('.'), env.Dir('include')
-ext_inc = env.Dir('include/gmock')
+inc = env.Dir('gtest'), env.Dir('gtest/include'), env.Dir('include')
+ext_inc = env.Dir('include/gmock'), env.Dir('include/gmock/internal')
 src = ['gtest/src/gtest-all.cc','src/gmock-all.cc']
 deps = ['pthread']
 
@@ -11,10 +20,9 @@ env.CreateStaticLibrary(name, inc, ext_inc, src, deps)
 env.CreateDoc(name)
 
 name = 'gtest_main'
-inc = env.Dir('gtest'), env.Dir('gtest/include'), env.Dir('#/projects/gmock'), env.Dir('include')
+inc = env.Dir('gtest'), env.Dir('gtest/include'), env.Dir('include')
 ext_inc = None
 src = ['gtest/src/gtest_main.cc']
 deps = []
 
 env.CreateStaticLibrary(name, inc, ext_inc, src, deps)
-
