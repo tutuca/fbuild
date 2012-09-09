@@ -68,6 +68,9 @@ cp #/site_scons/external/odeintSConscript #/projects/odeint/SConscript</execute_
     <project name="stl-debug"
              repository_type="HG" 
              repository_url="https://stl-debug.googlecode.com/hg" />
+    <project name="uninclude"
+             repository_type="HG" 
+             repository_url="https://uninclude.googlecode.com/hg" />
     <project name="unplugged"
              repository_type="HG" 
              repository_url="https://code.google.com/p/unplugged/" />
