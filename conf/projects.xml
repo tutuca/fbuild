@@ -2,7 +2,7 @@
     <!-- IMPORTANT: Please maintain alphabetical order based on name -->
     <project name="aso"
              repository_type="HG" 
-             repository_url="https://esteban.papp@code.google.com/p/aso/" />
+             repository_url="https://aso.googlecode.com/hg" />
     <project name="backbones-generator"
              repository_type="HG" 
              repository_url="https://backbones-generator.googlecode.com/hg" />
