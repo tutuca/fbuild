@@ -26,6 +26,7 @@ function check_install {
     mappings['make']='build-essential'
     mappings['moc']='qt4-dev-tools'
     mappings['dot']='graphviz'
+    mappings['svn']='subversion'
 
     pkg=${mappings[$1]}
     if [ -z $pkg ]; then
