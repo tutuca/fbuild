@@ -352,18 +352,37 @@ class UnitTestComponent(ProgramComponent):
         incpaths = self.getIncludePaths()
         (libs,libpaths) = self.getLibs()
         target = os.path.join(self.dir, self.name)
+
         prog = self.env.Program(target, self.find_sources(), CPPPATH=incpaths, LIBS=libs, LIBPATH=libpaths)
         self.env.Alias(self.name, prog, "Build and install " + self.name)
         self.env.Alias('all:build', prog, "Build all targets")
 
         target = os.path.join(self.dir, self.name + '.passed')
         tTest = self.env.RunUnittest(target, prog)
+
+        if self.env.GetOption('gcoverage'):
+            projDir = os.path.join(self.env['WS_DIR'],
+                                   os.path.relpath(self.dir,self.env['BUILD_DIR']))
+            target = os.path.join(self.dir, 'lcov_output/index.html')
+            lcov = self.env.RunLcov(target, prog)
+            self.env.AlwaysBuild(lcov)
+            self.env.Depends(lcov, tTest)
+            self.env.Alias(self.name, lcov)
+        
         if self.env.GetOption('forcerun'):
             self.env.AlwaysBuild(tTest)
         self.env.Alias(self.name, tTest, "Run test for " + self.name)
+
         for refFile in findFiles(self.env, self.compDir.Dir('ref')):
             self.env.Depends(tTest, refFile)
         self.env.Alias('all:test', tTest, "Run all tests")
 
         for alias in self.aliasGroups:
             self.env.Alias(alias, tTest, "Build group " + alias)
+    
+    #coverage is measured in build dir, so i put it first in the search path
+    def getIncludePaths(self):
+        includes = super(UnitTestComponent, self).getIncludePaths()
+        original = self.componentGraph.get(self.name.split(':')[0])
+        includes = [original.dir, self.dir] + [ i for i in includes if self.env['BUILD_DIR'] not in i]
+        return includes

@@ -25,13 +25,16 @@ import shutil
 import subprocess
 import utils
 import os
-from utils import findFiles
+from utils import findFiles, chain_calls
 
 def init(env):
     from SCons.Script import Builder
 
     bldRUT = Builder(action = SCons.Action.Action(RunUnittest, PrintDummy))
     env.Append(BUILDERS = {'RunUnittest' : bldRUT})
+
+    bldRLcov= Builder(action = SCons.Action.Action(RunLcov, PrintDummy))
+    env.Append(BUILDERS = {'RunLcov' : bldRLcov})
 
     bldDoxygen = Builder(action = SCons.Action.Action(RunDoxygen, PrintDummy))
     env.Append(BUILDERS = {'RunDoxygen' : bldDoxygen})
@@ -72,6 +75,31 @@ def RunUnittest(env, source, target):
             env.cprint('[passed] %s' % t, 'green')
         tindex = tindex + 1
     return rc
+
+def RunLcov(env, source, target):
+    from os.path import dirname, join
+    test_executable = source[0].abspath
+    indexFile = target[0].abspath
+    data = {
+            'coverage_file': join(dirname(dirname(indexFile)), 'coverage_output.dat'),
+            'output_dir'   : dirname(indexFile)
+            }
+
+    r = chain_calls(env, [
+        'lcov --zerocounters --directory . -b .',
+        'lcov --capture --initial --directory . -b . --output-file %(coverage_file)s' % data,
+        test_executable,
+        'lcov --no-checksum --directory . -b . --capture --output-file %(coverage_file)s' % data,
+        'lcov --remove %(coverage_file)s "*usr/include*" -o %(coverage_file)s' % data,
+        'lcov --remove %(coverage_file)s "*gtest*" -o %(coverage_file)s' % data,
+        'lcov --remove %(coverage_file)s "*gmock*" -o %(coverage_file)s' % data,
+        'lcov --remove %(coverage_file)s "*install/*" -o %(coverage_file)s' % data,
+        'lcov --remove %(coverage_file)s "*/tests/*" -o %(coverage_file)s' % data,
+        'genhtml --highlight --legend --output-directory %(output_dir)s %(coverage_file)s' % data,
+        ])
+    if r == 0:
+        env.cprint('lcov report in: %s' % indexFile, 'green')
+    return r
 
 def RunDoxygen(target, source, env):
     rc = 0

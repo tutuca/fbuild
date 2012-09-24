@@ -47,11 +47,11 @@ def linuxOptions(env):
 #              action='store_true',
 #              help='Sets the -pg flag to enable gprof',
 #              default=False)
-#    AddOption('--gcoverage',
-#              dest='gcoverage',
-#              action='store_true',
-#              help='Sets the required flags to enable gcov',
-#              default=False)
+    AddOption('--gcoverage',
+              dest='gcoverage',
+              action='store_true',
+              help='Sets the required flags to enable gcov',
+              default=False)
 
     # common options
     commonFlags = [
@@ -83,9 +83,8 @@ def linuxOptions(env):
 #        env.Append(CXXFLAGS='-Weffc++', CFLAGS='-Weffc++')
 #    if env.GetOption('gprofile'):
 #        env.Append(CXXFLAGS='-pg', CFLAGS='-pg')
-#    if env.GetOption('gcoverage'):
-#        gprofFlags = [
-#                '-fprofile-arcs',
-#                '-ftest-coverage'
-#            ]
-#        env.Append(CXXFLAGS=gprofFlags, CFLAGS=gprofFlags)
+    if env.GetOption('gcoverage'):
+        gprofFlags = [
+                '--coverage'
+            ]
+        env.Append(CXXFLAGS=gprofFlags, CFLAGS=gprofFlags, LINKFLAGS=gprofFlags)

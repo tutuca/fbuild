@@ -142,3 +142,18 @@ def dirs_flatten(env, path):
     for root, dirnames, filenames in os.walk(path):
         out.append(env.Dir(os.path.join(root, dirnames)))
     return out
+
+def chain_calls(env, cmds, silent=True):
+    import subprocess
+    if cmds:
+        cmd = cmds[0]
+        with open(os.devnull, "w") as fnull:
+            stdout = fnull if silent else None
+            rc = subprocess.call(cmd, stdout=stdout, shell=True) #errors always shows
+        if rc:
+            env.cerror('error executing: %s' % cmd)
+            return rc
+        else:
+            return chain_calls(env, cmds[1:])
+    else:
+        return 0
