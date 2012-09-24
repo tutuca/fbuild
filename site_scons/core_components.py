@@ -83,7 +83,9 @@ class ExternalLibraryComponent(Component):
     def _getIncludePaths(self, processedComponents, depth):
         incs = []
         if depth > 0:
-            incs.extend([i.abspath for i in self.extInc])
+            for i in self.extInc:
+                incs.append(os.path.join(self.env['WS_DIR'],
+                                   os.path.relpath(i.abspath,self.env['BUILD_DIR'])))
 
         processedComponents.append(self.name)
 
@@ -383,6 +385,9 @@ class UnitTestComponent(ProgramComponent):
     #coverage is measured in build dir, so i put it first in the search path
     def getIncludePaths(self):
         includes = super(UnitTestComponent, self).getIncludePaths()
-        original = self.componentGraph.get(self.name.split(':')[0])
-        includes = [original.dir, self.dir] + [ i for i in includes if self.env['BUILD_DIR'] not in i]
-        return includes
+        project = self.componentGraph.get(self.name.split(':')[0])
+        filtered_includes = [project.dir, self.dir]
+        for i in includes:
+            if self.env['BUILD_DIR'] not in i:
+                filtered_includes.append(i)
+        return filtered_includes
