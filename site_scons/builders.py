@@ -85,12 +85,13 @@ def InitLcov(env, source, target):
     indexFile = target[0].abspath
     data = {
             'coverage_file': join(dirname(dirname(indexFile)), 'coverage_output.dat'),
-            'output_dir'   : dirname(indexFile)
+            'output_dir'   : dirname(indexFile),
+            'project_dir'  : env['PROJECT_DIR']
             }
 
     r = chain_calls(env, [
-        'lcov --zerocounters --directory . -b .',
-        'lcov --capture --initial --directory . -b . --output-file %(coverage_file)s' % data,
+        'lcov --zerocounters --directory %(project_dir)s -b .' % data,
+        'lcov --capture --initial --directory %(project_dir)s -b . --output-file %(coverage_file)s' % data,
         ])
     return r
 
@@ -100,11 +101,13 @@ def RunLcov(env, source, target):
     indexFile = target[0].abspath
     data = {
             'coverage_file': join(dirname(dirname(indexFile)), 'coverage_output.dat'),
-            'output_dir'   : dirname(indexFile)
+            'output_dir'   : dirname(indexFile),
+            'project_dir'  : env['PROJECT_DIR']
             }
 
     r = chain_calls(env, [
-        'lcov --no-checksum --directory . -b . --capture --output-file %(coverage_file)s' % data,
+        'lcov --no-checksum --directory %(project_dir)s -b . --capture --output-file %(coverage_file)s' % data,
+        'lcov --list %(coverage_file)s' % data,
         'lcov --remove %(coverage_file)s "*usr/include*" -o %(coverage_file)s' % data,
         'lcov --remove %(coverage_file)s "*gtest*" -o %(coverage_file)s' % data,
         'lcov --remove %(coverage_file)s "*gmock*" -o %(coverage_file)s' % data,
