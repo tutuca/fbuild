@@ -363,9 +363,9 @@ class UnitTestComponent(ProgramComponent):
         if self.env.GetOption('gcoverage'):
             projDir = os.path.join(self.env['WS_DIR'],
                                    os.path.relpath(self.dir,self.env['BUILD_DIR']))
-            target = os.path.join(self.dir, 'lcov_output/index.html')
-            lcov = self.env.RunLcov(target, prog)
-            self.env.AlwaysBuild(lcov)
+            initLcov = self.env.InitLcov(os.path.join(self.dir, 'coverage_data'), prog)
+            self.env.Depends(tTest, initLcov)
+            lcov = self.env.RunLcov(os.path.join(self.dir, 'lcov_output/index.html'), prog)
             self.env.Depends(lcov, tTest)
             self.env.Alias(self.name, lcov)
         

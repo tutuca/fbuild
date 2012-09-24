@@ -33,6 +33,9 @@ def init(env):
     bldRUT = Builder(action = SCons.Action.Action(RunUnittest, PrintDummy))
     env.Append(BUILDERS = {'RunUnittest' : bldRUT})
 
+    bldInitLcov = Builder(action = SCons.Action.Action(InitLcov, PrintDummy))
+    env.Append(BUILDERS = {'InitLcov' : bldInitLcov })
+
     bldRLcov= Builder(action = SCons.Action.Action(RunLcov, PrintDummy))
     env.Append(BUILDERS = {'RunLcov' : bldRLcov})
 
@@ -76,7 +79,7 @@ def RunUnittest(env, source, target):
         tindex = tindex + 1
     return rc
 
-def RunLcov(env, source, target):
+def InitLcov(env, source, target):
     from os.path import dirname, join
     test_executable = source[0].abspath
     indexFile = target[0].abspath
@@ -88,7 +91,19 @@ def RunLcov(env, source, target):
     r = chain_calls(env, [
         'lcov --zerocounters --directory . -b .',
         'lcov --capture --initial --directory . -b . --output-file %(coverage_file)s' % data,
-        test_executable,
+        ])
+    return r
+
+def RunLcov(env, source, target):
+    from os.path import dirname, join
+    test_executable = source[0].abspath
+    indexFile = target[0].abspath
+    data = {
+            'coverage_file': join(dirname(dirname(indexFile)), 'coverage_output.dat'),
+            'output_dir'   : dirname(indexFile)
+            }
+
+    r = chain_calls(env, [
         'lcov --no-checksum --directory . -b . --capture --output-file %(coverage_file)s' % data,
         'lcov --remove %(coverage_file)s "*usr/include*" -o %(coverage_file)s' % data,
         'lcov --remove %(coverage_file)s "*gtest*" -o %(coverage_file)s' % data,
