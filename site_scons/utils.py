@@ -154,6 +154,6 @@ def chain_calls(env, cmds, silent=True):
             env.cerror('error executing: %s' % cmd)
             return rc
         else:
-            return chain_calls(env, cmds[1:])
+            return chain_calls(env, cmds[1:], silent)
     else:
         return 0

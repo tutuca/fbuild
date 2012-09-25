@@ -107,8 +107,8 @@ def RunLcov(env, source, target):
 
     r = chain_calls(env, [
         'lcov --no-checksum --directory %(project_dir)s -b . --capture --output-file %(coverage_file)s' % data,
-        'lcov --list %(coverage_file)s' % data,
         'lcov --remove %(coverage_file)s "*usr/include*" -o %(coverage_file)s' % data,
+        'lcov --remove %(coverage_file)s "*boost*" -o %(coverage_file)s' % data,
         'lcov --remove %(coverage_file)s "*gtest*" -o %(coverage_file)s' % data,
         'lcov --remove %(coverage_file)s "*gmock*" -o %(coverage_file)s' % data,
         'lcov --remove %(coverage_file)s "*install/*" -o %(coverage_file)s' % data,
