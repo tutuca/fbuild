@@ -35,6 +35,7 @@ class Component(object):
         self.env = env.Clone()
         self.aliasGroups = aliasGroups
         self.componentGraph = componentGraph
+        self.projDir = os.path.join(env['WS_DIR'], os.path.relpath(self.dir, env['BUILD_DIR']))
 
     def Process(self):
         return None
@@ -157,9 +158,7 @@ class HeaderOnlyComponent(Component):
         filters = []
         filters.extend(headersFilter)
         filters.extend(sourceFilters)
-        projDir = os.path.join(self.env['WS_DIR'],
-                               os.path.relpath(self.dir,self.env['BUILD_DIR']))
-        sources = utils.files_flatten(self.env, projDir, filters)
+        sources = utils.files_flatten(self.env, self.projDir, filters)
         target = self.env.Dir(self.env['BUILD_DIR']).Dir('astyle').Dir(self.name)
         astyleOut = self.env.RunAStyle(target, sources)
         self.env.Alias(self.name + ':astyle', astyleOut, "Runs astyle on " + self.name)
@@ -217,8 +216,7 @@ class SourcedComponent(HeaderOnlyComponent):
             # local headers can be referred explicitely (they are relative to the
             # current build directory) and are not from the install directory
             for i in self.inc:
-                projDir = os.path.join(self.env['WS_DIR'], os.path.relpath(self.dir,self.env['BUILD_DIR']))
-                hDir = os.path.join(projDir, i)
+                hDir = os.path.join(self.projDir, i)
                 incs.append(hDir)
         return (incs, processedComponents)
 
@@ -363,12 +361,13 @@ class UnitTestComponent(ProgramComponent):
         tTest = self.env.RunUnittest(target, prog)
 
         if self.env.GetOption('gcoverage'):
-            projDir = os.path.join(self.env['WS_DIR'],
-                                   os.path.relpath(self.dir,self.env['BUILD_DIR']))
+            project = self.componentGraph.get(self.name.split(':')[0])
+            self.env['PROJECT_DIR'] = project.dir
             initLcov = self.env.InitLcov(os.path.join(self.dir, 'coverage_data'), prog)
             self.env.Depends(tTest, initLcov)
             lcov = self.env.RunLcov(os.path.join(self.dir, 'lcov_output/index.html'), prog)
             self.env.Depends(lcov, tTest)
+            self.env.AlwaysBuild(tTest)
             self.env.Alias(self.name, lcov)
         
         if self.env.GetOption('forcerun'):
@@ -382,12 +381,19 @@ class UnitTestComponent(ProgramComponent):
         for alias in self.aliasGroups:
             self.env.Alias(alias, tTest, "Build group " + alias)
     
-    #coverage is measured in build dir, so i put it first in the search path
     def getIncludePaths(self):
         includes = super(UnitTestComponent, self).getIncludePaths()
         project = self.componentGraph.get(self.name.split(':')[0])
-        filtered_includes = [project.dir, self.dir]
+        #adding current test dir
+        filtered_includes = [self.dir]
+        #adding project in test include path (relative to build dir)
+        for i in getattr(project, 'inc', []):
+            filtered_includes.append(os.path.join(project.dir, i))
+            filtered_includes.append(os.path.join(project.projDir, i))
         for i in includes:
-            if self.env['BUILD_DIR'] not in i:
-                filtered_includes.append(i)
+            path = os.path.realpath(i)
+            in_build_dir = self.env['BUILD_DIR'] in path
+            is_tested_project = project.dir in path or project.projDir in path
+            if not in_build_dir and not is_tested_project:
+                filtered_includes.append(path)
         return filtered_includes
