@@ -389,6 +389,7 @@ class UnitTestComponent(ProgramComponent):
         #adding project in test include path (relative to build dir)
         for i in getattr(project, 'inc', []):
             filtered_includes.append(os.path.join(project.dir, i))
+            filtered_includes.append(os.path.join(project.projDir, i))
         for i in includes:
             path = os.path.realpath(i)
             in_build_dir = self.env['BUILD_DIR'] in path
