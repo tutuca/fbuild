@@ -84,6 +84,9 @@ if hasQt:
 import extension_boost
 extension_boost.init(env)
 
+import fudepan
+fudepan.setDefines(env)
+
 ## Walk over the tree finding components
 dependencygraph.WalkDirsForSconscripts(env, topdir = env['WS_DIR'],
                                        ignore = [
