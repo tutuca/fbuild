@@ -372,6 +372,7 @@ class UnitTestComponent(ProgramComponent):
         
         if self.env.GetOption('forcerun'):
             self.env.AlwaysBuild(tTest)
+
         self.env.Alias(self.name, tTest, "Run test for " + self.name)
 
         for refFile in findFiles(self.env, self.compDir.Dir('ref')):
@@ -385,15 +386,16 @@ class UnitTestComponent(ProgramComponent):
         includes = super(UnitTestComponent, self).getIncludePaths()
         project = self.componentGraph.get(self.name.split(':')[0])
         #adding current test dir
-        filtered_includes = [self.dir]
+        filtered_includes = [self.dir, project.dir]
         #adding project in test include path (relative to build dir)
         for i in getattr(project, 'inc', []):
             filtered_includes.append(os.path.join(project.dir, i))
             filtered_includes.append(os.path.join(project.projDir, i))
+        prjInstallPath = os.path.join(self.env['INSTALL_HEADERS_DIR'], project.name)
         for i in includes:
             path = os.path.realpath(i)
             in_build_dir = self.env['BUILD_DIR'] in path
-            is_tested_project = project.dir in path or project.projDir in path
+            is_tested_project = project.dir in path or project.projDir in path or prjInstallPath in path
             if not in_build_dir and not is_tested_project:
                 filtered_includes.append(path)
         return filtered_includes
