@@ -65,6 +65,9 @@ cp #/site_scons/external/odeintSConscript #/projects/odeint/SConscript</execute_
     <project name="prot-filer"
              repository_type="HG" 
              repository_url="https://prot-filer.googlecode.com/hg" />
+    <project name="remo"
+             repository_type="HG" 
+             repository_url="https://r-emo.googlecode.com/hg" />
     <project name="stl-debug"
              repository_type="HG" 
              repository_url="https://stl-debug.googlecode.com/hg" />
