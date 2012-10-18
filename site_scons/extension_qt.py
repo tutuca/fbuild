@@ -31,6 +31,7 @@ def hasQt(env):
     if moc4:
         qtdir = os.path.split(os.path.split(moc4)[0])[0]
         os.environ['QT4DIR'] = qtdir
+        hasQt = True
     else:
         moc = env.WhereIs('moc')
         if moc:
