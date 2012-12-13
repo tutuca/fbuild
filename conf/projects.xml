@@ -1,5 +1,5 @@
 <projects>
-    <!-- IMPORTANT: Please maintain alphabetical order based on name -->
+    <!-- IMPORTANT: Please maintain alphabetical order based on name to ease maintenance -->
     <project name="aso"
              repository_type="HG" 
              repository_url="https://aso.googlecode.com/hg" />
