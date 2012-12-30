@@ -77,7 +77,7 @@ def RunUnittest(env, source, target):
         else:
             env.cprint('[passed] %s' % t, 'green')
         tindex = tindex + 1
-    return rc
+    return 0
 
 def InitLcov(env, source, target):
     from os.path import dirname, join
