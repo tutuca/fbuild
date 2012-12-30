@@ -1,6 +1,6 @@
 # fudepan-build: The build system for FuDePAN projects 
 #
-# Copyright (C) 2011 Esteban Papp, Hugo Arregui FuDePAN
+# Copyright (C) 2011 Esteban Papp, FuDePAN
 # 
 # This file is part of the fudepan-build build system.
 # 
@@ -17,19 +17,14 @@
 # You should have received a copy of the GNU General Public License
 # along with fudepan-build.  If not, see <http://www.gnu.org/licenses/>.
 
-function fudepan-install {
-    sudo $PYTHON_BIN_PATH bin/fbuild.py INSTALL_HEADERS_DIR=/usr/local/include/ INSTALL_BIN_DIR=/usr/local/bin/ INSTALL_LIB_DIR=/usr/local/lib/ $* install
-}
+#
+# Description: adds boost modules
+#
 
-_fbuild() {
-    cur="${COMP_WORDS[COMP_CWORD]}"
-    if [ -z $cur ]; then
-        COMPREPLY=(`ls projects`)
-    else
-        TMP=`find projects/$cur* -maxdepth 0 2> /dev/null`
-        if [ $? = "0" ]; then
-          COMPREPLY=(`find projects/$cur* -maxdepth 0 | cut -f2 -d'/'`)
-        fi
-    fi
-}
-complete -F _fbuild -o nospace fbuild
+def init(env):
+    validModules = [
+	'boost_system',
+        'boost_thread'
+        ]
+    for module in validModules:
+        env.CreateExternalLibraryComponent(module, [], env.Dir('/usr/lib'), [], True)

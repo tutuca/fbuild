@@ -18,6 +18,8 @@
 # You should have received a copy of the GNU General Public License
 # along with fudepan-build.  If not, see <http://www.gnu.org/licenses/>.
 
+# This scripts generates the basic dir structure for FuDePAN platform projects
+
 import os
 from os.path import join
 

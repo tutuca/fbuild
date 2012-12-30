@@ -17,8 +17,15 @@
 # You should have received a copy of the GNU General Public License
 # along with fudepan-build.  If not, see <http://www.gnu.org/licenses/>.
 
+#
+# Description: specific FuDePAN stuff
+#
+
 def setDefines(env): 
-	env.AppendUnique(CPPFLAGS = ['-DMILI_NAMESPACE'])
+    flags = [
+            "-D'INSTALL_LIB_DIR=\"%s\"'" % env['INSTALL_LIB_DIR'].rstrip('/')
+    ]
+    env.Append(CXXFLAGS = flags, CFLAGS = flags)
 	
 	# this defines are only for playing with ANA
 	#env.AppendUnique(CPPFLAGS = ['-Dmiddleware=ana'])

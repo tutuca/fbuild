@@ -17,15 +17,22 @@
 # You should have received a copy of the GNU General Public License
 # along with fudepan-build.  If not, see <http://www.gnu.org/licenses/>.
 
-import platform
+#
+# Description: linker options settings
+#
 
-def loadLinkOptions(env):
+def init(env):
+    import platform
     (arch,binType) = platform.architecture()
+    if binType == 'ELF':
+        linuxOptions(env)
+
+def linuxOptions(env):
     # Resolve the rpath so everything works smooth from
     # the install dir. This makes easier to deploy somewhere
     # else, you only need to pass INSTALL_<BIN/LIB/HEADERS>_DIR parameters to 
     # scons to deploy it somewhere else
-    env.Append( RPATH = env['INSTALL_HEADERS_DIR'])
+    #env.Append( RPATH = env['INSTALL_HEADERS_DIR'])
     env.Append( RPATH = env['INSTALL_LIB_DIR'])
     env['ENV']['LD_LIBRARY_PATH'] = env['INSTALL_LIB_DIR'] 
 
