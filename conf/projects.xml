@@ -15,6 +15,9 @@
     <project name="biopp-filer"
              repository_type="HG" 
              repository_url="https://biopp-filer.googlecode.com/hg" />
+    <project name="colo"
+             repository_type="HG" 
+             repository_url="https://colo.googlecode.com/hg" />
     <project name="feca"
              repository_type="HG" 
              repository_url="https://feca.googlecode.com/hg" />
