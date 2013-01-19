@@ -151,7 +151,7 @@ def CreatePdfLaTeX(env, name, latexfile = '', options='', aliasGroups = []):
                                     aliasGroups))
 
 def CreateMemReport(env, name, options='', aliasGroups=[]):
-    docName = name + ':memreport'
+    docName = name + ':valgrind'
     env['VALGRIND_OPTIONS'] = options
     return componentGraph.add(ValgrindComponent(componentGraph,
                                     env,
