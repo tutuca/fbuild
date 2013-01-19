@@ -20,19 +20,19 @@
 from core_components import Component, headersFilter
 import os
 
-class PdfLatexComponent(Component):
+class PdfLaTeXComponent(Component):
     def __init__(self, componentGraph, env, name, compDir, latexfile, aliasGroups):
         Component.__init__(self, componentGraph, env, name, compDir, [], aliasGroups)
         self.latexfile = latexfile
-
     def Process(self):
         Component.Process(self)
-        project_name = self.name.split(':')[0]
-        targetDocDir = self.env.Dir(self.env['INSTALL_DOC_DIR']).Dir(project_name)
-        pdf = self.env.RunPdfLatex(targetDocDir, self.latexfile)
-        self.env.Clean(pdf, targetDocDir)
-        self.env.Alias(self.name, pdf, 'Generate pdf from ' + self.latexfile
-            + ' for ' + project_name)
+        docDir = "/" + self.name.split(':')[0] + ":doc/pdf/"
+        targetDir = self.env.Dir(self.env['INSTALL_DOC_DIR']).Dir(docDir, True)
+        pdf = self.env.RunPdfLaTeX(targetDir, self.latexfile)
+        self.env.Clean(pdf, targetDir)
+        self.env.Alias(self.name, pdf, 'Generate pdf from ' +
+            os.path.split(self.latexfile)[-1] +
+            ' for ' + self.name.split(':')[0])
 
         for alias in self.aliasGroups:
             self.env.Alias(alias, pdf, "Build group " + alias)

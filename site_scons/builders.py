@@ -50,8 +50,8 @@ def init(env):
     makeBuilder = Builder(action = SCons.Action.Action(MakeTool, PrintDummy))
     env.Append(BUILDERS = {'RunMakeTool' : makeBuilder})
 
-    bldPdfLatex = Builder(action = SCons.Action.Action(RunPdfLatex, PrintDummy))
-    env.Append(BUILDERS = {'RunPdfLatex':  bldPdfLatex})
+    bldPdfLaTeX = Builder(action = SCons.Action.Action(RunPdfLaTeX, PrintDummy))
+    env.Append(BUILDERS = {'RunPdfLaTeX':  bldPdfLaTeX})
     env['PDFLATEX_OPTIONS'] = ''
 
     bldValgrind = Builder(action = SCons.Action.Action(RunValgrind, PrintDummy))
@@ -177,31 +177,36 @@ def AStyle(target, source, env):
         env.cprint('[astyle] %s' % t, 'green')
     return rc
 
-def RunPdfLatex(target, source, env):
+def RunPdfLaTeX(target, source, env):
     #Deberiamos usar las env.{operation} ya que son crossplatform.
-    (pathHead, pathTail) = os.path.split(source[0].abspath)
+    (sourceDir, sourceFile) = os.path.split(source[0].abspath)
 
-    tmpPdf2TexDir = pathHead + '/tmp_Pdf2Texfile/'
-    if not os.path.exists(tmpPdf2TexDir):
-#        env.Execute(env.Mkdir(tmpPdf2TexDir))
-        os.mkdir(tmpPdf2TexDir)
-
-    targetDir = os.path.split(target[0].abspath)[0]
+    targetDir = env['INSTALL_DOC_DIR'] + target[0].abspath + "/"
     if not os.path.exists(targetDir):
-#        env.Execute(env.Mkdir(targetDir))
+#        env.Execute(env.Mkdir(PdfDir))
         os.mkdir(targetDir)
 
-    rt = subprocess.call('cd ' + pathHead + ' ; pdflatex ' + env['PDFLATEX_OPTIONS']
-        + ' -output-directory "' + tmpPdf2TexDir + '" ' + pathTail, shell=True)
-    shutil.move(targetDir, tmpPdf2TexDir + pathTail[:-4] + ".pdf")
-    shutil.rmtree(tmpPdf2TexDir)
+    tmpTeX2PdfDir = targetDir + '/tmpTex2Pdf/'
+    if not os.path.exists(tmpTeX2PdfDir):
+#        env.Execute(env.Mkdir(tmpTeX2PdfDir))
+        os.mkdir(tmpTeX2PdfDir)
+
+    rt = subprocess.call('cd ' + sourceDir + ' ; pdflatex ' +
+        env['PDFLATEX_OPTIONS'] + ' -output-directory "' +
+        tmpTeX2PdfDir + '" ' + sourceFile, shell=True)
+
+    targetFile = sourceFile[:-3] + 'pdf'
+    shutil.move(tmpTeX2PdfDir + targetFile, targetDir)
+    shutil.rmtree(tmpTeX2PdfDir)
+
     return rt
 #    env.Execute(env.Move(targetDir, tmpPdf2TexDir + pathTail[:-4] +".pdf"))
 #    env.Execute(env.Delete(tmpPdf2TexDir))
 
 def RunValgrind(target, source, env):
 
-    return subprocess.call(
-        'valgrind ' + env['VALGRIND_OPTIONS']
-        + '--leak-check=full --show-reachable=yes --error-limit=no ' +
-        source[0].abspath + ' > ' + source[0].abspath.split(":")[0] + '.txt', shell=True)
+    txtPath = source[0].abspath.split(":")[0]
+    return subprocess.call('valgrind ' + env['VALGRIND_OPTIONS'] +
+        ' --leak-check=full --show-reachable=yes --error-limit=no ' +
+        '--log-file=' + txtPath + '_memreport.txt ' +
+        source[0].abspath + " > " + txtPath + '_test.txt', shell=True)
