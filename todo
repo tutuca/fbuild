@@ -3,7 +3,6 @@ TODO:
 - add dependencies to svn and hg
   + sudo apt-get install subversion
   + sudo apt-get install mercurial
-  * see what if the linux version doesnt have apt-get
   * builders: http://www.scons.org/doc/production/HTML/scons-user/c3496.html
 - add optional targets
 - add pretty fast functionality (decider is timestamp based instead of MD5)
