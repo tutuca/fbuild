@@ -84,7 +84,8 @@ if [ "$?" -ne "0" ]; then return $?; fi
 check_install flex true
 if [ "$?" -ne "0" ]; then return $?; fi
 check_install bison true
-
+if [ "$?" -ne "0" ]; then return $?; fi
+check_install cppcheck true
 if [ "$(astyle -V 2>&1 | cut -f4 -d' ' | sed 's/\..*//' | bc)" -lt "2" ]; then
     echo -e "\e[0;31m[error] AStyle version should be >= 2\e[0m"
     return 1

@@ -23,9 +23,8 @@
 
 import os.path
 import SCons
-import sys
 import subprocess
-from termcolor import cprint, cformat, ask_user
+from termcolor import cprint, cformat
 
 projects = {}
 
@@ -58,10 +57,8 @@ def createDependenciesTargets(env):
         
     localProjectsFile = os.path.join(confDir, 'projects_local.xml') 
     if os.path.exists(localProjectsFile):
-        localProjectsDom = parse(localProjectsFile)
         localProjectElements = projectsDom.getElmentsByTagName('project')
         for localProjectElment in localProjectElements:
-            localProjectName = projectElement.getAttribute('name')
             projectType = projectElement.getAttribute('repository_type')
             project = createDependency(env, projectName, projectType, projectElement)
             if project:
@@ -125,7 +122,7 @@ class HG(Dependencies):
         cprint('[hg] updating %s => %s' % (self.url, self.target), 'purple')
         rc = subprocess.call("cd %s; hg pull -u" % self.target, shell=True)
         if rc != 0:
-            return cforamt('[error] hg failed to update target %s from %s, error: %s' 
+            return cformat('[error] hg failed to update target %s from %s, error: %s' 
                            %(self.target, self.url, rc), 'red')
         return 0
 

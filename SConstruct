@@ -22,7 +22,7 @@
 #import sys
 import SCons
 import extension_qt
-
+import ipdb; ipdb.set_trace()
 env = Environment()
 
 hasQt = extension_qt.hasQt(env)

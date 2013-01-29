@@ -23,9 +23,7 @@ import SCons.Builder
 import platform
 import shutil
 import subprocess
-import utils
 import os
-from utils import findFiles, chain_calls
 
 def init(env):
     from SCons.Script import Builder
@@ -58,6 +56,10 @@ def init(env):
     env.Append(BUILDERS = {'RunValgrind':  bldValgrind})
     env['VALGRIND_OPTIONS'] = ''
 
+    bldCppchek = Builder(action = SCons.Action.Action(RunCppCheck, PrintDummy))
+    env.Append(BUILDERS = {'RunCppCheck':  bldCppchek})
+    env['CPPCHECK_OPTIONS'] = ''
+
 def PrintDummy(env, source, target):
     return ""
 
@@ -81,7 +83,6 @@ def RunUnittest(env, source, target):
 
 def InitLcov(env, source, target):
     from os.path import dirname, join
-    test_executable = source[0].abspath
     indexFile = target[0].abspath
     data = {
             'coverage_file': join(dirname(dirname(indexFile)), 'coverage_output.dat'),
@@ -97,7 +98,6 @@ def InitLcov(env, source, target):
 
 def RunLcov(env, source, target):
     from os.path import dirname, join
-    test_executable = source[0].abspath
     indexFile = target[0].abspath
     data = {
             'coverage_file': join(dirname(dirname(indexFile)), 'coverage_output.dat'),
@@ -205,3 +205,7 @@ def RunValgrind(target, source, env):
         'valgrind ' + env['VALGRIND_OPTIONS']
         + '--leak-check=full --show-reachable=yes --error-limit=no ' +
         source[0].abspath + ' > ' + source[0].abspath.split(":")[0] + '.txt', shell=True)
+
+def RunCppCheck(target, source, env):
+    import ipdb; ipdb.set_trace()
+    return subprocess.call('cppcheck %s %s' %(env['CPPCHECK_OPTIONS'], source,))

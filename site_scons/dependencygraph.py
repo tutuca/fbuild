@@ -24,7 +24,6 @@
 
 import os
 import fnmatch
-import SCons
 from core_components import *
 from components import *
 
