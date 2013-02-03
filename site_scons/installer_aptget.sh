@@ -34,7 +34,7 @@ function check_install {
     fi
 
     if [ ! "$(which $1)" ]; then
-        if [ "$3" ]; then
+        if [ "$2" ]; then
             echo -e "\e[0;31m[error] $1 (part of $pkg) not found, need to install it to continue\e[0m"
         else
             echo -e "\e[0;33m[warn] $1 (part of $pkg) not found, suggest to install it to continue\e[0m"
@@ -49,7 +49,7 @@ function check_install {
                 return 1
             fi
         else
-            if [ "$3" ]; then
+            if [ "$2" ]; then
                 echo -e "\e[0;31m[error] $1 (part of $pkg) required, exiting\e[0m"
                 return 1
             fi
