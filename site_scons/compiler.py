@@ -30,8 +30,8 @@ def init(env):
               type='string',
               nargs=1,
               action='store',
-              help='type of build, options: debug (default), opt',
-              default='debug')
+              help='type of build, options: dbg (default), opt',
+              default='dbg')
     (arch,binType) = platform.architecture()
     if binType == 'ELF':
         linuxOptions(env)
