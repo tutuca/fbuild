@@ -41,7 +41,7 @@ function check_install {
         fi
         echo "info: 'sudo pacman -S $pkg' should do the job, do you want"
         echo "      me to do it? (your password could be required)"
-        read -p "Install (y/n)?" REPLY
+        read -p "Install (y/[n])?" REPLY
         if [ "$REPLY" = "y" ]; then
             sudo pacman -S $pkg
             if [ "$?" -ne "0" ]; then
