@@ -43,6 +43,7 @@ def init(env):
     SConsEnvironment.CreateDoc = CreateDoc
     SConsEnvironment.CreatePdfLatex = CreatePdfLatex
     SConsEnvironment.CreateMemReport = CreateMemReport
+    SConsEnvironment.CreateCCCC = CreateCCCC
 
 class ComponentDictionary(dict):
 
@@ -179,6 +180,16 @@ def CreateAutoToolsProject(env, name, ext_dir, lib_targets, configurationFile, a
                                         lib_targets,
                                         configurationFile,
                                         aliasGroups))
+
+def CreateCCCC(env, name, options='', aliasGroups=[]):
+	print "----------------------------------------------------> En def CreateCCCC"
+	docName = name + ':cccc'
+	env['CCCC_OPTIONS'] = options
+	return componentGraph.add(CCCComponent(componentGraph,
+										 env,
+										 docName,
+										 env.Dir('.'),
+										 aliasGroups))
 
 def WalkDirsForSconscripts(env, topdir, ignore = []):
     global componentGraph

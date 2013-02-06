@@ -58,7 +58,7 @@ class DocComponent(Component):
     def __init__(self, componentGraph, env, name, compDir, doxyfile, aliasGroups):
         Component.__init__(self, componentGraph, env, name, compDir, [], aliasGroups)
         self.doxyfile = doxyfile
-
+    
     def Process(self):
         Component.Process(self)
         targetDocDir = self.env.Dir(self.env['INSTALL_DOC_DIR']).Dir(self.name)
@@ -118,3 +118,21 @@ class AutoToolsProjectComponent(Component):
         incs = [os.path.join(self.env['INSTALL_HEADERS_DIR'], self.name)]
         processedComponents.append(self.name)
         return (incs, processedComponents)
+
+class CCCComponent(Component):
+    def __init__(self, componentGraph, env, name, compDir, aliasGroups, project_name=""):
+        print "---------------------------------------->En CCCComponent.__init__()"
+        Component.__init__(self, componentGraph, env, name, compDir, [], aliasGroups)
+        self.project_name = project_name
+
+    def Process(self):
+        Component.Process(self)
+        print "----------------------------------------->En CCCComponent.Process()" 
+        target = '' # self.compDir + ''
+        source = ''
+        cccc = self.env.RunCCCC(target, source, self.env)
+        self.env.Alias(self.name, cccc, 'Generate ' + self.project_name +
+            ' software metrics for ' + self.project_name)
+            
+        for alias in self.aliasGroups:
+            self.env.Alias(alias, cccc, "Build group " + alias)
