@@ -214,5 +214,6 @@ def RunValgrind(target, source, env):
 
 def RunCCCC(target, source, env):
 	#import ipdb; ipdb.set_trace()
-	cmd = 'cccc ' + ' ' + env['CCCC_OPTIONS'] + ' ' + source
+	cmd = 'cccc ' + env['CCCC_OPTIONS'] + ' ' + ' '.join([f.name for f in source])
+	print cmd
 	return subprocess.call(cmd, shell=True)
