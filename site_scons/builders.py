@@ -60,8 +60,7 @@ def init(env):
 
     bldCCCC = Builder(action = SCons.Action.Action(RunCCCC, PrintDummy))
     env.Append(BUILDERS = {'RunCCCC':  bldCCCC})
-    env['CCCC_OPTIONS'] = '--outdir=cccc'
-    env['CCCC_SOURCES'] = []
+    env['CCCC_OPTIONS'] = []
 
 def PrintDummy(env, source, target):
     return ""
@@ -213,7 +212,8 @@ def RunValgrind(target, source, env):
     )
 
 def RunCCCC(target, source, env):
-	#import ipdb; ipdb.set_trace()
-	cmd = 'cccc ' + env['CCCC_OPTIONS'] + ' ' + ' '.join([f.name for f in source])
-	print cmd
+	env.AppendUnique(CCCC_OPTIONS = '--outdir=cccc')
+	options = ' '.join([opt for opt in env['CCCC_OPTIONS']])
+	files = ' '.join([f.name for f in source])
+	cmd = 'cccc %s %s' % (options, files) 
 	return subprocess.call(cmd, shell=True)
