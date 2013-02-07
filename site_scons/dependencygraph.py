@@ -181,15 +181,16 @@ def CreateAutoToolsProject(env, name, ext_dir, lib_targets, configurationFile, a
                                         configurationFile,
                                         aliasGroups))
 
-def CreateCCCC(env, name, options='', aliasGroups=[]):
-	print "----------------------------------------------------> En def CreateCCCC"
+def CreateCCCC(env, name, options='', sources=None, aliasGroups=[]):
 	docName = name + ':cccc'
 	env['CCCC_OPTIONS'] = options
 	return componentGraph.add(CCCComponent(componentGraph,
 										 env,
 										 docName,
 										 env.Dir('.'),
-										 aliasGroups))
+										 aliasGroups,
+										 name,
+										 sources))
 
 def WalkDirsForSconscripts(env, topdir, ignore = []):
     global componentGraph

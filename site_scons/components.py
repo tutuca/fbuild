@@ -61,6 +61,7 @@ class DocComponent(Component):
     
     def Process(self):
         Component.Process(self)
+        #import ipdb; ipdb.set_trace()
         targetDocDir = self.env.Dir(self.env['INSTALL_DOC_DIR']).Dir(self.name)
         doc = self.env.RunDoxygen(targetDocDir, self.doxyfile)
         self.env.Clean(doc, targetDocDir)
@@ -103,7 +104,7 @@ class AutoToolsProjectComponent(Component):
         libs = []
         if depth > 0:
             libs.append(self.name)
-            # For static libraries lookup:
+            # For statienvc libraries lookup:
             libpaths.append(self.env['INSTALL_LIB_DIR'])
             # For dynamic libraries lookup:
             libpaths.append(self.env['INSTALL_BIN_DIR'])
@@ -120,19 +121,21 @@ class AutoToolsProjectComponent(Component):
         return (incs, processedComponents)
 
 class CCCComponent(Component):
-    def __init__(self, componentGraph, env, name, compDir, aliasGroups, project_name=""):
-        print "---------------------------------------->En CCCComponent.__init__()"
+    def __init__(self, componentGraph, env, name, compDir, aliasGroups, project_name="", source=None):
         Component.__init__(self, componentGraph, env, name, compDir, [], aliasGroups)
         self.project_name = project_name
+        #if sources is None:
+            #sources = []
+        self.source = source
 
     def Process(self):
         Component.Process(self)
-        print "----------------------------------------->En CCCComponent.Process()" 
-        target = '' # self.compDir + ''
-        source = ''
-        cccc = self.env.RunCCCC(target, source, self.env)
-        self.env.Alias(self.name, cccc, 'Generate ' + self.project_name +
-            ' software metrics for ' + self.project_name)
+        #source = " ".join(self.sources)
+        #import ipdb; ipdb.set_trace()
+        target = None
+        cccc = self.env.RunCCCC(target, self.source, self.env)
+        alias_info = 'Generate software metrics for ' + self.project_name
+        self.env.Alias(self.name, cccc, alias_info)
             
         for alias in self.aliasGroups:
             self.env.Alias(alias, cccc, "Build group " + alias)

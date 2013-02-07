@@ -60,7 +60,8 @@ def init(env):
 
     bldCCCC = Builder(action = SCons.Action.Action(RunCCCC, PrintDummy))
     env.Append(BUILDERS = {'RunCCCC':  bldCCCC})
-    env['CCCC_OPTIONS'] = ''
+    env['CCCC_OPTIONS'] = '--outdir=cccc'
+    env['CCCC_SOURCES'] = []
 
 def PrintDummy(env, source, target):
     return ""
@@ -212,8 +213,6 @@ def RunValgrind(target, source, env):
     )
 
 def RunCCCC(target, source, env):
-	print "-----------------------------------------------------------> ACA!"
-	src = ' ' + source[0].abspath
-	des = ' > ' + source[0].abspath.split(":")[0] + '.coverage'
-	cmd = 'cccc ' + env['CCCC_OPTIONS'] + src + des
+	#import ipdb; ipdb.set_trace()
+	cmd = 'cccc ' + ' ' + env['CCCC_OPTIONS'] + ' ' + source
 	return subprocess.call(cmd, shell=True)
