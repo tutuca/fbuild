@@ -61,7 +61,6 @@ class DocComponent(Component):
     
     def Process(self):
         Component.Process(self)
-        #import ipdb; ipdb.set_trace()
         targetDocDir = self.env.Dir(self.env['INSTALL_DOC_DIR']).Dir(self.name)
         doc = self.env.RunDoxygen(targetDocDir, self.doxyfile)
         self.env.Clean(doc, targetDocDir)
@@ -120,22 +119,18 @@ class AutoToolsProjectComponent(Component):
         processedComponents.append(self.name)
         return (incs, processedComponents)
 
-class CCCComponent(Component):
-    def __init__(self, componentGraph, env, name, compDir, aliasGroups, project_name="", source=None):
-        Component.__init__(self, componentGraph, env, name, compDir, [], aliasGroups)
-        self.project_name = project_name
-        #if sources is None:
-            #sources = []
-        self.source = source
+#class CCCCComponent(Component):
+    #def __init__(self, componentGraph, env, name, compDir, aliasGroups, project_name="", source=None):
+        #Component.__init__(self, componentGraph, env, name, compDir, [], aliasGroups)
+        #self.project_name = project_name
+        #self.source = source
 
-    def Process(self):
-        Component.Process(self)
-        #source = " ".join(self.sources)
-        #import ipdb; ipdb.set_trace()
-        target = None
-        cccc = self.env.RunCCCC(target, self.source, self.env)
-        alias_info = 'Generate software metrics for ' + self.project_name
-        self.env.Alias(self.name, cccc, alias_info)
+    #def Process(self):
+        ##import ipdb; ipdb.set_trace()
+        #Component.Process(self)
+        #cccc = self.env.RunCCCC(self.env, self.source, self.project_name)
+        #alias_info = 'Generate software metrics for ' + self.project_name
+        #self.env.Alias(self.name, cccc, alias_info)
             
-        for alias in self.aliasGroups:
-            self.env.Alias(alias, cccc, "Build group " + alias)
+        #for alias in self.aliasGroups:
+            #self.env.Alias(alias, cccc, "Build group " + alias)

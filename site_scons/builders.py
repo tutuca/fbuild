@@ -18,14 +18,15 @@
 # along with fudepan-build.  If not, see <http://www.gnu.org/licenses/>.
 
 #from SCons.Script.SConscript import SConsEnvironment
+from utils import findFiles, chain_calls
 from SCons.Script import *
 import SCons.Builder
-import platform
-import shutil
 import subprocess
+import platform
+import os.path
+import shutil
 import utils
 import os
-from utils import findFiles, chain_calls
 
 def init(env):
     from SCons.Script import Builder
@@ -61,6 +62,7 @@ def init(env):
     bldCCCC = Builder(action = SCons.Action.Action(RunCCCC, PrintDummy))
     env.Append(BUILDERS = {'RunCCCC':  bldCCCC})
     env['CCCC_OPTIONS'] = []
+    env['CCCC_INSTALL'] = ''
 
 def PrintDummy(env, source, target):
     return ""
@@ -212,8 +214,23 @@ def RunValgrind(target, source, env):
     )
 
 def RunCCCC(target, source, env):
-	env.AppendUnique(CCCC_OPTIONS = '--outdir=cccc')
-	options = ' '.join([opt for opt in env['CCCC_OPTIONS']])
-	files = ' '.join([f.name for f in source])
-	cmd = 'cccc %s %s' % (options, files) 
-	return subprocess.call(cmd, shell=True)
+    import ipdb; ipdb.set_trace()
+    
+    # It tells to cccc the name of the directory that will contain the results.
+    #env.Append(CCCC_OPTIONS = '--outdir=cccc')
+    
+    # Check if the user already set the install path for the cccc results.
+    if not env['CCCC_INSTALL']:
+        # If it is not created, we do it.
+        install_dir = env['INSTALL_BIN_DIR'] + os.sep + 'cccc' + os.sep + target
+        env['CCCC_INSTALL'] = install_dir
+    # Check if the install directory for the cccc results already exists.
+    if not os.path.exists(env['CCCC_INSTALL']):
+        os.mkdir(env['CCCC_INSTALL'])
+    # From the env['CCCC_OPTIONS'] we create a string with the options for cccc.
+    options = ' '.join([opt for opt in env['CCCC_OPTIONS']])
+    # From the 'source' we create a string with the file names for cccc.
+    files = ' '.join([f.name for f in source])
+    # Create the command to be pass to subprocess.call()
+    cmd = 'cccc %s %s' % (options, files) 
+    return subprocess.call(cmd, shell=True)
