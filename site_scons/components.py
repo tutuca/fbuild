@@ -58,7 +58,7 @@ class DocComponent(Component):
     def __init__(self, componentGraph, env, name, compDir, doxyfile, aliasGroups):
         Component.__init__(self, componentGraph, env, name, compDir, [], aliasGroups)
         self.doxyfile = doxyfile
-
+    
     def Process(self):
         Component.Process(self)
         targetDocDir = self.env.Dir(self.env['INSTALL_DOC_DIR']).Dir(self.name)
@@ -103,7 +103,7 @@ class AutoToolsProjectComponent(Component):
         libs = []
         if depth > 0:
             libs.append(self.name)
-            # For static libraries lookup:
+            # For statienvc libraries lookup:
             libpaths.append(self.env['INSTALL_LIB_DIR'])
             # For dynamic libraries lookup:
             libpaths.append(self.env['INSTALL_BIN_DIR'])
