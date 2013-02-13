@@ -353,22 +353,19 @@ class ProgramComponent(SourcedComponent):
     def __init__(self, componentGraph, env, name, compDir, deps, inc, src, aliasGroups):
         SourcedComponent.__init__(self, componentGraph, env, name, compDir, deps, inc, [], src, aliasGroups)
         self.shouldBeLinked = False
-    
-    def _create_valgrind_target(self):
-        vld = self.env.RunValgrind(None, [self.env.File(self.name)])
-        self.env.Alias(self.name+":valgrind", vld, 'Run valgrind for %s' % self.name)
 
     def Process(self):
         SourcedComponent.Process(self)
-        self._create_valgrind_target()
         incpaths = self.getIncludePaths()
         (libs,libpaths) = self.getLibs()
         target = os.path.join(self.env['INSTALL_LIB_DIR'], self.name)
         prog = self.env.Program(target, self.find_sources(), CPPPATH=incpaths, LIBS=libs, LIBPATH=libpaths)
         iProg = self.env.Install(self.env['INSTALL_BIN_DIR'], prog)
+        rvalg = self.env.RunValgrind(None, [self.env.File(self.name)])
         self.env.Alias(self.name, iProg, "Build and install " + self.name)
         self.env.Alias('all:build', prog, "Build all targets")
         self.env.Alias('all:install', iProg, "Install all targets")
+        self.env.Alias(self.name+":valgrind", [iProg,rvalg], 'Run valgrind for %s' % self.name)
         for alias in self.aliasGroups:
             self.env.Alias(alias, iProg, "Build group " + alias)
         return prog
