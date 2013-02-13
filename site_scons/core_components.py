@@ -149,7 +149,19 @@ class HeaderOnlyComponent(Component):
 
     def Process(self, called_from_subclass=False):
         Component.Process(self)
-        # we add astyle to all the components that can have a header (includes
+        #if not called_from_subclass:
+            ## -----> BEGIN: Create target for cccc.
+            ## Create the 'target', it is the directory where the result will be put.
+            #target = self.env.Dir(self.env['BUILD_DIR']).Dir('cccc').Dir(self.name)
+            ## Create the list of the 'sources' files that cccc needs.
+            #sources = []
+            #for x in self.extInc:
+                #if os.path.isfile(x):
+                    #sources.append(self.env.File(x))
+            #cccc = self.env.RunCCCC(target, sources)
+            #self.env.Alias(self.name + ":cccc", cccc, 'Generate software metrics for ' + self.name)
+            ## -----> END: Create target for cccc.
+        # We add astyle to all the components that can have a header (includes
         # the ones that have source)
         filters = []
         filters.extend(headersFilter)
@@ -246,17 +258,17 @@ class SourcedComponent(HeaderOnlyComponent):
 
     def Process(self):
         HeaderOnlyComponent.Process(self,True)
-        #print self.name
-        #import ipdb; ipdb.set_trace()
+        # -----> BEGIN: Create target for cccc.
+        # Create the 'target', it is the directory where the result will be put.
         target = self.env.Dir(self.env['BUILD_DIR']).Dir('cccc').Dir(self.name)
+        # Create the list of the 'sources' files that cccc needs.
         sources = []
         for x in self.src + self.inc:
-            try:
+            if os.path.isfile(x):
                 sources.append(self.env.File(x))
-            except TypeError:
-                pass
-        cccc = self.env.RunCCCC(sources, target)
+        cccc = self.env.RunCCCC(target, sources)
         self.env.Alias(self.name + ":cccc", cccc, 'Generate software metrics for ' + self.name)
+        # -----> END: Create target for cccc.
 
         
 class StaticLibraryComponent(SourcedComponent):

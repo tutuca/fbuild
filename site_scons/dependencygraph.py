@@ -43,7 +43,6 @@ def init(env):
     SConsEnvironment.CreateDoc = CreateDoc
     SConsEnvironment.CreatePdfLatex = CreatePdfLatex
     SConsEnvironment.CreateMemReport = CreateMemReport
-    SConsEnvironment.CreateCCCC = CreateCCCC
 
 class ComponentDictionary(dict):
 
@@ -180,26 +179,6 @@ def CreateAutoToolsProject(env, name, ext_dir, lib_targets, configurationFile, a
                                         lib_targets,
                                         configurationFile,
                                         aliasGroups))
-
-def CreateCCCC(env, name, sources, aliasGroups=None):
-    #import ipdb; ipdb.set_trace()
-    # Create the name for the target.
-    targetName = name + ':cccc'
-    # Check aliasGroups, if it's None we make it an empty list.
-    if aliasGroups is None:
-        aliasGroups = []
-    # Create a CCCCComponent.
-    cccc = CCCCComponent (
-        componentGraph,
-        env,
-        targetName,
-        env.Dir('.'),
-        aliasGroups,
-        name,
-        sources
-    )
-    # Add the CCCC component to the component graph.
-    return componentGraph.add(cccc)
 
 def WalkDirsForSconscripts(env, topdir, ignore = []):
     global componentGraph

@@ -62,7 +62,6 @@ def init(env):
     bldCCCC = Builder(action = SCons.Action.Action(RunCCCC, PrintDummy))
     env.Append(BUILDERS = {'RunCCCC':  bldCCCC})
     env['CCCC_OPTIONS'] = []
-    env['CCCC_INSTALL'] = ''
 
 def PrintDummy(env, source, target):
     return ""
@@ -214,23 +213,16 @@ def RunValgrind(target, source, env):
     )
 
 def RunCCCC(target, source, env):
-    import ipdb; ipdb.set_trace()
-    
+    target = target[0].abspath
     # It tells to cccc the name of the directory that will contain the results.
-    #env.Append(CCCC_OPTIONS = '--outdir=cccc')
-    
-    # Check if the user already set the install path for the cccc results.
-    if not env['CCCC_INSTALL']:
-        # If it is not created, we do it.
-        install_dir = env['INSTALL_BIN_DIR'] + os.sep + 'cccc' + os.sep + target
-        env['CCCC_INSTALL'] = install_dir
+    env.Append(CCCC_OPTIONS = '--outdir='+target)
     # Check if the install directory for the cccc results already exists.
-    if not os.path.exists(env['CCCC_INSTALL']):
-        os.mkdir(env['CCCC_INSTALL'])
+    if not os.path.exists(target):
+        os.makedirs(target)
     # From the env['CCCC_OPTIONS'] we create a string with the options for cccc.
     options = ' '.join([opt for opt in env['CCCC_OPTIONS']])
     # From the 'source' we create a string with the file names for cccc.
-    files = ' '.join([f.name for f in source])
+    files = ' '.join([f.abspath for f in source])
     # Create the command to be pass to subprocess.call()
     cmd = 'cccc %s %s' % (options, files) 
     return subprocess.call(cmd, shell=True)

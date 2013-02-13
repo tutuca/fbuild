@@ -118,19 +118,3 @@ class AutoToolsProjectComponent(Component):
         incs = [os.path.join(self.env['INSTALL_HEADERS_DIR'], self.name)]
         processedComponents.append(self.name)
         return (incs, processedComponents)
-
-#class CCCCComponent(Component):
-    #def __init__(self, componentGraph, env, name, compDir, aliasGroups, project_name="", source=None):
-        #Component.__init__(self, componentGraph, env, name, compDir, [], aliasGroups)
-        #self.project_name = project_name
-        #self.source = source
-
-    #def Process(self):
-        ##import ipdb; ipdb.set_trace()
-        #Component.Process(self)
-        #cccc = self.env.RunCCCC(self.env, self.source, self.project_name)
-        #alias_info = 'Generate software metrics for ' + self.project_name
-        #self.env.Alias(self.name, cccc, alias_info)
-            
-        #for alias in self.aliasGroups:
-            #self.env.Alias(alias, cccc, "Build group " + alias)
