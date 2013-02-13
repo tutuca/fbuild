@@ -146,21 +146,27 @@ class HeaderOnlyComponent(Component):
                     (depIncs, depProcessedComp) = c._getIncludePaths(processedComponents,depth+1)
                     incs.extend(depIncs)
         return (incs, processedComponents)
+    
+    def _create_cccc_target (self, sources):
+        # Create the 'target', it is the directory where the result will be put.
+        target = self.env.Dir(self.env['INSTALL_METRICS_DIR']).Dir('cccc').Dir(self.name)
+        # Set the name of the report file.
+        outdir = target.abspath + os.sep
+        self.env.Append(CCCC_OPTIONS='--html_outfile='+outdir+'MainHTMLReport')
+        # Call RunCCCC().
+        cccc = self.env.RunCCCC(target, sources)
+        # Create an alias to be show when run 'fbuild targets'.
+        self.env.Alias(self.name + ":cccc", cccc, 'Generate software metrics for ' + self.name)
 
     def Process(self, called_from_subclass=False):
         Component.Process(self)
-        #if not called_from_subclass:
-            ## -----> BEGIN: Create target for cccc.
-            ## Create the 'target', it is the directory where the result will be put.
-            #target = self.env.Dir(self.env['BUILD_DIR']).Dir('cccc').Dir(self.name)
-            ## Create the list of the 'sources' files that cccc needs.
-            #sources = []
-            #for x in self.extInc:
-                #if os.path.isfile(x):
-                    #sources.append(self.env.File(x))
-            #cccc = self.env.RunCCCC(target, sources)
-            #self.env.Alias(self.name + ":cccc", cccc, 'Generate software metrics for ' + self.name)
-            ## -----> END: Create target for cccc.
+        # This condition is for the cases when the method is called from a subclass.
+        if not called_from_subclass:
+            # Create the list of the 'sources' files that cccc needs.
+            sources = []
+            for d in self.extInc:
+                sources.extend(findFiles(self.env, d,['*.h']))
+            self._create_cccc_target(sources)
         # We add astyle to all the components that can have a header (includes
         # the ones that have source)
         filters = []
@@ -258,17 +264,12 @@ class SourcedComponent(HeaderOnlyComponent):
 
     def Process(self):
         HeaderOnlyComponent.Process(self,True)
-        # -----> BEGIN: Create target for cccc.
-        # Create the 'target', it is the directory where the result will be put.
-        target = self.env.Dir(self.env['BUILD_DIR']).Dir('cccc').Dir(self.name)
         # Create the list of the 'sources' files that cccc needs.
         sources = []
         for x in self.src + self.inc:
             if os.path.isfile(x):
                 sources.append(self.env.File(x))
-        cccc = self.env.RunCCCC(target, sources)
-        self.env.Alias(self.name + ":cccc", cccc, 'Generate software metrics for ' + self.name)
-        # -----> END: Create target for cccc.
+        self._create_cccc_target(sources)
 
         
 class StaticLibraryComponent(SourcedComponent):
