@@ -127,17 +127,14 @@ class HeaderOnlyComponent(Component):
                 hDir = os.path.join(includeModulePath, rel)
                 (hDirHead, hDirTail) = os.path.split(hDir)
                 incs.append(hDirHead)
-
         # Because we are building from #, we include also compDir as an include
         # path so it finds local includes
         incs.append(self.dir)
         processedComponents.append(self.name)
-
         # Some modules export env.Dir('.') as a path, in those cases, we
         # need to include env['INSTALL_HEADERS_DIR'] as include path, this is
         # dangerous since it will be possible to refer to other modules
         #incs.append(self.env['INSTALL_HEADERS_DIR'])
-
         for dep in self.deps:
             # Only process the dep if it was not already processed
             if dep not in processedComponents:
@@ -149,11 +146,47 @@ class HeaderOnlyComponent(Component):
                     (depIncs, depProcessedComp) = c._getIncludePaths(processedComponents,depth+1)
                     incs.extend(depIncs)
         return (incs, processedComponents)
+    
+    def _create_cccc_target (self, sources):
+        # Create the 'target', it is the directory where the result will be put.
+        target = self.env.Dir(self.env['INSTALL_METRICS_DIR']).Dir('cccc').Dir(self.name)
+        # Set the name of the report file.
+        outdir = target.abspath + os.sep
+        self.env.Append(CCCC_OPTIONS='--html_outfile='+outdir+'MainHTMLReport')
+        # Call RunCCCC().
+        cccc = self.env.RunCCCC(target, sources)
+        # Create an alias to be show when run 'fbuild targets'.
+        self.env.Alias(self.name + ":cccc", cccc, 'Generate software metrics for ' + self.name)
+    
+    def _create_cloc_target (self, sources):
+        # Create the 'target', it is the directory where the result will be put.
+        target = self.env.Dir(self.env['INSTALL_METRICS_DIR']).Dir('cloc').Dir(self.name)
+        # Set the name of the report file.
+        outdir = target.abspath
+        if self.env['CLOC_OUTPUT_FORMAT'] == 'txt':
+            self.env.Append(CLOC_OPTIONS = '--out=%s/MainTXTReport' % outdir)
+        elif self.env['CLOC_OUTPUT_FORMAT'] == 'sql':
+            self.env.Append(CLOC_OPTIONS = '--sql=%s/MainSQLReport' % outdir)
+        elif self.env['CLOC_OUTPUT_FORMAT'] == 'xml':
+            self.env.Append(CLOC_OPTIONS = '--xml --out=%s/MainXMLReport' % outdir)
+        else:
+            raise ValueError("Not valid value for CLOC_OUTPUT_FORMAT",self.env['CLOC_OUTPUT_FORMAT'])
+        # Call RunCLOC().
+        cloc = self.env.RunCLOC(target, sources)
+        # Create an alias to be show when run 'fbuild targets'.
+        self.env.Alias(self.name + ":cloc", cloc, 'Generate software metrics for ' + self.name)
 
-    def Process(self):
+    def Process(self, called_from_subclass=False):
         Component.Process(self)
-
-        # we add astyle to all the components that can have a header (includes
+        # This condition is for the cases when the method is called from a subclass.
+        if not called_from_subclass:
+            # Create the list of the 'sources' files that cccc needs.
+            sources = []
+            for d in self.extInc:
+                sources.extend(findFiles(self.env, d,['*.h']))
+            self._create_cccc_target(sources)
+            self._create_cloc_target(sources)
+        # We add astyle to all the components that can have a header (includes
         # the ones that have source)
         filters = []
         filters.extend(headersFilter)
@@ -162,7 +195,6 @@ class HeaderOnlyComponent(Component):
         target = self.env.Dir(self.env['BUILD_DIR']).Dir('astyle').Dir(self.name)
         astyleOut = self.env.RunAStyle(target, sources)
         self.env.Alias(self.name + ':astyle', astyleOut, "Runs astyle on " + self.name)
-
         # If the component doesnt have external headers, we dont process it since
         # there is nothing to install
         if len(self.extInc) > 0:
@@ -250,8 +282,16 @@ class SourcedComponent(HeaderOnlyComponent):
         return (libs, libpaths, processedComponents)
 
     def Process(self):
-        HeaderOnlyComponent.Process(self)
+        HeaderOnlyComponent.Process(self,True)
+        # Create the list of the 'sources' files that cccc needs.
+        sources = []
+        for x in self.src + self.inc:
+            if os.path.isfile(x):
+                sources.append(self.env.File(x))
+        self._create_cccc_target(sources)
+        self._create_cloc_target(sources)
 
+        
 class StaticLibraryComponent(SourcedComponent):
     def __init__(self, componentGraph, env, name, compDir, deps, inc, extInc, src, aliasGroups):
         SourcedComponent.__init__(self, componentGraph, env, name, compDir, deps, inc, extInc, src, aliasGroups)
@@ -313,11 +353,15 @@ class ProgramComponent(SourcedComponent):
     def __init__(self, componentGraph, env, name, compDir, deps, inc, src, aliasGroups):
         SourcedComponent.__init__(self, componentGraph, env, name, compDir, deps, inc, [], src, aliasGroups)
         self.shouldBeLinked = False
+    
+    def _create_valgrind_target(self):
+        vld = self.env.RunValgrind(None, [self.env.File(self.name)])
+        self.env.Alias(self.name+":valgrind", vld, 'Run valgrind for %s' % self.name)
 
     def Process(self):
         SourcedComponent.Process(self)
+        self._create_valgrind_target()
         incpaths = self.getIncludePaths()
-
         (libs,libpaths) = self.getLibs()
         target = os.path.join(self.env['INSTALL_LIB_DIR'], self.name)
         prog = self.env.Program(target, self.find_sources(), CPPPATH=incpaths, LIBS=libs, LIBPATH=libpaths)

@@ -75,6 +75,12 @@ def init(env,vars,args):
             'install docs directory',
             os.path.join(INSTALL_DIR, "docs"),
             PathVariable.PathIsDirCreate))
+    vars.AddVariables(
+        PathVariable(
+            'INSTALL_METRICS_DIR',
+            'software metrics directory',
+            os.path.join(INSTALL_DIR, "metrics"),
+            PathVariable.PathIsDirCreate))
     
     vars.Update(env)
 

@@ -37,28 +37,11 @@ class PdfLaTeXComponent(Component):
         for alias in self.aliasGroups:
             self.env.Alias(alias, pdf, "Build group " + alias)
 
-class ValgrindComponent(Component):
-    def __init__(self, componentGraph, env, name, compDir, aliasGroups, project_name=""):
-        Component.__init__(self, componentGraph, env, name, compDir, [], aliasGroups)
-        self.project_name = project_name
-
-    def Process(self):
-        Component.Process(self)
-        targetExecDir = self.env.Dir(self.env['BUILD_DIR'])\
-                                .Dir(self.project_name).Dir("tests")
-        txt = self.env.RunValgrind('mili.txt', targetExecDir.abspath + "/" + self.project_name + ":test")
-        self.env.Clean(txt, targetExecDir)
-        self.env.Alias(self.name, txt, 'Generate ' + self.project_name +
-            ' memory report for ' + self.project_name)
-
-        for alias in self.aliasGroups:
-            self.env.Alias(alias, txt, "Build group " + alias)
-
 class DocComponent(Component):
     def __init__(self, componentGraph, env, name, compDir, doxyfile, aliasGroups):
         Component.__init__(self, componentGraph, env, name, compDir, [], aliasGroups)
         self.doxyfile = doxyfile
-
+    
     def Process(self):
         Component.Process(self)
         targetDocDir = self.env.Dir(self.env['INSTALL_DOC_DIR']).Dir(self.name)
@@ -103,7 +86,7 @@ class AutoToolsProjectComponent(Component):
         libs = []
         if depth > 0:
             libs.append(self.name)
-            # For static libraries lookup:
+            # For statienvc libraries lookup:
             libpaths.append(self.env['INSTALL_LIB_DIR'])
             # For dynamic libraries lookup:
             libpaths.append(self.env['INSTALL_BIN_DIR'])
