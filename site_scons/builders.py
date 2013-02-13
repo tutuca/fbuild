@@ -63,6 +63,11 @@ def init(env):
     env.Append(BUILDERS = {'RunCCCC':  bldCCCC})
     env['CCCC_OPTIONS'] = []
 
+    bldCLOC = Builder(action = SCons.Action.Action(RunCLOC, PrintDummy))
+    env.Append(BUILDERS = {'RunCLOC':  bldCLOC})
+    env['CLOC_OUTPUT_FORMAT'] = 'txt' # txt | sql | xml
+    env['CLOC_OPTIONS'] = []
+
 def PrintDummy(env, source, target):
     return ""
 
@@ -214,7 +219,7 @@ def RunValgrind(target, source, env):
 
 def RunCCCC(target, source, env):
     target = target[0].abspath
-    # It tells to cccc the name of the directory that will contain the results.
+    # It tells to cccc the name of the directory that will contain the result.
     env.Append(CCCC_OPTIONS = '--outdir=%s' % target)
     # Check if the install directory for the cccc results already exists.
     if not os.path.exists(target):
@@ -230,3 +235,16 @@ def RunCCCC(target, source, env):
     rm = "cd %s; rm -f *.*; mv MainHTMLReport MainHTMLReport.html" % target
     subprocess.call(rm, shell=True)
     return ret_val
+
+def RunCLOC(target, source, env):
+    target = target[0].abspath
+    # Check if the install directory for the cloc results already exists.
+    if not os.path.exists(target):
+        os.makedirs(target)
+    # From the env['CLOC_OPTIONS'] we create a string with the options for cloc.
+    options = ' '.join([opt for opt in env['CLOC_OPTIONS']])
+    # From the 'source' we create a string with the file names for cloc.
+    files = ' '.join([f.abspath for f in source])
+    # Create the command to be pass to subprocess.call()
+    cmd = 'cloc %s %s' % (options, files)
+    return subprocess.call(cmd, shell=True)

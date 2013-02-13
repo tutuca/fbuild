@@ -157,6 +157,24 @@ class HeaderOnlyComponent(Component):
         cccc = self.env.RunCCCC(target, sources)
         # Create an alias to be show when run 'fbuild targets'.
         self.env.Alias(self.name + ":cccc", cccc, 'Generate software metrics for ' + self.name)
+    
+    def _create_cloc_target (self, sources):
+        # Create the 'target', it is the directory where the result will be put.
+        target = self.env.Dir(self.env['INSTALL_METRICS_DIR']).Dir('cloc').Dir(self.name)
+        # Set the name of the report file.
+        outdir = target.abspath
+        if self.env['CLOC_OUTPUT_FORMAT'] == 'txt':
+            self.env.Append(CLOC_OPTIONS = '--out=%s/MainTXTReport' % outdir)
+        elif self.env['CLOC_OUTPUT_FORMAT'] == 'sql':
+            self.env.Append(CLOC_OPTIONS = '--sql=%s/MainSQLReport' % outdir)
+        elif self.env['CLOC_OUTPUT_FORMAT'] == 'xml':
+            self.env.Append(CLOC_OPTIONS = '--xml --out=%s/MainXMLReport' % outdir)
+        else:
+            raise ValueError("Not valid value for CLOC_OUTPUT_FORMAT",self.env['CLOC_OUTPUT_FORMAT'])
+        # Call RunCLOC().
+        cloc = self.env.RunCLOC(target, sources)
+        # Create an alias to be show when run 'fbuild targets'.
+        self.env.Alias(self.name + ":cloc", cloc, 'Generate software metrics for ' + self.name)
 
     def Process(self, called_from_subclass=False):
         Component.Process(self)
@@ -167,6 +185,7 @@ class HeaderOnlyComponent(Component):
             for d in self.extInc:
                 sources.extend(findFiles(self.env, d,['*.h']))
             self._create_cccc_target(sources)
+            self._create_cloc_target(sources)
         # We add astyle to all the components that can have a header (includes
         # the ones that have source)
         filters = []
@@ -270,6 +289,7 @@ class SourcedComponent(HeaderOnlyComponent):
             if os.path.isfile(x):
                 sources.append(self.env.File(x))
         self._create_cccc_target(sources)
+        self._create_cloc_target(sources)
 
         
 class StaticLibraryComponent(SourcedComponent):
