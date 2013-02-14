@@ -52,6 +52,9 @@
     <project name="nuca"
              repository_type="HG" 
              repository_url="https://code.google.com/p/nuca" />
+    <project name="dummy"
+             repository_type="HG"
+             repository_url="/opt/dummy/"/>
     <project name="odeint"
              repository_type="WGET" 
              repository_url="http://github.com/headmyshoulder/odeint-v2/tarball/master">
@@ -89,6 +92,9 @@ cp #/site_scons/external/odeintSConscript #/projects/odeint/SConscript</execute_
     <project name="xdrfile"
              repository_type="WGET" 
              repository_url="ftp://ftp.gromacs.org/pub/contrib/xdrfile-1.1.tar.gz">
+    <project name="deleteable"
+             repository_type="SVN"
+             repository_url="http://deleteable.googlecode.com/svn/trunk/" />
         <execute_after>mkdir #/xdrfile2
 tar zxvf {WS_DIR}/xdrfile/xdrfile-1.1.tar.gz -C #/xdrfile2
 rm -r {WS_DIR}/xdrfile

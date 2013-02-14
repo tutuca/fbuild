@@ -147,7 +147,7 @@ class HeaderOnlyComponent(Component):
                     incs.extend(depIncs)
         return (incs, processedComponents)
     
-    def _create_cccc_target (self, sources):
+    def _create_cccc_target(self, sources):
         # Create the 'target', it is the directory where the result will be put.
         target = self.env.Dir(self.env['INSTALL_METRICS_DIR']).Dir('cccc').Dir(self.name)
         # Set the name of the report file.
@@ -156,9 +156,9 @@ class HeaderOnlyComponent(Component):
         # Call RunCCCC().
         cccc = self.env.RunCCCC(target, sources)
         # Create an alias to be show when run 'fbuild targets'.
-        self.env.Alias(self.name + ":cccc", cccc, 'Generate software metrics for ' + self.name)
+        self.env.Alias(self.name+":cccc", cccc, 'Generate software metrics for %s' % self.name)
     
-    def _create_cloc_target (self, sources):
+    def _create_cloc_target(self, sources):
         # Create the 'target', it is the directory where the result will be put.
         target = self.env.Dir(self.env['INSTALL_METRICS_DIR']).Dir('cloc').Dir(self.name)
         # Set the name of the report file.
@@ -174,18 +174,27 @@ class HeaderOnlyComponent(Component):
         # Call RunCLOC().
         cloc = self.env.RunCLOC(target, sources)
         # Create an alias to be show when run 'fbuild targets'.
-        self.env.Alias(self.name + ":cloc", cloc, 'Generate software metrics for ' + self.name)
+        self.env.Alias(self.name+":cloc", cloc, 'Generate software metrics for %s' % self.name)
+    
+    def _create_cppcheck_target(self, sources):
+        # Create the 'target', it is the directory where the result will be put.
+        target = self.env.Dir(self.env['INSTALL_METRICS_DIR']).Dir('cppcheck').Dir(self.name)
+        # Call RunCppCheck().
+        cppcheck = self.env.RunCppCheck(target, sources)
+        # Create an alias to be show when run 'fbuild targets'.
+        self.env.Alias(self.name+":cppcheck", cppcheck, 'C/C++ code analyse for %s' % self.name)
 
     def Process(self, called_from_subclass=False):
         Component.Process(self)
         # This condition is for the cases when the method is called from a subclass.
         if not called_from_subclass:
-            # Create the list of the 'sources' files that cccc needs.
+            # Create the list of the 'sources' files.
             sources = []
             for d in self.extInc:
                 sources.extend(findFiles(self.env, d,['*.h']))
             self._create_cccc_target(sources)
             self._create_cloc_target(sources)
+            self._create_cppcheck_target(sources)
         # We add astyle to all the components that can have a header (includes
         # the ones that have source)
         filters = []
@@ -283,13 +292,14 @@ class SourcedComponent(HeaderOnlyComponent):
 
     def Process(self):
         HeaderOnlyComponent.Process(self,True)
-        # Create the list of the 'sources' files that cccc needs.
+        # Create the list of the 'sources' files.
         sources = []
         for x in self.src + self.inc:
             if os.path.isfile(x):
                 sources.append(self.env.File(x))
         self._create_cccc_target(sources)
         self._create_cloc_target(sources)
+        self._create_cppcheck_target(sources)
 
         
 class StaticLibraryComponent(SourcedComponent):
