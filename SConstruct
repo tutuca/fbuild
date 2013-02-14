@@ -17,12 +17,12 @@
 # You should have received a copy of the GNU General Public License
 # along with fudepan-build.  If not, see <http://www.gnu.org/licenses/>.
 
-#import os
-#import platform
-#import sys
-import SCons
 import extension_qt
-import ipdb; ipdb.set_trace()
+#import platform
+import SCons
+#import sys
+#import os
+
 env = Environment()
 
 hasQt = extension_qt.hasQt(env)
