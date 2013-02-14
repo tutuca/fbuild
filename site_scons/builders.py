@@ -57,7 +57,7 @@ def init(env):
 
     bldValgrind = Builder(action = SCons.Action.Action(RunValgrind, PrintDummy))
     env.Append(BUILDERS = {'RunValgrind':  bldValgrind})
-    env['VALGRIND_OPTIONS'] = ''
+    env['VALGRIND_OPTIONS'] = ' --leak-check=full --show-reachable=yes --error-limit=no '
 
     bldCCCC = Builder(action = SCons.Action.Action(RunCCCC, PrintDummy))
     env.Append(BUILDERS = {'RunCCCC':  bldCCCC})
@@ -210,12 +210,8 @@ def RunPdfLatex(target, source, env):
 #    env.Execute(env.Delete(tmpPdf2TexDir))
 
 def RunValgrind(target, source, env):
-    return subprocess.call(
-        'valgrind ' + env['VALGRIND_OPTIONS']
-        + '--leak-check=full --show-reachable=yes --error-limit=no ' +
-        source[0].abspath + ' > ' + source[0].abspath.split(":")[0] + '.txt',
-        shell = True
-    )
+    cmd = 'valgrind %s %s' % (env['VALGRIND_OPTIONS'], source[0].abspath)
+    return subprocess.call(cmd, shell=True)
 
 def RunCCCC(target, source, env):
     target = target[0].abspath

@@ -357,14 +357,15 @@ class ProgramComponent(SourcedComponent):
     def Process(self):
         SourcedComponent.Process(self)
         incpaths = self.getIncludePaths()
-
         (libs,libpaths) = self.getLibs()
         target = os.path.join(self.env['INSTALL_LIB_DIR'], self.name)
         prog = self.env.Program(target, self.find_sources(), CPPPATH=incpaths, LIBS=libs, LIBPATH=libpaths)
         iProg = self.env.Install(self.env['INSTALL_BIN_DIR'], prog)
+        rvalg = self.env.RunValgrind(self.name+"-valgrind", target)
         self.env.Alias(self.name, iProg, "Build and install " + self.name)
         self.env.Alias('all:build', prog, "Build all targets")
         self.env.Alias('all:install', iProg, "Install all targets")
+        self.env.Alias(self.name+":valgrind", [iProg,rvalg], 'Run valgrind for %s' % self.name)
         for alias in self.aliasGroups:
             self.env.Alias(alias, iProg, "Build group " + alias)
         return prog

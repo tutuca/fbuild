@@ -41,7 +41,7 @@ def init(env):
     SConsEnvironment.CreateTest = CreateTest
     SConsEnvironment.CreateAutoToolsProject = CreateAutoToolsProject
     SConsEnvironment.CreateDoc = CreateDoc
-    SConsEnvironment.CreatePdfLatex = CreatePdfLatex
+    SConsEnvironment.CreatePdfLaTeX = CreatePdfLaTeX
     SConsEnvironment.CreateMemReport = CreateMemReport
 
 class ComponentDictionary(dict):
@@ -139,10 +139,11 @@ def CreateTest(env, name, inc, src, deps, aliasGroups = []):
                                          src,
                                          aliasGroups))
 
-def CreatePdfLatex(env, name, latexfile = '', options='', aliasGroups = []):
+def CreatePdfLaTeX(env, name, latexfile = '', options='', aliasGroups = []):
     docName = name + ':pdf:' + latexfile
+    latexfile = env['INSTALL_DOC_DIR'] + "/" + name + ":doc/latex/" + latexfile
     env['PDFLATEX_OPTIONS'] = options
-    return componentGraph.add(PdfLatexComponent(componentGraph,
+    return componentGraph.add(PdfLaTeXComponent(componentGraph,
                                     env,
                                     docName,
                                     env.Dir('.'),
@@ -150,7 +151,7 @@ def CreatePdfLatex(env, name, latexfile = '', options='', aliasGroups = []):
                                     aliasGroups))
 
 def CreateMemReport(env, name, options='', aliasGroups=[]):
-    docName = name + ':memreport'
+    docName = name + ':valgrind'
     env['VALGRIND_OPTIONS'] = options
     return componentGraph.add(ValgrindComponent(componentGraph,
                                     env,
