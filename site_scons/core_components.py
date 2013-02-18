@@ -396,8 +396,10 @@ class UnitTestComponent(ProgramComponent):
         CXXFLAGS.append('-Wno-sign-compare')
         self.env.Replace(CXXFLAGS=CXXFLAGS, CFLAGS=CXXFLAGS)
 
-        # Should it bea call to ProgramComponent.Process() ??
-        SourcedComponent.Process(self)
+        # Should it be a call to ProgramComponent.Process() ??
+        # Right now we do not need a call like that, because we don't want 
+        # 'astyle', 'cccc', 'cloc' nether 'cppcheck' for test.
+        # SourcedComponent.Process(self)
 
         incpaths = self.getIncludePaths()
         (libs,libpaths) = self.getLibs()
