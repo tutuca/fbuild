@@ -57,7 +57,7 @@ def init(env):
 
     bldValgrind = Builder(action = SCons.Action.Action(RunValgrind, PrintDummy))
     env.Append(BUILDERS = {'RunValgrind':  bldValgrind})
-    env['VALGRIND_OPTIONS'] = ''
+    env['VALGRIND_OPTIONS'] = ' --leak-check=full --show-reachable=yes --error-limit=no '
 
     bldCCCC = Builder(action = SCons.Action.Action(RunCCCC, PrintDummy))
     env.Append(BUILDERS = {'RunCCCC':  bldCCCC})
@@ -67,6 +67,10 @@ def init(env):
     env.Append(BUILDERS = {'RunCLOC':  bldCLOC})
     env['CLOC_OUTPUT_FORMAT'] = 'txt' # txt | sql | xml
     env['CLOC_OPTIONS'] = []
+    
+    bldCppCheck = Builder(action = SCons.Action.Action(RunCppCheck, PrintDummy))
+    env.Append(BUILDERS = {'RunCppCheck':bldCppCheck})
+    env['CPPCHECK_OPTIONS'] = []
 
 def PrintDummy(env, source, target):
     return ""
@@ -210,12 +214,8 @@ def RunPdfLatex(target, source, env):
 #    env.Execute(env.Delete(tmpPdf2TexDir))
 
 def RunValgrind(target, source, env):
-    return subprocess.call(
-        'valgrind ' + env['VALGRIND_OPTIONS']
-        + '--leak-check=full --show-reachable=yes --error-limit=no ' +
-        source[0].abspath + ' > ' + source[0].abspath.split(":")[0] + '.txt',
-        shell = True
-    )
+    cmd = 'valgrind %s %s' % (env['VALGRIND_OPTIONS'], source[0].abspath)
+    return subprocess.call(cmd, shell=True)
 
 def RunCCCC(target, source, env):
     target = target[0].abspath
@@ -247,4 +247,19 @@ def RunCLOC(target, source, env):
     files = ' '.join([f.abspath for f in source])
     # Create the command to be pass to subprocess.call()
     cmd = 'cloc %s %s' % (options, files)
+    return subprocess.call(cmd, shell=True)
+
+def RunCppCheck(target, source, env):
+    target = target[0].abspath
+    # Check if the install directory for the cppcheck results already exists.
+    if not os.path.exists(target):
+        os.makedirs(target)
+    # We create a string with the options for cppcheck.
+    options = ' '.join([opt for opt in env['CPPCHECK_OPTIONS']])
+    # We create a string with the files for cppcheck.
+    files = ' '.join([f.abspath for f in source])
+    # Set the name of the report file.
+    outfile = "%s/ErrorReport.txt" % target
+    # Create the command to be pass to subprocess.call()
+    cmd = 'cppcheck %s %s > %s' % (options, files, outfile)
     return subprocess.call(cmd, shell=True)
