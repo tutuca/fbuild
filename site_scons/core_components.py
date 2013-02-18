@@ -386,6 +386,7 @@ class UnitTestComponent(ProgramComponent):
         CXXFLAGS.append('-Wno-sign-compare')
         self.env.Replace(CXXFLAGS=CXXFLAGS, CFLAGS=CXXFLAGS)
 
+        # Should it bea call to ProgramComponent.Process() ??
         SourcedComponent.Process(self)
 
         incpaths = self.getIncludePaths()
