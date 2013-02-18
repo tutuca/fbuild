@@ -361,11 +361,9 @@ class ProgramComponent(SourcedComponent):
         target = os.path.join(self.env['INSTALL_LIB_DIR'], self.name)
         prog = self.env.Program(target, self.find_sources(), CPPPATH=incpaths, LIBS=libs, LIBPATH=libpaths)
         iProg = self.env.Install(self.env['INSTALL_BIN_DIR'], prog)
-        rvalg = self.env.RunValgrind(self.name+"-valgrind", target)
         self.env.Alias(self.name, iProg, "Build and install " + self.name)
         self.env.Alias('all:build', prog, "Build all targets")
         self.env.Alias('all:install', iProg, "Install all targets")
-        self.env.Alias(self.name+":valgrind", [iProg,rvalg], 'Run valgrind for %s' % self.name)
         for alias in self.aliasGroups:
             self.env.Alias(alias, iProg, "Build group " + alias)
         return prog
@@ -401,6 +399,17 @@ class UnitTestComponent(ProgramComponent):
         target = os.path.join(self.dir, self.name + '.passed')
         tTest = self.env.RunUnittest(target, prog)
 
+        # Adding valgrind for tests.
+        if self.name.endswith(':test'):
+            name = self.name.split(':')[0]
+            vtname = '%s:valgrind' % name
+        else:
+            name = self.name
+            vtname = '%s:valgrind' % name
+        tvalg = os.path.join(self.env['INSTALL_LIB_DIR'], self.name)
+        rvalg = self.env.RunValgrind(vtname, prog)
+        self.env.Alias(vtname, [tTest,rvalg], 'Run valgrind for %s test' % name)
+
         if self.env.GetOption('gcoverage'):
             project = self.componentGraph.get(self.name.split(':')[0])
             self.env['PROJECT_DIR'] = project.dir
@@ -410,7 +419,7 @@ class UnitTestComponent(ProgramComponent):
             self.env.Depends(lcov, tTest)
             self.env.AlwaysBuild(tTest)
             self.env.Alias(self.name, lcov)
-        
+
         if self.env.GetOption('forcerun'):
             self.env.AlwaysBuild(tTest)
 
@@ -422,7 +431,7 @@ class UnitTestComponent(ProgramComponent):
 
         for alias in self.aliasGroups:
             self.env.Alias(alias, tTest, "Build group " + alias)
-    
+
     def getIncludePaths(self):
         includes = super(UnitTestComponent, self).getIncludePaths()
         project = self.componentGraph.get(self.name.split(':')[0])
