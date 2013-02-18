@@ -27,7 +27,7 @@
 # i.e. for windows a env.bat should be created.
 
 # Please try not to much too much logic here, we should maintain this file 
-# as simple as possible.
+# as simple as possible
 
 # Detect internet connectivity
 if [ -z "$(ip r | grep default | cut -d ' ' -f 3)" ]; then
@@ -92,6 +92,7 @@ if [ "$?" -ne "0" ]; then return $?; fi
 check_install valgrind false
 if [ "$?" -ne "0" ]; then return $?; fi
 check_install cppcheck false
+if [ "$?" -ne "0" ]; then return $?; fi
 
 if [ "$(astyle -V 2>&1 | cut -f4 -d' ' | sed 's/\..*//' | bc)" -lt "2" ]; then
     echo -e "\e[0;31m[error] AStyle version should be >= 2\e[0m"
