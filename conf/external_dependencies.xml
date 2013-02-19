@@ -1,0 +1,11 @@
+<esternal_dependencies>
+    <!-- IMPORTANT: Please maintain alphabetical order based on name to ease maintenance -->
+    <component
+        name="gtest"
+        repository_type="SVN" 
+        repository_url="https://googletest.googlecode.com/svn/tags/release-1.6.0">
+        <execute_after>
+            cp #/site_scons/external/gtestSConscript {WS_DIR}/gtest/SConscript
+        </execute_after>
+    </component>
+</esternal_dependencies>

@@ -195,7 +195,7 @@ def WalkDirsForSconscripts(env, topdir, ignore = []):
         # Check if there is a component that we dont know how to build
         for component in componentGraph.getComponentsNames():
             c = componentGraph.get(component)
-            if not c:
+            if c is None:
                 # check if we know how to download this component
                 downloadedDependencies = env.CheckoutDependencyNow(component)
             else:

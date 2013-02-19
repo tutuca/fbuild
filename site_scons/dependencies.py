@@ -22,9 +22,10 @@
 #
 
 import os.path
-import SCons
 import subprocess
-from termcolor import cprint, cformat
+from termcolor import cformat
+from termcolor import cprint
+import SCons
 
 projects = {}
 
@@ -77,6 +78,52 @@ def createDependenciesTargets(env):
             checkoutAction = env.CheckoutDependency(tgt,'SConstruct')
             env.AlwaysBuild( env.Alias(tgt, checkoutAction, 'checkout ' + project))
 
+
+def createDependenciesTargets(env):
+    confDir = os.path.join(env.Dir('#').abspath,'conf')
+    projectsFile = os.path.join(confDir, 'projects.xml')
+    
+    from xml.dom.minidom import parse
+    projectsDom = parse(projectsFile)
+    projectElements = projectsDom.getElementsByTagName('project') 
+    for projectElement in projectElements:
+        projectName = projectElement.getAttribute('name')
+        if projects.has_key(projectName) > 0:
+            env.cprint('[warn] project ' + projectName 
+                       + ' information is duplicated in the projects.xml file', 'yellow')
+        else:
+            projectType = projectElement.getAttribute('repository_type')
+            project = createDependency(env, projectName, projectType, projectElement)
+            if project:
+                projects[projectName] = project
+        
+    localProjectsFile = os.path.join(confDir, 'projects_local.xml') 
+    if os.path.exists(localProjectsFile):
+        localProjectElements = projectsDom.getElmentsByTagName('project')
+        for localProjectElment in localProjectElements:
+            projectType = projectElement.getAttribute('repository_type')
+            project = createDependency(env, projectName, projectType, projectElement)
+            if project:
+                projects[projectName] = project
+    
+    for project in projects.keys():
+        # Check if the project was already checked out
+        projectDir = os.path.join(env['WS_DIR'],project)
+        if env.Dir(projectDir).exists():
+            tgt = project + ':update'
+            updateAction = env.UpdateDependency(tgt,'SConstruct')
+            env.AlwaysBuild( env.Alias(tgt, updateAction, 'update ' + project))
+            env.Alias('all:update', tgt, 'updates all checked-out projects')
+        else:
+            tgt = project + ':checkout'
+            checkoutAction = env.CheckoutDependency(tgt,'SConstruct')
+            env.AlwaysBuild( env.Alias(tgt, checkoutAction, 'checkout ' + project))
+
+
+def createExternalDependenciesTargets(env):
+    
+
+
 class Dependencies(object):
     def __init__(self, name, target, node, env):
         self.name = name
@@ -109,6 +156,7 @@ class Dependencies(object):
                     return cformat('[error] failed to execute post-checkout command: %s, error: %s' % (cmd, rc), 'red')
         return 0
 
+
 class HG(Dependencies):
     def checkout(self):
         cprint('[hg] checkout %s => %s' % (self.url, self.target), 'purple')
@@ -125,6 +173,7 @@ class HG(Dependencies):
             return cformat('[error] hg failed to update target %s from %s, error: %s' 
                            %(self.target, self.url, rc), 'red')
         return 0
+
 
 class SVN(Dependencies):
     def checkout(self):
@@ -144,6 +193,7 @@ class SVN(Dependencies):
                            % (self.target, self.url, rc), 'red')
         return 0
 
+
 class WGET(Dependencies):
     def checkout(self):
         cprint('[wget] downloading %s => %s' % (self.url, self.target), 'purple')
@@ -160,6 +210,7 @@ class WGET(Dependencies):
         # is a way to know that the version didn't changed from last download
         return 0
 
+
 def createDependency(env, name, type, node):
     target = os.path.join(env['WS_DIR'], name)
     if type == 'HG':
@@ -172,20 +223,25 @@ def createDependency(env, name, type, node):
         cprint('[error] project %s has repository %s which is not supported' 
                % (name, type), 'red')
         return None
-        
+
+
 def CheckoutDependencyMessage(env, source, target):
     return ''
+
 
 def CheckoutDependency(env, source, target):
     dep = str(target[0]).split(':')[0]
     return projects[dep].checkout()
 
+
 def CheckoutDependencyNow(dep):
     d = projects.get(dep)
     return d.checkout() == 0 if d else False
 
+
 def UpdateDependencyMessage(env, source, target):
     return ''
+
 
 def UpdateDependency(env, source, target):
     dep = str(target[0]).split(':')[0]
