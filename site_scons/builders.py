@@ -17,7 +17,6 @@
 # You should have received a copy of the GNU General Public License
 # along with fudepan-build.  If not, see <http://www.gnu.org/licenses/>.
 
-#from SCons.Script.SConscript import SConsEnvironment
 from utils import findFiles, chain_calls
 from SCons.Script import *
 import SCons.Builder
@@ -214,8 +213,13 @@ def RunPdfLatex(target, source, env):
 #    env.Execute(env.Delete(tmpPdf2TexDir))
 
 def RunValgrind(target, source, env):
+    cwd = env.Dir('#').abspath
+    test_dir = source[0].dir.abspath
+    os.chdir(test_dir)
     cmd = 'valgrind %s %s' % (env['VALGRIND_OPTIONS'], source[0].abspath)
-    return subprocess.call(cmd, shell=True)
+    ret_val = subprocess.call(cmd, shell=True)
+    os.chdir(cwd)
+    return ret_val
 
 def RunCCCC(target, source, env):
     target = target[0].abspath
