@@ -214,8 +214,13 @@ def RunPdfLatex(target, source, env):
 #    env.Execute(env.Delete(tmpPdf2TexDir))
 
 def RunValgrind(target, source, env):
+    cwd = env.Dir('#').abspath
+    test_dir = source[0].dir.abspath
+    os.chdir(test_dir)
     cmd = 'valgrind %s %s' % (env['VALGRIND_OPTIONS'], source[0].abspath)
-    return subprocess.call(cmd, shell=True)
+    ret_val = subprocess.call(cmd, shell=True)
+    os.chdir(cwd)
+    return ret_val
 
 def RunCCCC(target, source, env):
     target = target[0].abspath
