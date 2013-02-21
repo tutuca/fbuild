@@ -18,41 +18,48 @@
 # along with fudepan-build.  If not, see <http://www.gnu.org/licenses/>.
 
 #
-# Description: this file contains all the dependecies parse/checkout/update
+# Description: this file contains all the dependencies parse/checkout/update
 #
 
 import os.path
 import subprocess
+from xml.dom import minidom
+from SCons.Script import Builder
+import SCons
 from termcolor import cformat
 from termcolor import cprint
-import SCons
 
 projects = {}
+external_dependencies = {}
 
 def init(env):
-    from SCons.Script import Builder
-    checkoutBuilder = Builder(action = SCons.Action.Action(CheckoutDependency, CheckoutDependencyMessage))
-    env.Append(BUILDERS = {'CheckoutDependency': checkoutBuilder})
-    updateBuilder = Builder(action = SCons.Action.Action(UpdateDependency, UpdateDependencyMessage))
-    env.Append(BUILDERS = {'UpdateDependency': updateBuilder})
+    coDep = SCons.Action.Action(CheckoutDependency, CheckoutDependencyMessage)
+    checkoutBuilder = Builder(action = coDep)
+    env.Append(BUILDERS={'CheckoutDependency': checkoutBuilder})
+    upDep = SCons.Action.Action(UpdateDependency, UpdateDependencyMessage)
+    updateBuilder = Builder(action = upDep)
+    env.Append(BUILDERS={'UpdateDependency': updateBuilder})
     createDependenciesTargets(env)
+    createExternalDependenciesTargets(env)
     env.CheckoutDependencyNow = CheckoutDependencyNow
     
 def createDependenciesTargets(env):
     confDir = os.path.join(env.Dir('#').abspath,'conf')
     projectsFile = os.path.join(confDir, 'projects.xml')
     
-    from xml.dom.minidom import parse
-    projectsDom = parse(projectsFile)
+    projectsDom = minidom.parse(projectsFile)
     projectElements = projectsDom.getElementsByTagName('project') 
     for projectElement in projectElements:
         projectName = projectElement.getAttribute('name')
         if projects.has_key(projectName) > 0:
-            env.cprint('[warn] project ' + projectName 
-                       + ' information is duplicated in the projects.xml file', 'yellow')
+            env.cprint (
+                '[warn] project '+projectName+' information is duplicated in'+\
+                ' the projects.xml file',
+                'yellow'
+            )
         else:
             projectType = projectElement.getAttribute('repository_type')
-            project = createDependency(env, projectName, projectType, projectElement)
+            project = createDependency(env,projectName,projectType,projectElement)
             if project:
                 projects[projectName] = project
         
@@ -61,48 +68,7 @@ def createDependenciesTargets(env):
         localProjectElements = projectsDom.getElmentsByTagName('project')
         for localProjectElment in localProjectElements:
             projectType = projectElement.getAttribute('repository_type')
-            project = createDependency(env, projectName, projectType, projectElement)
-            if project:
-                projects[projectName] = project
-    
-    for project in projects.keys():
-        # Check if the project was already checked out
-        projectDir = os.path.join(env['WS_DIR'],project)
-        if env.Dir(projectDir).exists():
-            tgt = project + ':update'
-            updateAction = env.UpdateDependency(tgt,'SConstruct')
-            env.AlwaysBuild( env.Alias(tgt, updateAction, 'update ' + project))
-            env.Alias('all:update', tgt, 'updates all checked-out projects')
-        else:
-            tgt = project + ':checkout'
-            checkoutAction = env.CheckoutDependency(tgt,'SConstruct')
-            env.AlwaysBuild( env.Alias(tgt, checkoutAction, 'checkout ' + project))
-
-
-def createDependenciesTargets(env):
-    confDir = os.path.join(env.Dir('#').abspath,'conf')
-    projectsFile = os.path.join(confDir, 'projects.xml')
-    
-    from xml.dom.minidom import parse
-    projectsDom = parse(projectsFile)
-    projectElements = projectsDom.getElementsByTagName('project') 
-    for projectElement in projectElements:
-        projectName = projectElement.getAttribute('name')
-        if projects.has_key(projectName) > 0:
-            env.cprint('[warn] project ' + projectName 
-                       + ' information is duplicated in the projects.xml file', 'yellow')
-        else:
-            projectType = projectElement.getAttribute('repository_type')
-            project = createDependency(env, projectName, projectType, projectElement)
-            if project:
-                projects[projectName] = project
-        
-    localProjectsFile = os.path.join(confDir, 'projects_local.xml') 
-    if os.path.exists(localProjectsFile):
-        localProjectElements = projectsDom.getElmentsByTagName('project')
-        for localProjectElment in localProjectElements:
-            projectType = projectElement.getAttribute('repository_type')
-            project = createDependency(env, projectName, projectType, projectElement)
+            project = createDependency(env,projectName,projectType,projectElement)
             if project:
                 projects[projectName] = project
     
@@ -121,10 +87,48 @@ def createDependenciesTargets(env):
 
 
 def createExternalDependenciesTargets(env):
-    
+    # Path to the Configuration Directorie.
+    confDir = os.path.join(env.Dir('#').abspath,'conf')
+    # Path to the 'external_dependencies.xml' file.
+    extDepsFile = os.path.join(confDir, 'external_dependencies.xml')
+    # Parse the xml file and loads all the external dependecies in the 
+    # external_dependencies dictionary.
+    extDepsDom = minidom.parse(extDepsFile)
+    componentElements = extDepsDom.getElementsByTagName('component')
+    for componentElement in componentElements:
+        componentName = componentElement.getAttribute('name')
+        # If the component name already exists within the external dependencies
+        # dictionary, we have duplicated information into the external_dependencies
+        # xml file.
+        if external_dependencies.has_key(componentName) > 0:
+            env.cprint('[warn] component ' + componentName + \
+                       ' information is duplicated in the ' + \
+                       'external_dependencies.xml file', 'yellow')
+        else:
+            componentType = componentElement.getAttribute('repository_type')
+            dep=createDependency(env,componentName,componentType,componentElement)
+            if not dep is None:
+                external_dependencies[componentName] = dep
+    # Check if each component is already installed.
+    for component in external_dependencies.keys():
+        if False:
+            #
+            #
+            #
+            # COMPLETE HERE!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+            #
+            #
+            #
+            pass
+        else:
+            tgt = '%s:install' % component
+            checkoutAction = env.CheckoutDependency(tgt,'SConstruct')
+            alias = env.Alias(tgt, checkoutAction, 'Install %s' % component)
+            env.AlwaysBuild(alias)
 
 
 class Dependencies(object):
+    
     def __init__(self, name, target, node, env):
         self.name = name
         self.target = target
@@ -158,6 +162,7 @@ class Dependencies(object):
 
 
 class HG(Dependencies):
+    
     def checkout(self):
         cprint('[hg] checkout %s => %s' % (self.url, self.target), 'purple')
         rc = subprocess.call(['hg', 'clone', self.url, self.target])
@@ -176,6 +181,7 @@ class HG(Dependencies):
 
 
 class SVN(Dependencies):
+    
     def checkout(self):
         cprint('[svn] checkout %s => %s' % (self.url, self.target), 'purple')
         cmd = ['svn', 'checkout'] + (['--username', self.username] if self.username else []) + [self.url, self.target]
@@ -195,12 +201,63 @@ class SVN(Dependencies):
 
 
 class WGET(Dependencies):
+    
     def checkout(self):
         cprint('[wget] downloading %s => %s' % (self.url, self.target), 'purple')
         rc = subprocess.call(['wget', self.url, '-P', self.target])
         if rc != 0 :
            return cformat('[error] wget failed to download target %s from %s, error: %s' 
                           % (self.target, self.url, rc), 'red')
+        return self.afterCheckout()
+    
+    def update(self):
+        # this is not supported, should be? should we download the version
+        # again an update? that will be time consuming and update should be
+        # fast. This should be supported once we mark the version and there
+        # is a way to know that the version didn't changed from last download
+        return 0
+
+
+class PACKER(Dependencies):
+    
+    def checkout(self):
+         cprint('[wget] downloading %s => %s' % (self.url, self.target), 'purple')
+        rc = subprocess.call(['sudo packer -S ', self.url])
+        if rc != 0 :
+           return cformat('[error] wget failed to download target %s from %s, error: %s' 
+                          % (self.target, self.url, rc), 'red')
+        return self.afterCheckout()
+    
+    def update(self):
+        # this is not supported, should be? should we download the version
+        # again an update? that will be time consuming and update should be
+        # fast. This should be supported once we mark the version and there
+        # is a way to know that the version didn't changed from last download
+        return 0
+
+
+class PACMAN(Dependencies):
+    
+    def checkout(self):
+        #
+        # DO SOMETHIG!!!!
+        #
+        return self.afterCheckout()
+    
+    def update(self):
+        # this is not supported, should be? should we download the version
+        # again an update? that will be time consuming and update should be
+        # fast. This should be supported once we mark the version and there
+        # is a way to know that the version didn't changed from last download
+        return 0
+
+
+class APT_GET(Dependencies):
+    
+    def checkout(self):
+        #
+        # DO SOMETHIG!!!!
+        #
         return self.afterCheckout()
     
     def update(self):
@@ -219,6 +276,12 @@ def createDependency(env, name, type, node):
         return SVN(name, target, node, env)
     elif type == 'WGET':
         return WGET(name, target, node, env)
+    elif type == 'PACKER':
+        return PACKER(name, target, node, env)
+    elif type == 'PACMAN':
+        return PACMAN(name, target, node, env)
+    elif type == 'APT_GET':
+        return APT_GET(name, target, node, env)
     else:
         cprint('[error] project %s has repository %s which is not supported' 
                % (name, type), 'red')

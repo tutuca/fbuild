@@ -18,16 +18,16 @@
 # You should have received a copy of the GNU General Public License
 # along with fudepan-build.  If not, see <http://www.gnu.org/licenses/>.
 
-#from SCons.Script.SConscript import SConsEnvironment
-from utils import findFiles, chain_calls
-from SCons.Script import *
-import SCons.Builder
 import subprocess
 import platform
 import os.path
 import shutil
-import utils
 import os
+from SCons.Script import *
+import SCons.Builder
+from utils import findFiles
+from utils import chain_calls
+import utils
 
 def init(env):
     from SCons.Script import Builder

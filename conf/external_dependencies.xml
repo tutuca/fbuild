@@ -1,11 +1,14 @@
-<esternal_dependencies>
-    <!-- IMPORTANT: Please maintain alphabetical order based on name to ease maintenance -->
-    <component
-        name="gtest"
-        repository_type="SVN" 
-        repository_url="https://googletest.googlecode.com/svn/tags/release-1.6.0">
+<external_dependencies>
+    <!-- Format of a component:
+    
+    <component  name = STRING
+                repository_type = [HG | SVN | WGET | APT-GET | PACMAN | PACKER]
+                [repository_url = STRING | package_name = STRING] >
         <execute_after>
-            cp #/site_scons/external/gtestSConscript {WS_DIR}/gtest/SConscript
+            SHELL_SCRIPT
         </execute_after>
     </component>
-</esternal_dependencies>
+    
+    IMPORTANT:
+        Please maintain alphabetical order based on name to ease maintenance -->
+</external_dependencies>
