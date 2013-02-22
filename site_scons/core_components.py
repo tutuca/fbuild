@@ -221,11 +221,14 @@ class SourcedComponent(HeaderOnlyComponent):
     def __init__(self, componentGraph, env, name, compDir, deps, inc, extInc, src, aliasGroups):
         HeaderOnlyComponent.__init__(self, componentGraph, env, name, compDir, deps, extInc, aliasGroups)
         self.inc = []
+        self.inc_paths = []
         if inc:
             if isinstance(inc, (list, tuple)):
                 for i in inc:
+                    self.inc_paths.append(i.abspath)
                     self.inc.append( os.path.relpath(i.abspath, compDir.abspath) )
             else:
+                self.inc_paths.append(inc.abspath)
                 self.inc.append( os.path.relpath(inc.abspath, compDir.abspath) )
         self.src = []
         if src:
@@ -244,6 +247,11 @@ class SourcedComponent(HeaderOnlyComponent):
                 else:
                     self.src.append(os.path.abspath(compDir.rel_path(src)))
         self.shouldBeLinked = False
+        # Create list sources and headers files
+        self.src_files = []
+        self.inc_files = self._include_files()
+        for x in self.src:
+            self.src_files.append(self.env.File(x))
 
     def getIncludePaths(self):
         (incs, processedComponents) = self._getIncludePaths([], 0)
@@ -289,14 +297,22 @@ class SourcedComponent(HeaderOnlyComponent):
                     libpaths.extend(depLibPaths)
                     libs.extend(depLibs)
         return (libs, libpaths, processedComponents)
+    
+    def _include_files (self):
+        include_files = []
+        print 'NAME:', self.name
+        print self.inc_paths
+        print '==================================================================================='
+        paths = [p for p in self.inc_paths if 'fbuild/projects' in p and p.endswith('/.')]
+        for d in paths:
+            for p in [(d.replace('/.','/'))+x for x in headersFilter]:
+                include_files.extend(self.env.Glob(p))
+        return include_files
 
     def Process(self):
         HeaderOnlyComponent.Process(self,True)
         # Create the list of the 'sources' files.
-        sources = []
-        for x in self.src + self.inc:
-            if os.path.isfile(x):
-                sources.append(self.env.File(x))
+        sources = self.src_files + self.inc_files
         self._create_cccc_target(sources)
         self._create_cloc_target(sources)
         self._create_cppcheck_target(sources)
