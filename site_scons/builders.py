@@ -263,7 +263,7 @@ def RunCppCheck(target, source, env):
     # We create a string with the files for cppcheck.
     files = ' '.join([f.abspath for f in source])
     # Set the name of the report file.
-    outfile = "%s/ErrorReport.txt" % target
+    outfile = "%s/CppCheckReport.txt" % target
     # Create the command to be pass to subprocess.call()
     cmd = 'cppcheck %s %s > %s' % (options, files, outfile)
     return subprocess.call(cmd, shell=True)
