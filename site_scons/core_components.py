@@ -1,6 +1,6 @@
 # fudepan-build: The build system for FuDePAN projects
 #
-# Copyright (C) 2011-2012 Esteban Papp, Hugo Arregui FuDePAN
+# Copyright (C) 2011-2012 Esteban Papp, Hugo Arregui, 2013 Gonzalo Bonigo, FuDePAN
 #
 # This file is part of the fudepan-build build system.
 #
@@ -21,10 +21,13 @@ import os
 import utils
 from utils import RecursiveInstall, findFiles
 
+
 headersFilter = ['*.h','*.hpp']
 sourceFilters = ['*.c','*.cpp','*.cc']
 
+
 class Component(object):
+    
     def __init__(self, componentGraph, env, name, compDir, deps, aliasGroups):
         self.name = name
         # Directory where the component lives (the directory that contains the
@@ -40,7 +43,9 @@ class Component(object):
     def Process(self):
         return None
 
+
 class ExternalLibraryComponent(Component):
+    
     def __init__(self, componentGraph, env, name, compDir, deps, extInc, shouldBeLinked, aliasGroups):
         Component.__init__(self, componentGraph, env, name, compDir, deps, aliasGroups)
         self.extInc = []
@@ -104,7 +109,9 @@ class ExternalLibraryComponent(Component):
     def Process(self):
         return Component.Process(self)
 
+
 class HeaderOnlyComponent(Component):
+    
     def __init__(self, componentGraph, env, name, compDir, deps, extInc, aliasGroups):
         Component.__init__(self, componentGraph, env, name, compDir, deps, aliasGroups)
         self.extInc = []
@@ -217,7 +224,9 @@ class HeaderOnlyComponent(Component):
         else:
             return None
 
+
 class SourcedComponent(HeaderOnlyComponent):
+
     def __init__(self, componentGraph, env, name, compDir, deps, inc, extInc, src, aliasGroups):
         HeaderOnlyComponent.__init__(self, componentGraph, env, name, compDir, deps, extInc, aliasGroups)
         self.inc = []
@@ -249,7 +258,7 @@ class SourcedComponent(HeaderOnlyComponent):
         self.shouldBeLinked = False
         # Create list sources and headers files
         self.src_files = []
-        self.inc_files = self._include_files()
+        self.inc_files = self._get_include_files()
         for x in self.src:
             self.src_files.append(self.env.File(x))
 
@@ -298,14 +307,13 @@ class SourcedComponent(HeaderOnlyComponent):
                     libs.extend(depLibs)
         return (libs, libpaths, processedComponents)
     
-    def _include_files (self):
+    def _get_include_files (self):
         include_files = []
-        print 'NAME:', self.name
-        print self.inc_paths
-        print '==================================================================================='
-        paths = [p for p in self.inc_paths if 'fbuild/projects' in p and p.endswith('/.')]
-        for d in paths:
-            for p in [(d.replace('/.','/'))+x for x in headersFilter]:
+        for i in self.inc:
+            hDir = os.path.join(self.projDir, i)
+            if hDir.endswith('/.'):
+                hDir = hDir.replace('/.','/')
+            for p in [hDir+x for x in headersFilter]:
                 include_files.extend(self.env.Glob(p))
         return include_files
 
@@ -317,8 +325,9 @@ class SourcedComponent(HeaderOnlyComponent):
         self._create_cloc_target(sources)
         self._create_cppcheck_target(sources)
 
-        
+
 class StaticLibraryComponent(SourcedComponent):
+    
     def __init__(self, componentGraph, env, name, compDir, deps, inc, extInc, src, aliasGroups):
         SourcedComponent.__init__(self, componentGraph, env, name, compDir, deps, inc, extInc, src, aliasGroups)
         self.shouldBeLinked = True
@@ -337,7 +346,9 @@ class StaticLibraryComponent(SourcedComponent):
             self.env.Alias(alias, iLib, "Build group " + alias)
         return sLib
 
+
 class DynamicLibraryComponent(SourcedComponent):
+    
     def __init__(self, componentGraph, env, name, compDir, deps, inc, extInc, src, aliasGroups):
         SourcedComponent.__init__(self, componentGraph, env, name, compDir, deps, inc, extInc, src, aliasGroups)
         self.shouldBeLinked = True
@@ -356,7 +367,9 @@ class DynamicLibraryComponent(SourcedComponent):
             self.env.Alias(alias, iLib, "Build group " + alias)
         return dLib
 
+
 class ObjectComponent(SourcedComponent):
+    
     def __init__(self, componentGraph, env, name, compDir, deps, inc, src, aliasGroups):
         SourcedComponent.__init__(self, componentGraph, env, name, compDir, deps, inc, [], src, aliasGroups)
         self.shouldBeLinked = False
@@ -375,7 +388,9 @@ class ObjectComponent(SourcedComponent):
                 self.objs.append(obj)
         return self.objs
 
+
 class ProgramComponent(SourcedComponent):
+    
     def __init__(self, componentGraph, env, name, compDir, deps, inc, src, aliasGroups):
         SourcedComponent.__init__(self, componentGraph, env, name, compDir, deps, inc, [], src, aliasGroups)
         self.shouldBeLinked = False
@@ -402,7 +417,9 @@ class ProgramComponent(SourcedComponent):
                 src.extend(c.Process())
         return src
 
+
 class UnitTestComponent(ProgramComponent):
+    
     def __init__(self, componentGraph, env, name, compDir, deps, inc, src, aliasGroups):
         ProgramComponent.__init__(self, componentGraph, env, name, compDir, deps, inc, src, aliasGroups)
 
