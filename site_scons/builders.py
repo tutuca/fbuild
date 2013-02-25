@@ -222,6 +222,7 @@ def RunValgrind(target, source, env):
     return ret_val
 
 def RunCCCC(target, source, env):
+    env.cprint('Rinning cccc...', 'green')
     target = target[0].abspath
     # It tells to cccc the name of the directory that will contain the result.
     env.Append(CCCC_OPTIONS = '--outdir=%s' % target)
@@ -236,11 +237,12 @@ def RunCCCC(target, source, env):
     cmd = 'cccc %s %s' % (options, files)
     ret_val = subprocess.call(cmd, shell=True)
     # Remove unnecessary files.
-    rm = "cd %s; rm -f *.*; mv MainHTMLReport MainHTMLReport.html" % target
+    rm = "cd %s; rm -f *.*; mv MainHTMLReport CCCCMainHTMLReport.html" % target
     subprocess.call(rm, shell=True)
     return ret_val
 
 def RunCLOC(target, source, env):
+    env.cprint('Rinning cloc...', 'green')
     target = target[0].abspath
     # Check if the install directory for the cloc results already exists.
     if not os.path.exists(target):
@@ -254,6 +256,7 @@ def RunCLOC(target, source, env):
     return subprocess.call(cmd, shell=True)
 
 def RunCppCheck(target, source, env):
+    env.cprint('Rinning cppcheck...', 'green')
     target = target[0].abspath
     # Check if the install directory for the cppcheck results already exists.
     if not os.path.exists(target):

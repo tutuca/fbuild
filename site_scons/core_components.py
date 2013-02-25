@@ -172,11 +172,11 @@ class HeaderOnlyComponent(Component):
         # Set the name of the report file.
         outdir = target.abspath
         if self.env['CLOC_OUTPUT_FORMAT'] == 'txt':
-            self.env.Append(CLOC_OPTIONS = '--out=%s/MainTXTReport' % outdir)
+            self.env.Append(CLOC_OPTIONS = '--out=%s/CLOCMainTXTReport' % outdir)
         elif self.env['CLOC_OUTPUT_FORMAT'] == 'sql':
-            self.env.Append(CLOC_OPTIONS = '--sql=%s/MainSQLReport' % outdir)
+            self.env.Append(CLOC_OPTIONS = '--sql=%s/CLOCMainSQLReport' % outdir)
         elif self.env['CLOC_OUTPUT_FORMAT'] == 'xml':
-            self.env.Append(CLOC_OPTIONS = '--xml --out=%s/MainXMLReport' % outdir)
+            self.env.Append(CLOC_OPTIONS = '--xml --out=%s/CLOCMainXMLReport' % outdir)
         else:
             raise ValueError("Not valid value for CLOC_OUTPUT_FORMAT",self.env['CLOC_OUTPUT_FORMAT'])
         # Call RunCLOC().
