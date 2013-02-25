@@ -162,6 +162,7 @@ class HeaderOnlyComponent(Component):
         self.env.Append(CCCC_OPTIONS='--html_outfile='+outdir+'MainHTMLReport')
         # Call RunCCCC().
         cccc = self.env.RunCCCC(target, sources)
+        self.env.AlwaysBuild(cccc)
         # Create an alias to be show when run 'fbuild targets'.
         self.env.Alias(self.name+":cccc", cccc, 'Generate software metrics for %s' % self.name)
     
@@ -171,15 +172,16 @@ class HeaderOnlyComponent(Component):
         # Set the name of the report file.
         outdir = target.abspath
         if self.env['CLOC_OUTPUT_FORMAT'] == 'txt':
-            self.env.Append(CLOC_OPTIONS = '--out=%s/MainTXTReport' % outdir)
+            self.env.Append(CLOC_OPTIONS = '--out=%s/CLOCMainTXTReport' % outdir)
         elif self.env['CLOC_OUTPUT_FORMAT'] == 'sql':
-            self.env.Append(CLOC_OPTIONS = '--sql=%s/MainSQLReport' % outdir)
+            self.env.Append(CLOC_OPTIONS = '--sql=%s/CLOCMainSQLReport' % outdir)
         elif self.env['CLOC_OUTPUT_FORMAT'] == 'xml':
-            self.env.Append(CLOC_OPTIONS = '--xml --out=%s/MainXMLReport' % outdir)
+            self.env.Append(CLOC_OPTIONS = '--xml --out=%s/CLOCMainXMLReport' % outdir)
         else:
             raise ValueError("Not valid value for CLOC_OUTPUT_FORMAT",self.env['CLOC_OUTPUT_FORMAT'])
         # Call RunCLOC().
         cloc = self.env.RunCLOC(target, sources)
+        self.env.AlwaysBuild(cloc)
         # Create an alias to be show when run 'fbuild targets'.
         self.env.Alias(self.name+":cloc", cloc, 'Generate software metrics for %s' % self.name)
     
@@ -188,6 +190,7 @@ class HeaderOnlyComponent(Component):
         target = self.env.Dir(self.env['INSTALL_METRICS_DIR']).Dir('cppcheck').Dir(self.name)
         # Call RunCppCheck().
         cppcheck = self.env.RunCppCheck(target, sources)
+        self.env.AlwaysBuild(cppcheck)
         # Create an alias to be show when run 'fbuild targets'.
         self.env.Alias(self.name+":cppcheck", cppcheck, 'C/C++ code analyse for %s' % self.name)
 
