@@ -199,6 +199,11 @@ def WalkDirsForSconscripts(env, topdir, ignore = []):
                 # check if we know how to download this component
                 downloadedDependencies = env.CheckoutDependencyNow(component)
             else:
+                #print c.name
+                #print c.deps
+                #print '======================================================================'
+                #if c.name=='biopp':
+                    #import ipdb; ipdb.set_trace()
                 for dep in c.deps:
                     cdep = componentGraph.get(dep)
                     if cdep == None:

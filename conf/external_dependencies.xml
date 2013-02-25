@@ -1,9 +1,40 @@
 <external_dependencies>
     <!-- Format of a component:
     
-    <component  name = STRING
-                repository_type = [HG | SVN | WGET | APT-GET | PACMAN | PACKER]
-                [repository_url = STRING | package_name = STRING] >
+    <component  name="component_name"
+        <installer
+            distro=[ "ubuntu" | "arch" ]
+            pkg_manager=[ "apt-get" | "aptitude" | "packer" | "pacman" | "*" ]
+            pkg_name="package_name">
+            
+        
+        
+        
+        
+                repository_type = [ [HG | SVN | WGET]                       | 
+                                    [APT-GET | APTITUDE | PACKER | PACMAN]  | 
+                                    [PACKAGE]
+                                  ]
+                [repository_url = STRING | package_name = STRING]
+                [pkg_manager_prority = STRING] >
+                
+                IMPORTANT:
+                  > If repository_type=HG|SVN|WGET set 'repository_url' attribute.
+                  > If repository_type=APT-GET|APTITUDE|PACKER|PACMAN or PACKAGE 
+                    set 'package_name' attribute.
+                  > If repository_type=APT-GET|APTITUDE|PACKER|PACMAN or PACKAGE
+                    and if you have more than one package manager you can give 
+                    them priority, so fbuild will chose for use the one with the 
+                    highest priority. You can do this by setting the 
+                    'pkg_manager_prority' attribute, as a comma separate string, 
+                    with the names of the package manager sorted by priority, 
+                    being the first the highest one. For example:
+                        pkg_manager_prority="APT_GET,APTITUDE,PACKER,PACMAN,..."
+                        (this is the default priority if it's not setted)
+                 
+        <install_checker>
+            SHELL_SCRIPT
+        </install_checker>
         <execute_after>
             SHELL_SCRIPT
         </execute_after>
@@ -11,4 +42,18 @@
     
     IMPORTANT:
         Please maintain alphabetical order based on name to ease maintenance -->
+    
+    <component  name="valgrind"
+                repository_type="PACKAGE"
+                package_name="valgrind">
+                    <installer distro="arch" package="aaaa"/>
+                    <installer distro="ubuntu" package="bbbb"/>
+        <install_checker>which valgrind > /dev/null</install_checker>
+    </component>
+    <component  name="midnight-command"
+                repository_type="PACKAGE"
+                package_name="mc">
+        <install_checker>which mc > /dev/null</install_checker>
+    </component>
+    
 </external_dependencies>
