@@ -1,6 +1,6 @@
 # fudepan-build: The build system for FuDePAN projects 
 #
-# Copyright (C) 2011 Esteban Papp, FuDePAN
+# Copyright (C) 2011 Esteban Papp, 2013 Gonzalo Bonigo, FuDePAN
 # 
 # This file is part of the fudepan-build build system.
 # 
@@ -17,13 +17,30 @@
 # You should have received a copy of the GNU General Public License
 # along with fudepan-build.  If not, see <http://www.gnu.org/licenses/>.
 
-#
-# Description: utils
-#
+
+"""
+    This module contains utile functions for fbuild.
+"""
+
 
 import fnmatch
 import os
 from SCons.Node.FS import Dir
+
+
+# Contants for the distributions supported.
+DISTRO_UBUNTU = 'UBUNTU'
+DISRTO_ARSH = 'ARCH'
+# Path to the /etc/issue file which contains the distro.
+_DISRTO_FILE = '/etc/issue'
+
+
+class DistroError (Exception):
+    """
+        This class exception is used by the function get_distro().
+    """
+    pass
+
 
 def findFiles(env, fromDir, filters=['*']):
     path = fromDir.abspath
@@ -35,6 +52,7 @@ def findFiles(env, fromDir, filters=['*']):
             if any([fnmatch.fnmatch(s.abspath, filter) for filter in filters]):
                 files.append(s)
     return files
+
 
 def RecursiveInstall(env, sourceDir, sourcesRel, targetName, fileFilter=['*.*']):
     nodes = []
@@ -53,6 +71,7 @@ def RecursiveInstall(env, sourceDir, sourcesRel, targetName, fileFilter=['*.*'])
         sources.append( s )
     iAs = env.InstallAs(targets, sources)
     return iAs
+
 
 ## {{{ http://code.activestate.com/recipes/52560/ (r1)
 def removeDuplicates(s):
@@ -124,6 +143,7 @@ def removeDuplicates(s):
     return u
 ## end of http://code.activestate.com/recipes/52560/ }}}
 
+
 def files_flatten(env, path, fileFilter):
     out = []
     if isinstance(fileFilter, list or tuple):
@@ -137,11 +157,13 @@ def files_flatten(env, path, fileFilter):
                 out.append(env.File(os.path.join(root, filename)))
     return out
 
+
 def dirs_flatten(env, path):
     out = []
     for root, dirnames, filenames in os.walk(path):
         out.append(env.Dir(os.path.join(root, dirnames)))
     return out
+
 
 def chain_calls(env, cmds, silent=True):
     import subprocess
@@ -157,3 +179,21 @@ def chain_calls(env, cmds, silent=True):
             return chain_calls(env, cmds[1:], silent)
     else:
         return 0
+
+
+def get_distro ():
+    try:
+        f = open(_DISRTO_FILE, 'r')
+    except OSError:
+        raise DistroError()
+    else:
+        result = None
+        distro = (f.readline().split())[0]
+        f.close()
+        if distro in ['Ubuntu', 'ubuntu', 'UBUNTU']:
+            result = DISTRO_UBUNTU
+        elif distro in ['Arch','arch','ARCH']:
+            result = DISRTO_ARSH
+        else:
+            raise DistroError()
+        return result

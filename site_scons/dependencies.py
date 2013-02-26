@@ -1,6 +1,6 @@
 # fudepan-build: The build system for FuDePAN projects 
 #
-# Copyright (C) 2011 Esteban Papp, Hugo Arregui FuDePAN
+# Copyright (C) 2011 Esteban Papp, Hugo Arregui, 2013 Gonzalo Bonigo, FuDePAN
 # 
 # This file is part of the fudepan-build build system.
 # 
@@ -17,9 +17,11 @@
 # You should have received a copy of the GNU General Public License
 # along with fudepan-build.  If not, see <http://www.gnu.org/licenses/>.
 
-#
-# Description: this file contains all the dependencies parse/checkout/update
-#
+
+"""
+    This file contains all the dependencies parse/checkout/update.
+"""
+
 
 import os
 import os.path
@@ -29,13 +31,26 @@ from SCons.Script import Builder
 import SCons
 from termcolor import cformat
 from termcolor import cprint
+import utils
 
 
+# Constants for the createDependency() function.
+DEP_PROJECT = 'project'
+DEP_EXTERNAL = 'external dependency'
+# Stores the distribution name. It's sets within the init() function.
+DISTRO = None
+# Dictionary with the projects from 'conf/projects.xml'
 projects = {}
+# Dictionary with the components from 'conf/external_dependencies.xml'
 external_dependencies = {}
 
 
 def init(env):
+    try:
+        global DISTRO
+        DISTRO = utils.get_distro()
+    except utils.DistroError:
+        env.cprint('[warn] unsupported distribution.', 'yellow')
     coDep = SCons.Action.Action(CheckoutDependency, CheckoutDependencyMessage)
     checkoutBuilder = Builder(action = coDep)
     env.Append(BUILDERS={'CheckoutDependency': checkoutBuilder})
@@ -45,7 +60,7 @@ def init(env):
     createDependenciesTargets(env)
     createExternalDependenciesTargets(env)
     env.CheckoutDependencyNow = CheckoutDependencyNow
-    
+
 
 def createDependenciesTargets(env):
     confDir = os.path.join(env.Dir('#').abspath,'conf')
@@ -69,7 +84,7 @@ def createDependenciesTargets(env):
         
     localProjectsFile = os.path.join(confDir, 'projects_local.xml') 
     if os.path.exists(localProjectsFile):
-        localProjectElements = projectsDom.getElmentsByTagName('project')
+        localProjectElements = projectsDom.getElementsByTagName('project')
         for localProjectElment in localProjectElements:
             projectType = projectElement.getAttribute('repository_type')
             project = createDependency(env,projectName,projectType,projectElement)
@@ -91,7 +106,9 @@ def createDependenciesTargets(env):
 
 
 def createExternalDependenciesTargets(env):
-    # Path to the Configuration Directorie.
+    """
+    """
+    # Path to the Configuration Directory.
     confDir = os.path.join(env.Dir('#').abspath,'conf')
     # Path to the 'external_dependencies.xml' file.
     extDepsFile = os.path.join(confDir, 'external_dependencies.xml')
@@ -109,19 +126,20 @@ def createExternalDependenciesTargets(env):
                        ' information is duplicated in the ' + \
                        'external_dependencies.xml file', 'yellow')
         else:
-            # Check the 'repository_type' attribute.
-            componentType = componentElement.getAttribute('repository_type')
-            # If it's 'PACKAGE', we look for a package manager.
-            if componentType == 'PACKAGE':
-                pkgPrority = componentElement.getAttribute('pkg_manager_prority')
-                componentType = _getPackageManager(pkgPrority)
-            dep = createDependency(
-                    env,
-                    componentName,
-                    componentType,
-                    componentElement,
-                    'external dependencie'
-            )
+            dep = None
+            # Parse installers.
+            installers = componentElement.getElementsByTagName('installer')
+            for installer in installers:
+                if installer.getAttribute('distro') == DISTRO:
+                    componentTarget = installer.getAttribute('target')
+                    componentType = installer.getAttribute('manager')
+                    dep = createDependency(env,
+                                        componentName,
+                                        componentType,
+                                        componentElement,
+                                        componentTarget,
+                                        DEP_EXTERNAL)
+                    break
             if not dep is None:
                 external_dependencies[componentName] = dep
     # Check if each component is already installed.
@@ -136,35 +154,26 @@ def createExternalDependenciesTargets(env):
 class Dependencies(object):
     
     def __init__(self, name, target, node, env):
+        self.env = env
         self.name = name
         self.target = target
+        self.username = node.getAttribute('username')
         self.url = node.getAttribute('repository_url')
-        self.package = node.getAttribute('package_name')
-        if len(node.childNodes) > 0:
-            # we need to get the text contained in execute_after, to do so, we
-            # get the execute_after node, then we get the child node (the text
-            # contained in the execute_after node), and then we get the text.
-            # Here we are assuming that the contents of the execute_after node
-            # would be of type TEXT_NODE, otherwise, it would cause an error.
-            elem = node.getElementsByTagName('execute_after')
-            if elem != []:
-                self.executeAfter = elem[0].childNodes[0].data
-            else:
-                self.executeAfter = ''
-            elem = node.getElementsByTagName('install_checker')
-            if elem != []:
-                self.inatllChecker = ((elem[0]).childNodes[0]).data
-            else:
-                self.inatllChecker = ''
+        # Here we are assuming that the contents of the execute_after node
+        # would be of type TEXT_NODE, otherwise, it would cause an error.
+        elems = node.getElementsByTagName('execute_after')
+        if elems != []:
+            self.executeAfter = elems[0].childNodes[0].data
         else:
             self.executeAfter = ''
-            self.inatllChecker = ''
-        if node.hasAttribute('username'):
-            self.username = node.getAttribute('username')
+        # Here we are assuming that the contents of the install_checker node
+        # would be of type TEXT_NODE, otherwise, it would cause an error.
+        elems = node.getElementsByTagName('install_checker')
+        if elems != []:
+           self.inatllChecker = ((elems[0]).childNodes[0]).data
         else:
-            self.username = ''
-        self.env = env
-
+            self.inatllChecker = ''
+        
     def afterCheckout(self):
         if len(self.executeAfter) > 0:
             cmds = self.executeAfter.split('\n')
@@ -250,13 +259,13 @@ class WGET(Dependencies):
 class PACKER(Dependencies):
     
     def checkout(self):
-        cprint('[packer] installing %s ' % self.package, 'purple')
-        rc = subprocess.call(['sudo packer -S ', self.package])
+        cprint('[packer] installing %s ' % self.name, 'purple')
+        rc = subprocess.call('sudo packer -S %s' % self.target, shell=True)
         if rc != 0 :
-           return cformat('[error] packer failed to installing %s, error: %s' 
-                          % (self.package, rc), 'red')
+           return cprint('[error] pacman failed to installing %s, error: %s' 
+                          % (self.target, rc), 'red')
         return self.afterCheckout()
-    
+        
     def update(self):
         # this is not supported, should be? should we download the version
         # again an update? that will be time consuming and update should be
@@ -268,11 +277,11 @@ class PACKER(Dependencies):
 class PACMAN(Dependencies):
     
     def checkout(self):
-        #
-        #
-        # DO SOMETHIG!!!!
-        #
-        #
+        cprint('[pacman] installing %s ' % self.name, 'purple')
+        rc = subprocess.call('sudo pacman -S %s' % self.target, shell=True)
+        if rc != 0 :
+           return cprint('[error] pacman failed to installing %s, error: %s' 
+                          % (self.target, rc), 'red')
         return self.afterCheckout()
     
     def update(self):
@@ -287,10 +296,10 @@ class APT_GET(Dependencies):
     
     def checkout(self):
         cprint('[apt-get] installing %s ' % self.name, 'purple')
-        rc = subprocess.call('sudo apt-get install %s' % self.package, shell=True)
+        rc = subprocess.call('sudo apt-get install %s' % self.target, shell=True)
         if rc != 0 :
            return cprint('[error] apt-get failed to installing %s, error: %s' 
-                          % (self.package, rc), 'red')
+                          % (self.target, rc), 'red')
         return self.afterCheckout()
     
     def update(self):
@@ -304,11 +313,11 @@ class APT_GET(Dependencies):
 class APTITUDE(Dependencies):
     
     def checkout(self):
-        #
-        #
-        # DO SOMETHIG!!!!
-        #
-        #
+        cprint('[aptitude] installing %s ' % self.name, 'purple')
+        rc = subprocess.call('sudo aptitude install %s' % self.target, shell=True)
+        if rc != 0 :
+           return cprint('[error] aptitude failed to installing %s, error: %s' 
+                          % (self.target, rc), 'red')
         return self.afterCheckout()
     
     def update(self):
@@ -319,8 +328,9 @@ class APTITUDE(Dependencies):
         return 0
 
 
-def createDependency(env, name, type, node, dep_type='project'):
-    target = os.path.join(env['WS_DIR'], name)
+def createDependency(env, name, type, node, target=None, dep_type=DEP_PROJECT):
+    if target is None:
+        target = os.path.join(env['WS_DIR'], name)
     if type == 'HG':
         return HG(name, target, node, env)
     elif type == 'SVN':
@@ -328,13 +338,13 @@ def createDependency(env, name, type, node, dep_type='project'):
     elif type == 'WGET':
         return WGET(name, target, node, env)
     elif type == 'APTITUDE':
-        return APTITUDE(name, name, node, env)
+        return APTITUDE(name, target, node, env)
     elif type == 'APT-GET':
-        return APT_GET(name, name, node, env)
+        return APT_GET(name, target, node, env)
     elif type == 'PACMAN':
-        return PACMAN(name, name, node, env)
+        return PACMAN(name, target, node, env)
     elif type == 'PACKER':
-        return PACKER(name, name, node, env)
+        return PACKER(name, target, node, env)
     else:
         cprint('[error] %s %s has repository %s which is not supported' 
                % (dep_type, name, type), 'red')
@@ -369,32 +379,3 @@ def UpdateDependencyMessage(env, source, target):
 def UpdateDependency(env, source, target):
     dep = str(target[0]).split(':')[0]
     return projects[dep].update()
-
-
-def _getPackageManager(pkg_manager_prority=None):
-    """
-        Description:
-            This is an internal function that looks for the package manager of the
-            current system. It's used by [createDependency()].
-            Actually it supports:
-                apt-get
-                aptitude
-                packer
-                pacman
-        Argument:
-            pkg_manager_prority  -  A string (instance of str) with the priority 
-                                    list for the package managers.
-        Exceptions:
-            None:
-        Return:
-            A str instance with the name of the package manager.
-            An empty string is returned if none was found.
-    """
-    if pkg_manager_prority:
-        pkg_priority_list = pkg_manager_prority.split(',')
-    else:
-        pkg_priority_list = ['APT-GET','APTITUDE','PACKER','PACMAN']
-    for pkg in pkg_priority_list:
-        if os.system('which %s > /dev/null' % pkg.lower()) == 0:
-            return pkg
-    return ''
