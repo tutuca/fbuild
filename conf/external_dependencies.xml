@@ -11,15 +11,68 @@
     </component>
     IMPORTANT:
         Please maintain alphabetical order based on name to ease maintenance -->
-    <component name="midnight-commander">
-        <installer
-            distro="ARCH"
-            target="mc"
-            manager="PACMAN" />
+    
+    <component name="boost_thread">
         <installer
             distro="UBUNTU"
-            target="mc"
+            target="libboost-thread-dev"
             manager="APT-GET" />
-        <install_checker>which mc</install_checker>
+        <install_checker>
+            stat -f /usr/lib/libboost_thread.a
+        </install_checker>
+    </component>
+    
+    <component name="boost_system">
+        <installer
+            distro="UBUNTU"
+            target="libboost-system-dev"
+            manager="APT-GET" />
+        <install_checker>
+            stat -f /usr/lib/libboost_system.a
+        </install_checker>
+    </component>
+    
+    <component name="gmock">
+        <installer
+            distro="UBUNTU"
+            target="https://googlemock.googlecode.com/svn/tags/release-1.6.0"
+            manager="SVN" />
+        <install_checker>
+            which {WS_DIR}/gmock/SConscript
+        </install_checker>
+        <execute_after>
+            cp #/site_scons/external/gmockSConscript {WS_DIR}/gmock/SConscript
+        </execute_after>
+    </component>
+    
+    <component name="gtest">
+        <installer
+            distro="UBUNTU"
+            target="https://googletest.googlecode.com/svn/tags/release-1.6.0"
+            manager="SVN" />
+        <install_checker>
+            which {WS_DIR}/gtest/SConscript
+        </install_checker>
+        <execute_after>
+            cp #/site_scons/external/gtestSConscript {WS_DIR}/gtest/SConscript
+        </execute_after>
+    </component>
+    
+    <component name="odeint">
+        <installer
+            distro="UBUNTU"
+            target="http://github.com/headmyshoulder/odeint-v2/tarball/master"
+            manager="WGET" />
+        <install_checker>
+            which #/projects/odeint/SConscript
+        </install_checker>
+        <execute_after>
+            mkdir #/odeint
+            tar zxvf #/projects/odeint/master -C #/odeint
+            rm -r #/projects/odeint
+            mv #/odeint/headmyshoulder-odeint-v2-* #/projects/odeint
+            rmdir #/odeint
+            cp #/site_scons/external/odeintSConscript #/projects/odeint/SConscript
+        </execute_after>
     </component>
 </external_dependencies>

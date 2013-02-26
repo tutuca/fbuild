@@ -33,16 +33,6 @@
     <project name="getoptpp"
              repository_type="HG" 
              repository_url="https://getoptpp.googlecode.com/hg" />
-    <project name="gmock"
-             repository_type="SVN" 
-             repository_url="https://googlemock.googlecode.com/svn/tags/release-1.6.0">
-        <execute_after>cp #/site_scons/external/gmockSConscript {WS_DIR}/gmock/SConscript</execute_after>
-    </project>
-    <project name="gtest"
-             repository_type="SVN" 
-             repository_url="https://googletest.googlecode.com/svn/tags/release-1.6.0">
-        <execute_after>cp #/site_scons/external/gtestSConscript {WS_DIR}/gtest/SConscript</execute_after>
-    </project>
     <project name="lav"
              repository_type="HG" 
              repository_url="https://code.google.com/p/lav" />
@@ -55,16 +45,6 @@
     <project name="dummy"
              repository_type="HG"
              repository_url="/opt/dummy/"/>
-    <project name="odeint"
-             repository_type="WGET" 
-             repository_url="http://github.com/headmyshoulder/odeint-v2/tarball/master">
-        <execute_after>mkdir #/odeint
-tar zxvf #/projects/odeint/master -C #/odeint
-rm -r #/projects/odeint
-mv #/odeint/headmyshoulder-odeint-v2-* #/projects/odeint
-rmdir #/odeint
-cp #/site_scons/external/odeintSConscript #/projects/odeint/SConscript</execute_after>
-    </project>
     <project name="phylopp"
              repository_type="HG" 
              repository_url="https://phylopp.googlecode.com/hg" />
