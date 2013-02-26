@@ -222,7 +222,7 @@ def RunValgrind(target, source, env):
     return ret_val
 
 def RunCCCC(target, source, env):
-    env.cprint('Rinning cccc...', 'green')
+    env.cprint('Running cccc...', 'green')
     target = target[0].abspath
     # It tells to cccc the name of the directory that will contain the result.
     env.Append(CCCC_OPTIONS = '--outdir=%s' % target)
@@ -242,7 +242,7 @@ def RunCCCC(target, source, env):
     return ret_val
 
 def RunCLOC(target, source, env):
-    env.cprint('Rinning cloc...', 'green')
+    env.cprint('Running cloc...', 'green')
     target = target[0].abspath
     # Check if the install directory for the cloc results already exists.
     if not os.path.exists(target):
@@ -256,7 +256,7 @@ def RunCLOC(target, source, env):
     return subprocess.call(cmd, shell=True)
 
 def RunCppCheck(target, source, env):
-    env.cprint('Rinning cppcheck...', 'green')
+    env.cprint('Running cppcheck...', 'green')
     target = target[0].abspath
     # Check if the install directory for the cppcheck results already exists.
     if not os.path.exists(target):
