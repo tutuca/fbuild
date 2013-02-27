@@ -51,8 +51,8 @@ fi
 # function interface
 if [ "$(which apt-get 2>/dev/null)" ]; then
     source ./site_scons/installer_aptget.sh
-elif [ "$(which pacman)" ]; then
-    source ./site_scons/installer_pacman.sh
+elif [ "$(which packer)" ]; then
+    source ./site_scons/installer_packer.sh
 else
     function check_install {
         if [ "$3" ]; then     
