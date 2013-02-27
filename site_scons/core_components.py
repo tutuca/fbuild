@@ -21,10 +21,13 @@ import os
 import utils
 from utils import RecursiveInstall, findFiles
 
+
 headersFilter = ['*.h','*.hpp']
 sourceFilters = ['*.c','*.cpp','*.cc']
 
+
 class Component(object):
+    
     def __init__(self, componentGraph, env, name, compDir, deps, aliasGroups):
         self.name = name
         # Directory where the component lives (the directory that contains the
@@ -40,7 +43,9 @@ class Component(object):
     def Process(self):
         return None
 
+
 class ExternalLibraryComponent(Component):
+    
     def __init__(self, componentGraph, env, name, compDir, deps, extInc, shouldBeLinked, aliasGroups):
         Component.__init__(self, componentGraph, env, name, compDir, deps, aliasGroups)
         self.extInc = []
@@ -104,7 +109,9 @@ class ExternalLibraryComponent(Component):
     def Process(self):
         return Component.Process(self)
 
+
 class HeaderOnlyComponent(Component):
+    
     def __init__(self, componentGraph, env, name, compDir, deps, extInc, aliasGroups):
         Component.__init__(self, componentGraph, env, name, compDir, deps, aliasGroups)
         self.extInc = []
@@ -155,6 +162,7 @@ class HeaderOnlyComponent(Component):
         self.env.Append(CCCC_OPTIONS='--html_outfile='+outdir+'MainHTMLReport')
         # Call RunCCCC().
         cccc = self.env.RunCCCC(target, sources)
+        self.env.AlwaysBuild(cccc)
         # Create an alias to be show when run 'fbuild targets'.
         self.env.Alias(self.name+":cccc", cccc, 'Generate software metrics for %s' % self.name)
     
@@ -164,15 +172,16 @@ class HeaderOnlyComponent(Component):
         # Set the name of the report file.
         outdir = target.abspath
         if self.env['CLOC_OUTPUT_FORMAT'] == 'txt':
-            self.env.Append(CLOC_OPTIONS = '--out=%s/MainTXTReport' % outdir)
+            self.env.Append(CLOC_OPTIONS = '--out=%s/CLOCMainTXTReport' % outdir)
         elif self.env['CLOC_OUTPUT_FORMAT'] == 'sql':
-            self.env.Append(CLOC_OPTIONS = '--sql=%s/MainSQLReport' % outdir)
+            self.env.Append(CLOC_OPTIONS = '--sql=%s/CLOCMainSQLReport' % outdir)
         elif self.env['CLOC_OUTPUT_FORMAT'] == 'xml':
-            self.env.Append(CLOC_OPTIONS = '--xml --out=%s/MainXMLReport' % outdir)
+            self.env.Append(CLOC_OPTIONS = '--xml --out=%s/CLOCMainXMLReport' % outdir)
         else:
             raise ValueError("Not valid value for CLOC_OUTPUT_FORMAT",self.env['CLOC_OUTPUT_FORMAT'])
         # Call RunCLOC().
         cloc = self.env.RunCLOC(target, sources)
+        self.env.AlwaysBuild(cloc)
         # Create an alias to be show when run 'fbuild targets'.
         self.env.Alias(self.name+":cloc", cloc, 'Generate software metrics for %s' % self.name)
     
@@ -181,6 +190,7 @@ class HeaderOnlyComponent(Component):
         target = self.env.Dir(self.env['INSTALL_METRICS_DIR']).Dir('cppcheck').Dir(self.name)
         # Call RunCppCheck().
         cppcheck = self.env.RunCppCheck(target, sources)
+        self.env.AlwaysBuild(cppcheck)
         # Create an alias to be show when run 'fbuild targets'.
         self.env.Alias(self.name+":cppcheck", cppcheck, 'C/C++ code analyse for %s' % self.name)
 
@@ -217,15 +227,20 @@ class HeaderOnlyComponent(Component):
         else:
             return None
 
+
 class SourcedComponent(HeaderOnlyComponent):
+
     def __init__(self, componentGraph, env, name, compDir, deps, inc, extInc, src, aliasGroups):
         HeaderOnlyComponent.__init__(self, componentGraph, env, name, compDir, deps, extInc, aliasGroups)
         self.inc = []
+        self.inc_paths = []
         if inc:
             if isinstance(inc, (list, tuple)):
                 for i in inc:
+                    self.inc_paths.append(i.abspath)
                     self.inc.append( os.path.relpath(i.abspath, compDir.abspath) )
             else:
+                self.inc_paths.append(inc.abspath)
                 self.inc.append( os.path.relpath(inc.abspath, compDir.abspath) )
         self.src = []
         if src:
@@ -244,6 +259,11 @@ class SourcedComponent(HeaderOnlyComponent):
                 else:
                     self.src.append(os.path.abspath(compDir.rel_path(src)))
         self.shouldBeLinked = False
+        # Create list sources and headers files
+        self.src_files = []
+        self.inc_files = self._get_include_files()
+        for x in self.src:
+            self.src_files.append(self.env.File(x))
 
     def getIncludePaths(self):
         (incs, processedComponents) = self._getIncludePaths([], 0)
@@ -289,20 +309,28 @@ class SourcedComponent(HeaderOnlyComponent):
                     libpaths.extend(depLibPaths)
                     libs.extend(depLibs)
         return (libs, libpaths, processedComponents)
+    
+    def _get_include_files (self):
+        include_files = []
+        for i in self.inc:
+            hDir = os.path.join(self.projDir, i)
+            if hDir.endswith('/.'):
+                hDir = hDir.replace('/.','/')
+            for p in [hDir+x for x in headersFilter]:
+                include_files.extend(self.env.Glob(p))
+        return include_files
 
     def Process(self):
         HeaderOnlyComponent.Process(self,True)
         # Create the list of the 'sources' files.
-        sources = []
-        for x in self.src + self.inc:
-            if os.path.isfile(x):
-                sources.append(self.env.File(x))
+        sources = self.src_files + self.inc_files
         self._create_cccc_target(sources)
         self._create_cloc_target(sources)
         self._create_cppcheck_target(sources)
 
-        
+
 class StaticLibraryComponent(SourcedComponent):
+    
     def __init__(self, componentGraph, env, name, compDir, deps, inc, extInc, src, aliasGroups):
         SourcedComponent.__init__(self, componentGraph, env, name, compDir, deps, inc, extInc, src, aliasGroups)
         self.shouldBeLinked = True
@@ -321,7 +349,9 @@ class StaticLibraryComponent(SourcedComponent):
             self.env.Alias(alias, iLib, "Build group " + alias)
         return sLib
 
+
 class DynamicLibraryComponent(SourcedComponent):
+    
     def __init__(self, componentGraph, env, name, compDir, deps, inc, extInc, src, aliasGroups):
         SourcedComponent.__init__(self, componentGraph, env, name, compDir, deps, inc, extInc, src, aliasGroups)
         self.shouldBeLinked = True
@@ -340,7 +370,9 @@ class DynamicLibraryComponent(SourcedComponent):
             self.env.Alias(alias, iLib, "Build group " + alias)
         return dLib
 
+
 class ObjectComponent(SourcedComponent):
+    
     def __init__(self, componentGraph, env, name, compDir, deps, inc, src, aliasGroups):
         SourcedComponent.__init__(self, componentGraph, env, name, compDir, deps, inc, [], src, aliasGroups)
         self.shouldBeLinked = False
@@ -359,7 +391,9 @@ class ObjectComponent(SourcedComponent):
                 self.objs.append(obj)
         return self.objs
 
+
 class ProgramComponent(SourcedComponent):
+    
     def __init__(self, componentGraph, env, name, compDir, deps, inc, src, aliasGroups):
         SourcedComponent.__init__(self, componentGraph, env, name, compDir, deps, inc, [], src, aliasGroups)
         self.shouldBeLinked = False
@@ -386,7 +420,9 @@ class ProgramComponent(SourcedComponent):
                 src.extend(c.Process())
         return src
 
+
 class UnitTestComponent(ProgramComponent):
+    
     def __init__(self, componentGraph, env, name, compDir, deps, inc, src, aliasGroups):
         ProgramComponent.__init__(self, componentGraph, env, name, compDir, deps, inc, src, aliasGroups)
 
