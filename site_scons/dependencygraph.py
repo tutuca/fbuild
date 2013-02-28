@@ -62,6 +62,7 @@ class ComponentDictionary(dict):
 componentGraph = ComponentDictionary()
 
 def CreateExternalLibraryComponent(env, name, ext_inc, libPath, deps, shouldBeLinked, aliasGroups = []):
+    #import ipdb; ipdb.set_trace()
     return componentGraph.add(ExternalLibraryComponent(componentGraph,
                                                 env,
                                                 name,
@@ -181,6 +182,9 @@ def WalkDirsForSconscripts(env, topdir, ignore = []):
 
     downloadedDependencies = True
     while downloadedDependencies:
+        
+        print '\n', componentGraph.getComponentsNames(), '\n'
+        
         downloadedDependencies = False
         for root, dirnames, filenames in os.walk(topdir):
             if ignore.count(os.path.relpath(root, topdir)) == 0:
@@ -197,17 +201,17 @@ def WalkDirsForSconscripts(env, topdir, ignore = []):
             c = componentGraph.get(component)
             if c is None:
                 # check if we know how to download this component
-                downloadedDependencies = env.CheckoutDependencyNow(component)
+                downloadedDependencies = env.CheckoutDependencyNow(component,env)
             else:
-                #print c.name
-                #print c.deps
-                #print '======================================================================'
-                #if c.name=='biopp':
+                #if True:
+                    #print c.name
+                    #print c.deps
+                    #print '======================================================================'
                     #import ipdb; ipdb.set_trace()
                 for dep in c.deps:
                     cdep = componentGraph.get(dep)
                     if cdep == None:
-                        downloadedDependencies = c.env.CheckoutDependencyNow(dep)
+                        downloadedDependencies = c.env.CheckoutDependencyNow(dep,env)
                         break
             # If a dependency was downloaded we need to re-parse all the
             # SConscripts to assurance not to try to download something that

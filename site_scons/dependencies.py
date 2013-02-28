@@ -130,7 +130,8 @@ def createExternalDependenciesTargets(env):
             # Parse installers.
             installers = componentElement.getElementsByTagName('installer')
             for installer in installers:
-                if installer.getAttribute('distro') == DISTRO:
+                distro = installer.getAttribute('distro')
+                if distro==DISTRO or distro=='*':
                     componentTarget = installer.getAttribute('target')
                     componentType = installer.getAttribute('manager')
                     dep = createDependency(env,
@@ -144,10 +145,13 @@ def createExternalDependenciesTargets(env):
                 external_dependencies[componentName] = dep
     # Check if each component is already installed.
     for component in external_dependencies.keys():
+        #import ipdb; ipdb.set_trace()
         if not external_dependencies[component].checkInstall():
             tgt = '%s:install' % component
             checkoutAction = env.CheckoutDependency(tgt,'SConstruct')
-            alias = env.Alias(tgt, checkoutAction, 'Install %s' % component)
+            alias = env.Alias(tgt,
+                              checkoutAction,
+                              'Install external component [%s]' % component)
             env.AlwaysBuild(alias)
 
 
@@ -156,9 +160,10 @@ class Dependencies(object):
     def __init__(self, name, target, node, env):
         self.env = env
         self.name = name
-        self.target = target
+        self.type = node.tagName
         self.username = node.getAttribute('username')
         self.url = node.getAttribute('repository_url')
+        self.target = target
         # Here we are assuming that the contents of the execute_after node
         # would be of type TEXT_NODE, otherwise, it would cause an error.
         elems = node.getElementsByTagName('execute_after')
@@ -173,17 +178,26 @@ class Dependencies(object):
            self.inatllChecker = ((elems[0]).childNodes[0]).data
         else:
             self.inatllChecker = ''
+        # Here we are assuming that the contents of the create_ext_lib_comp node
+        # would be of type TEXT_NODE, otherwise, it would cause an error.
+        elems = node.getElementsByTagName('create_ext_lib_comp')
+        if elems != []:
+           self.create_ext_lib_component = ((elems[0]).childNodes[0]).data
+        else:
+            self.create_ext_lib_component = ''
+        
         
     def afterCheckout(self):
         if len(self.executeAfter) > 0:
             cmds = self.executeAfter.split('\n')
             for cmd in cmds:
-                cmd = cmd.replace('{WS_DIR}', self.env['WS_DIR'])
-                cmd = cmd.replace('#', self.env.Dir('#').abspath)
-                cprint('[info] execute post-checkout command: %s' % cmd, 'purple')
-                rc = subprocess.call(cmd, shell=True)
-                if rc != 0:
-                    return cformat('[error] failed to execute post-checkout command: %s, error: %s' % (cmd, rc), 'red')
+                if cmd:
+                    cmd = cmd.replace('{WS_DIR}', self.env['WS_DIR'])
+                    cmd = cmd.replace('#', self.env.Dir('#').abspath)
+                    #cprint('[info] execute post-checkout command: %s' % cmd, 'purple')
+                    rc = subprocess.call(cmd, shell=True)
+                    if rc != 0:
+                        return cformat('[error] failed to execute post-checkout command: %s, error: %s' % (cmd, rc), 'red')
         return 0
     
     def checkInstall(self):
@@ -193,13 +207,19 @@ class Dependencies(object):
             for cmd in cmds:
                 cmd = cmd.replace('{WS_DIR}', self.env['WS_DIR'])
                 cmd = cmd.replace('#', self.env.Dir('#').abspath)
-                rc = subprocess.call(cmd, shell=True)
+                rc = subprocess.call(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
                 if rc == 0:
                     result = True
         return result
 
 
 class HG(Dependencies):
+    
+    def __init__(self, name, target, node, env):
+        Dependencies.__init__(self, name, target, node, env)
+        if self.type == 'component':
+            self.url = target
+            self.target = os.path.join(env['WS_DIR'], name)
     
     def checkout(self):
         cprint('[hg] checkout %s => %s' % (self.url, self.target), 'purple')
@@ -220,6 +240,12 @@ class HG(Dependencies):
 
 class SVN(Dependencies):
     
+    def __init__(self, name, target, node, env):
+        Dependencies.__init__(self, name, target, node, env)
+        if self.type == 'component':
+            self.url = target
+            self.target = os.path.join(env['WS_DIR'], name)
+    
     def checkout(self):
         cprint('[svn] checkout %s => %s' % (self.url, self.target), 'purple')
         cmd = ['svn', 'checkout'] + (['--username', self.username] if self.username else []) + [self.url, self.target]
@@ -239,6 +265,12 @@ class SVN(Dependencies):
 
 
 class WGET(Dependencies):
+    
+    def __init__(self, name, target, node, env):
+        Dependencies.__init__(self, name, target, node, env)
+        if self.type == 'component':
+            self.url = target
+            self.target = os.path.join(env['WS_DIR'], name)
     
     def checkout(self):
         cprint('[wget] downloading %s => %s' % (self.url, self.target), 'purple')
@@ -358,18 +390,28 @@ def CheckoutDependencyMessage(env, source, target):
 def CheckoutDependency(env, source, target):
     dep = str(target[0]).split(':')[0]
     if dep in external_dependencies.keys():
-        result = external_dependencies[dep].checkout()
+        dep = external_dependencies[dep]
     else:
-        result = projects[dep].checkout()
+        dep = projects[dep]
+    result = dep.checkout()
+    if dep.create_ext_lib_component:
+        exec dep.create_ext_lib_component in {'env':env}
     return result
 
 
-def CheckoutDependencyNow(dep):
+def CheckoutDependencyNow(dep, env):
+    #import ipdb; ipdb.set_trace()
     if dep in external_dependencies.keys():
         d = external_dependencies.get(dep)
     else:
         d = projects.get(dep)
-    return d.checkout() == 0 if d else False
+    if d:
+        result = d.checkout()==0
+        if d.create_ext_lib_component:
+            exec d.create_ext_lib_component in {'env':env}
+    else:
+        result = False
+    return result
 
 
 def UpdateDependencyMessage(env, source, target):
