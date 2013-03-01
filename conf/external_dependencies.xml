@@ -39,6 +39,15 @@
         <create_ext_lib_comp>env.CreateExternalLibraryComponent("boost_system",[],env.Dir('/usr/lib'),[],True)</create_ext_lib_comp>
     </component>
     
+    <component name="expat">
+        <installer
+            distro="UBUNTU"
+            target="libexpat-dev"
+            manager="APT-GET" />
+        <install_checker> </install_checker>
+        <create_ext_lib_comp>env.CreateExternalLibraryComponent("expat",[],env.Dir('/usr/lib'),[],True)</create_ext_lib_comp>
+    </component>
+    
     <component name="gmock">
         <installer
             distro="*"

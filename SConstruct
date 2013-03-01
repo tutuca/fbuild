@@ -82,9 +82,6 @@ os_specifics_linux.init(env)
 if hasQt:
     extension_qt.init(env)
 
-#import extension_boost
-#extension_boost.init(env)
-
 import fudepan
 fudepan.setDefines(env)
 

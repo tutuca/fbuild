@@ -46,19 +46,27 @@ external_dependencies = {}
 
 
 def init(env):
+    # Sets a list that will store call to CreateExternalLibraryComponent().
+    env.ExternalDependenciesCreateComponentsList = []
+    # We try to get in which distro we are.
     try:
         global DISTRO
         DISTRO = utils.get_distro()
     except utils.DistroError:
         env.cprint('[warn] unsupported distribution.', 'yellow')
+    # Create a builder for the checkout of the dependencies.
     coDep = SCons.Action.Action(CheckoutDependency, CheckoutDependencyMessage)
     checkoutBuilder = Builder(action = coDep)
     env.Append(BUILDERS={'CheckoutDependency': checkoutBuilder})
+    # Create a builder for the update of the dependencies.
     upDep = SCons.Action.Action(UpdateDependency, UpdateDependencyMessage)
     updateBuilder = Builder(action = upDep)
     env.Append(BUILDERS={'UpdateDependency': updateBuilder})
+    # Creates projects targets.
     createDependenciesTargets(env)
+    # Create external dependencies targets.
     createExternalDependenciesTargets(env)
+    # Puts a public function within the enviroment.
     env.CheckoutDependencyNow = CheckoutDependencyNow
 
 
@@ -145,7 +153,6 @@ def createExternalDependenciesTargets(env):
                 external_dependencies[componentName] = dep
     # Check if each component is already installed.
     for component in external_dependencies.keys():
-        #import ipdb; ipdb.set_trace()
         if not external_dependencies[component].checkInstall():
             tgt = '%s:install' % component
             checkoutAction = env.CheckoutDependency(tgt,'SConstruct')
@@ -153,6 +160,9 @@ def createExternalDependenciesTargets(env):
                               checkoutAction,
                               'Install external component [%s]' % component)
             env.AlwaysBuild(alias)
+        else:
+            st = external_dependencies[component].create_ext_lib_component
+            env.ExternalDependenciesCreateComponentsList.append(st)
 
 
 class Dependencies(object):
@@ -185,8 +195,7 @@ class Dependencies(object):
            self.create_ext_lib_component = ((elems[0]).childNodes[0]).data
         else:
             self.create_ext_lib_component = ''
-        
-        
+
     def afterCheckout(self):
         if len(self.executeAfter) > 0:
             cmds = self.executeAfter.split('\n')
@@ -395,20 +404,22 @@ def CheckoutDependency(env, source, target):
         dep = projects[dep]
     result = dep.checkout()
     if dep.create_ext_lib_component:
-        exec dep.create_ext_lib_component in {'env':env}
+        st = dep.create_ext_lib_component
+        env.ExternalDependenciesCreateComponentsList.append(st)
     return result
 
 
 def CheckoutDependencyNow(dep, env):
     #import ipdb; ipdb.set_trace()
     if dep in external_dependencies.keys():
-        d = external_dependencies.get(dep)
+        dep = external_dependencies.get(dep)
     else:
-        d = projects.get(dep)
-    if d:
-        result = d.checkout()==0
-        if d.create_ext_lib_component:
-            exec d.create_ext_lib_component in {'env':env}
+        dep = projects.get(dep)
+    if dep:
+        result = dep.checkout()==0
+        if dep.create_ext_lib_component:
+            st = dep.create_ext_lib_component
+            env.ExternalDependenciesCreateComponentsList.append(st)
     else:
         result = False
     return result

@@ -179,11 +179,12 @@ def WalkDirsForSconscripts(env, topdir, ignore = []):
     # dependency graph
     # Initial set to pass the loop test
     originalGraph = componentGraph.copy()
-
+    
+    for st in env.ExternalDependenciesCreateComponentsList:
+        exec st in {'env':env}
+    
     downloadedDependencies = True
     while downloadedDependencies:
-        
-        print '\n', componentGraph.getComponentsNames(), '\n'
         
         downloadedDependencies = False
         for root, dirnames, filenames in os.walk(topdir):
@@ -203,11 +204,6 @@ def WalkDirsForSconscripts(env, topdir, ignore = []):
                 # check if we know how to download this component
                 downloadedDependencies = env.CheckoutDependencyNow(component,env)
             else:
-                #if True:
-                    #print c.name
-                    #print c.deps
-                    #print '======================================================================'
-                    #import ipdb; ipdb.set_trace()
                 for dep in c.deps:
                     cdep = componentGraph.get(dep)
                     if cdep == None:
@@ -219,9 +215,11 @@ def WalkDirsForSconscripts(env, topdir, ignore = []):
             if downloadedDependencies:
                 break
         if downloadedDependencies:
-            # reset this to allow it to reparse those that were already added
+            # Reset this to allow it to reparse those that were already added
             componentGraph.clear()
             componentGraph.update(originalGraph)
+            for st in env.ExternalDependenciesCreateComponentsList:
+                exec st in {'env':env}
 
     # Step 2: real processing we have everything loaded in the dependency graph
     # now we process it
