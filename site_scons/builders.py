@@ -135,7 +135,6 @@ def RunLcov(env, source, target):
     return r
 
 def RunDoxygen(target, source, env):
-    import ipdb; ipdb.set_trace()
     rc = 0
     tindex = 0
     for s in source:
