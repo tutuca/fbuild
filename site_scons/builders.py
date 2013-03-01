@@ -135,10 +135,11 @@ def RunLcov(env, source, target):
     return r
 
 def RunDoxygen(target, source, env):
+    import ipdb; ipdb.set_trace()
     rc = 0
     tindex = 0
     for s in source:
-        t = target[tindex].abspath;
+        t = target[tindex].abspath[:-4];
         os.mkdir(t)
         (pathHead, pathTail) = os.path.split(s.abspath)
 
@@ -147,7 +148,7 @@ def RunDoxygen(target, source, env):
         fsrc.close()
 
         tmpdoxyFile = pathHead + '/__tmp_doxyfile'
-        targetName = os.path.basename(t)[:-4]
+        targetName = os.path.basename(t)
 
         ftgt = open(tmpdoxyFile, "w")
         ftgt.write(doxygenSrc.replace('$PROJECT_NAME', targetName)\
