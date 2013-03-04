@@ -141,7 +141,7 @@ def RunDoxygen(target, source, env):
         # Path to the doxygen template file.
         doxyTamplate = s.abspath
         # Path to the doc/project directory.
-        target = target[tindex].abspath[:-4]
+        target = target[tindex].abspath
         # Create the doc/project directory.
         os.mkdir(target)
         # Split the target path to get the project's name.

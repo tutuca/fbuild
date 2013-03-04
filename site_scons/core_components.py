@@ -182,7 +182,7 @@ class HeaderOnlyComponent(Component):
         # Call RunCLOC().
         cloc = self.env.RunCLOC(target, sources)
         self.env.AlwaysBuild(cloc)
-        # Create an alias to be show when run 'fbuild targets'.
+        # Create Componentan alias to be show when run 'fbuild targets'.
         self.env.Alias(self.name+":cloc", cloc, 'Generate software metrics for %s' % self.name)
     
     def _create_cppcheck_target(self, sources):
@@ -193,9 +193,18 @@ class HeaderOnlyComponent(Component):
         self.env.AlwaysBuild(cppcheck)
         # Create an alias to be show when run 'fbuild targets'.
         self.env.Alias(self.name+":cppcheck", cppcheck, 'C/C++ code analyse for %s' % self.name)
+    
+    def _create_doc_target(self):
+        targetDocDir = self.env.Dir(self.env['INSTALL_DOC_DIR']).Dir(self.name)
+        doxyfile = self.env.File(self.env.Dir('#').abspath+'/conf/doxygenTemplate')
+        doc = self.env.RunDoxygen(targetDocDir, doxyfile)
+        self.env.Clean(doc, targetDocDir)
+        self.env.Alias(self.name+':doc', doc, 'Generate documentation for ' + self.name)
 
     def Process(self, called_from_subclass=False):
         Component.Process(self)
+        # Create target for generate the documentation.
+        self._create_doc_target()
         # This condition is for the cases when the method is called from a subclass.
         if not called_from_subclass:
             # Create the list of the 'sources' files.
