@@ -176,10 +176,13 @@ def WalkDirsForSconscripts(env, topdir, ignore = []):
                     pathname = os.path.join(root, filename)
                     vdir = os.path.join(env['BUILD_DIR'],
                                         os.path.relpath(root,env['WS_DIR']))
+                    env2 = env
+                    env = env.Clone()
                     env.SConscript(pathname,
-                                   exports='env',
+                                   exports='env',                                                                              
                                    variant_dir=vdir,
                                    duplicate=1)
+                    env = env2
         # Check if there is a component that we dont know how to build
         for component in componentGraph.getComponentsNames():
             c = componentGraph.get(component)
