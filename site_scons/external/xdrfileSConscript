@@ -5,4 +5,3 @@ ext_dir = 'include'
 lib_targets = ['libxdrfile.a']
 
 env.CreateAutoToolsProject('xdrfile', ext_dir, lib_targets, configurePath)
-env.CreateDoc('xdrfile-doc')

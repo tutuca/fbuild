@@ -16,7 +16,6 @@ src = ['src/gtest-all.cc']
 deps = ['pthread']
 
 env.CreateStaticLibrary(name, inc, ext_inc, src, deps)
-env.CreateDoc(name)
 
 name = 'gtest_main'
 inc = env.Dir('gtest'), env.Dir('gtest/include'), env.Dir('include')
