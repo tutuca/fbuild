@@ -176,6 +176,8 @@ def WalkDirsForSconscripts(env, topdir, ignore = []):
                     pathname = os.path.join(root, filename)
                     vdir = os.path.join(env['BUILD_DIR'],
                                         os.path.relpath(root,env['WS_DIR']))
+                    # We clone the enviroment since we need different one for each
+                    # project.
                     env2 = env
                     env = env.Clone()
                     env.SConscript(pathname,
