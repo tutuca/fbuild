@@ -48,7 +48,7 @@ class DocComponent(Component):
         doc = self.env.RunDoxygen(targetDocDir, self.doxyfile)
         self.env.Clean(doc, targetDocDir)
         self.env.Alias(self.name, doc, 'Generate documentation for ' + self.name)
-
+        # Create aliases.
         for alias in self.aliasGroups:
             self.env.Alias(alias, doc, "Build group " + alias)
 
