@@ -65,9 +65,8 @@ class ExternalLibraryComponent(Component):
         libpaths = []
         libs = []
         if self.shouldBeLinked and depth > 0:
-            if not self.name in libs:
-                libs.append(self.name)
-                libpaths.append(self.dir)
+            libs.append(self.name)
+            libpaths.append(self.dir)
         processedComponents.append(self.name)
 
         for dep in self.deps:
@@ -80,7 +79,9 @@ class ExternalLibraryComponent(Component):
                 if hasattr(c, '_getLibs'):
                     (depLibs, depLibPaths, depProcessedComp) = c._getLibs(processedComponents,depth+1)
                     libpaths.extend(depLibPaths)
-                    libs.extend(depLibs)
+                    for d in depLibs:
+                        if not d in libs:
+                            libs.append(d)
         return (libs, libpaths, processedComponents)
 
     def getIncludePaths(self):
@@ -299,13 +300,12 @@ class SourcedComponent(HeaderOnlyComponent):
         libpaths = []
         libs = []
         if self.shouldBeLinked and depth > 0:
-            if not self.name in libs:
-                libs.append(self.name)
-                # TODO: just add the one that matters here
-                # For static libraries lookup:
-                libpaths.append(self.env['INSTALL_LIB_DIR'])
-                # For dynamic libraries lookup:
-                libpaths.append(self.env['INSTALL_BIN_DIR'])
+            libs.append(self.name)
+            # TODO: just add the one that matters here
+            # For static libraries lookup:
+            libpaths.append(self.env['INSTALL_LIB_DIR'])
+            # For dynamic libraries lookup:
+            libpaths.append(self.env['INSTALL_BIN_DIR'])
         processedComponents.append(self.name)
 
         for dep in self.deps:
@@ -318,7 +318,9 @@ class SourcedComponent(HeaderOnlyComponent):
                 if hasattr(c, '_getLibs'):
                     (depLibs, depLibPaths, depProcessedComp) = c._getLibs(processedComponents,depth+1)
                     libpaths.extend(depLibPaths)
-                    libs.extend(depLibs)
+                    for d in depLibs:
+                        if not d in libs:
+                            libs.append(d)
         return (libs, libpaths, processedComponents)
     
     def _get_include_files (self):
