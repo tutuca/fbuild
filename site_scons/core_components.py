@@ -68,7 +68,6 @@ class ExternalLibraryComponent(Component):
             libs.append(self.name)
             libpaths.append(self.dir)
         processedComponents.append(self.name)
-
         for dep in self.deps:
             # Only process the dep if it was not already processed
             if dep not in processedComponents:
