@@ -59,14 +59,15 @@ class ExternalLibraryComponent(Component):
 
     def getLibs(self):
         (libs, libpaths, processedComponents) = self._getLibs([], 0)
-        return (utils.removeDuplicates(libs), utils.removeDuplicates(libpaths))
+        return (libs, utils.removeDuplicates(libpaths))
 
     def _getLibs(self, processedComponents, depth):
         libpaths = []
         libs = []
         if self.shouldBeLinked and depth > 0:
-            libs.append(self.name)
-            libpaths.append(self.dir)
+            if not self.name in libs:
+                libs.append(self.name)
+                libpaths.append(self.dir)
         processedComponents.append(self.name)
 
         for dep in self.deps:
@@ -292,18 +293,19 @@ class SourcedComponent(HeaderOnlyComponent):
 
     def getLibs(self):
         (libs, libpaths, processedComponents) = self._getLibs([], 0)
-        return (utils.removeDuplicates(libs), utils.removeDuplicates(libpaths))
+        return (libs, utils.removeDuplicates(libpaths))
 
     def _getLibs(self, processedComponents, depth):
         libpaths = []
         libs = []
         if self.shouldBeLinked and depth > 0:
-            libs.append(self.name)
-            # TODO: just add the one that matters here
-            # For static libraries lookup:
-            libpaths.append(self.env['INSTALL_LIB_DIR'])
-            # For dynamic libraries lookup:
-            libpaths.append(self.env['INSTALL_BIN_DIR'])
+            if not self.name in libs:
+                libs.append(self.name)
+                # TODO: just add the one that matters here
+                # For static libraries lookup:
+                libpaths.append(self.env['INSTALL_LIB_DIR'])
+                # For dynamic libraries lookup:
+                libpaths.append(self.env['INSTALL_BIN_DIR'])
         processedComponents.append(self.name)
 
         for dep in self.deps:
