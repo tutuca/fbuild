@@ -63,8 +63,6 @@ class Component(object):
         libpaths.append(self.env['INSTALL_BIN_DIR'])
         # Look for the libs and its paths.
         self._getLibs(libs, libpaths, 0)
-        #print 'libs:', libs
-        #import ipdb; ipdb.set_trace()
         # Remember:
         #   t[0]  ->  depth.
         #   t[1]  ->  name.
@@ -76,9 +74,6 @@ class Component(object):
         aux = [t for t in libs if unique(t) or is_max(t)]; aux.sort()
         # Create the libs list.
         libs = [t[1] for t in aux]
-        #print "\nNAME:", self.name
-        #print "LIBS:", libs
-        #print "==================================================================="
         return (libs, libpaths)
 
     def _getLibs(self, libs, libpaths, depth):
@@ -116,32 +111,6 @@ class ExternalLibraryComponent(Component):
             else:
                 self.extInc.append( extInc )
         self.shouldBeLinked = shouldBeLinked
-
-    #def getLibs(self):
-        #(libs, libpaths, processedComponents) = self._getLibs([], 0)
-        #return (libs, utils.removeDuplicates(libpaths))
-
-    #def _getLibs(self, processedComponents, depth):
-        #libpaths = []
-        #libs = []
-        #if self.shouldBeLinked and depth > 0:
-            #libs.append(self.name)
-            #libpaths.append(self.dir)
-        #processedComponents.append(self.name)
-        #for dep in self.deps:
-            ## Only process the dep if it was not already processed
-            #if dep not in processedComponents:
-                #c = self.componentGraph.get(dep)
-                #if c is None:
-                    #self.env.cerror('[error] %s depends on %s which could not be found' % (self.name, dep))
-                    #continue
-                #if hasattr(c, '_getLibs'):
-                    #(depLibs, depLibPaths, depProcessedComp) = c._getLibs(processedComponents,depth+1)
-                    #libpaths.extend(depLibPaths)
-                    #for d in depLibs:
-                        #if not d in libs:
-                            #libs.append(d)
-        #return (libs, libpaths, processedComponents)
 
     def getIncludePaths(self):
         (incs, processedComponents) = self._getIncludePaths([], 0)
@@ -350,37 +319,6 @@ class SourcedComponent(HeaderOnlyComponent):
                 incs.append(hDir)
         return (incs, processedComponents)
 
-    #def getLibs(self):
-        #(libs, libpaths, processedComponents) = self._getLibs([], 0)
-        #return (libs, utils.removeDuplicates(libpaths))
-
-    #def _getLibs(self, processedComponents, depth):
-        #libpaths = []
-        #libs = []
-        #if self.shouldBeLinked and depth > 0:
-            #libs.append(self.name)
-            ## TODO: just add the one that matters here
-            ## For static libraries lookup:
-            #libpaths.append(self.env['INSTALL_LIB_DIR'])
-            ## For dynamic libraries lookup:
-            #libpaths.append(self.env['INSTALL_BIN_DIR'])
-        #processedComponents.append(self.name)
-
-        #for dep in self.deps:
-            ## Only process the dep if it was not already processed
-            #if dep not in processedComponents:
-                #c = self.componentGraph.get(dep)
-                #if c is None:
-                    #self.env.cerror('[error] %s depends on %s which could not be found' % (self.name, dep))
-                    #continue
-                #if hasattr(c, '_getLibs'):
-                    #(depLibs, depLibPaths, depProcessedComp) = c._getLibs(processedComponents,depth+1)
-                    #libpaths.extend(depLibPaths)
-                    #for d in depLibs:
-                        #if not d in libs:
-                            #libs.append(d)
-        #return (libs, libpaths, processedComponents)
-    
     def _get_include_files (self):
         include_files = []
         for i in self.inc:
