@@ -436,7 +436,8 @@ class UnitTestComponent(ProgramComponent):
         #gtest/gmock flags
         CXXFLAGS = [f for f in self.env['CXXFLAGS'] if f not in ['-ansi', '-pedantic']]
         CXXFLAGS.append('-Wno-sign-compare')
-        CXXFLAGS.append('-ggdb3')
+        if not '-ggdb3' in CXXFLAGS:
+            CXXFLAGS.append('-ggdb3')
         self.env.Replace(CXXFLAGS=CXXFLAGS, CFLAGS=CXXFLAGS)
 
         # Should it be a call to ProgramComponent.Process() ??
