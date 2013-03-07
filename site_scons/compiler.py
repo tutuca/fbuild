@@ -30,8 +30,7 @@ def init(env):
               type='string',
               nargs=1,
               action='store',
-              help='type of build, options: dbg, opt',
-              default='dbg')
+              help='type of build, options: release, opt')
     (arch,binType) = platform.architecture()
     if binType == 'ELF':
         linuxOptions(env)
@@ -66,12 +65,12 @@ def linuxOptions(env):
     (arch,binType) = platform.architecture()
     if arch == '64bit':
         env.Append(CXXFLAGS = '-fPIC', CFLAGS = '-fPIC')
-    # build type options
+    # Build type options
     if env.GetOption('type') == 'opt':
         optFlags = ['-O3']
         env.Append(CXXFLAGS=optFlags, CFLAGS=optFlags)
         env.Append(CPPDEFINES=['NDEBUG'])
-    elif env.GetOption('type') == 'dbg':
+    elif env.GetOption('type') != 'release':
         dbgFlags = ['-ggdb3']
         env.Append(CXXFLAGS=dbgFlags, CFLAGS=dbgFlags)
         env.Append(CPPDEFINES=['DEBUG'])
