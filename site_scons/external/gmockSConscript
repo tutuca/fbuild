@@ -17,4 +17,3 @@ src = ['gtest/src/gtest-all.cc','src/gmock-all.cc']
 deps = ['pthread']
 
 env.CreateStaticLibrary(name, inc, ext_inc, src, deps)
-env.CreateDoc(name)

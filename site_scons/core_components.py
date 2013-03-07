@@ -39,7 +39,62 @@ class Component(object):
         self.aliasGroups = aliasGroups
         self.componentGraph = componentGraph
         self.projDir = os.path.join(env['WS_DIR'], os.path.relpath(self.dir, env['BUILD_DIR']))
+        self.shouldBeLinked = False
+    
+    def getLibs(self):
+        """
+            Description:
+                This method returns the libraries (and its paths) that should be 
+                linked when the component have to be build.
+            Arguments:
+                None.
+            Exceptions:
+                None.
+            Return:
+                A tuple instance of the form (libs,libpaths) where 'libs' is the 
+                list of the libraries and 'libpaths' the list of its paths.
+        """
+        # List of libraries.
+        libs = []
+        # List of libraries paths.
+        libpaths = []
+        # Append some strandars paths to this variable.
+        libpaths.append(self.env['INSTALL_LIB_DIR'])
+        libpaths.append(self.env['INSTALL_BIN_DIR'])
+        # Look for the libs and its paths.
+        self._getLibs(libs, libpaths, 0)
+        # Remember:
+        #   t[0]  ->  depth.
+        #   t[1]  ->  name.
+        # This function tells if the tuple depth (t[0]) is the maximum in libs.
+        is_max = lambda t : len([x for x in libs if x[1]==t[1] and x[0]>t[0]]) == 0
+        # This function tells if the tuple name (t[1]) is unique in libs.
+        unique = lambda t : len([x for x in libs if x[1]==t[1]]) == 1
+        # Remove from the list the duplicated names.
+        aux = [t for t in libs if unique(t) or is_max(t)]; aux.sort()
+        # Create the libs list.
+        libs = [t[1] for t in aux]
+        return (libs, libpaths)
 
+    def _getLibs(self, libs, libpaths, depth):
+        """
+            This is a recursive internal method used by the self.getLibs() method.
+        """
+        if self.shouldBeLinked and depth > 0:
+            libs.append((depth,self.name))
+            if not self.dir in libpaths:
+                libpaths.append(self.dir)
+        # Check its dependencies.
+        for dep in self.deps:
+            c = self.componentGraph.get(dep)
+            if c is None:
+                self.env.cerror(
+                    '[error] %s depends on %s which could not be found' % 
+                    (self.name, dep)
+                )
+            else: #if not isinstance(c, HeaderOnlyComponent):
+                c._getLibs(libs, libpaths, depth+1)
+    
     def Process(self):
         return None
 
@@ -56,31 +111,6 @@ class ExternalLibraryComponent(Component):
             else:
                 self.extInc.append( extInc )
         self.shouldBeLinked = shouldBeLinked
-
-    def getLibs(self):
-        (libs, libpaths, processedComponents) = self._getLibs([], 0)
-        return (utils.removeDuplicates(libs), utils.removeDuplicates(libpaths))
-
-    def _getLibs(self, processedComponents, depth):
-        libpaths = []
-        libs = []
-        if self.shouldBeLinked and depth > 0:
-            libs.append(self.name)
-            libpaths.append(self.dir)
-        processedComponents.append(self.name)
-
-        for dep in self.deps:
-            # Only process the dep if it was not already processed
-            if dep not in processedComponents:
-                c = self.componentGraph.get(dep)
-                if c is None:
-                    self.env.cerror('[error] %s depends on %s which could not be found' % (self.name, dep))
-                    continue
-                if hasattr(c, '_getLibs'):
-                    (depLibs, depLibPaths, depProcessedComp) = c._getLibs(processedComponents,depth+1)
-                    libpaths.extend(depLibPaths)
-                    libs.extend(depLibs)
-        return (libs, libpaths, processedComponents)
 
     def getIncludePaths(self):
         (incs, processedComponents) = self._getIncludePaths([], 0)
@@ -182,7 +212,7 @@ class HeaderOnlyComponent(Component):
         # Call RunCLOC().
         cloc = self.env.RunCLOC(target, sources)
         self.env.AlwaysBuild(cloc)
-        # Create an alias to be show when run 'fbuild targets'.
+        # Create Componentan alias to be show when run 'fbuild targets'.
         self.env.Alias(self.name+":cloc", cloc, 'Generate software metrics for %s' % self.name)
     
     def _create_cppcheck_target(self, sources):
@@ -193,9 +223,18 @@ class HeaderOnlyComponent(Component):
         self.env.AlwaysBuild(cppcheck)
         # Create an alias to be show when run 'fbuild targets'.
         self.env.Alias(self.name+":cppcheck", cppcheck, 'C/C++ code analyse for %s' % self.name)
+    
+    def _create_doc_target(self):
+        targetDocDir = self.env.Dir(self.env['INSTALL_DOC_DIR']).Dir(self.name)
+        doxyfile = self.env.File(self.env.Dir('#').abspath+'/conf/doxygenTemplate')
+        doc = self.env.RunDoxygen(targetDocDir, doxyfile)
+        self.env.Clean(doc, targetDocDir)
+        self.env.Alias(self.name+':doc', doc, 'Generate documentation for ' + self.name)
 
     def Process(self, called_from_subclass=False):
         Component.Process(self)
+        # Create target for generate the documentation.
+        self._create_doc_target()
         # This condition is for the cases when the method is called from a subclass.
         if not called_from_subclass:
             # Create the list of the 'sources' files.
@@ -258,7 +297,6 @@ class SourcedComponent(HeaderOnlyComponent):
                     self.src.append(os.path.abspath(src))
                 else:
                     self.src.append(os.path.abspath(compDir.rel_path(src)))
-        self.shouldBeLinked = False
         # Create list sources and headers files
         self.src_files = []
         self.inc_files = self._get_include_files()
@@ -281,35 +319,6 @@ class SourcedComponent(HeaderOnlyComponent):
                 incs.append(hDir)
         return (incs, processedComponents)
 
-    def getLibs(self):
-        (libs, libpaths, processedComponents) = self._getLibs([], 0)
-        return (utils.removeDuplicates(libs), utils.removeDuplicates(libpaths))
-
-    def _getLibs(self, processedComponents, depth):
-        libpaths = []
-        libs = []
-        if self.shouldBeLinked and depth > 0:
-            libs.append(self.name)
-            # TODO: just add the one that matters here
-            # For static libraries lookup:
-            libpaths.append(self.env['INSTALL_LIB_DIR'])
-            # For dynamic libraries lookup:
-            libpaths.append(self.env['INSTALL_BIN_DIR'])
-        processedComponents.append(self.name)
-
-        for dep in self.deps:
-            # Only process the dep if it was not already processed
-            if dep not in processedComponents:
-                c = self.componentGraph.get(dep)
-                if c is None:
-                    self.env.cerror('[error] %s depends on %s which could not be found' % (self.name, dep))
-                    continue
-                if hasattr(c, '_getLibs'):
-                    (depLibs, depLibPaths, depProcessedComp) = c._getLibs(processedComponents,depth+1)
-                    libpaths.extend(depLibPaths)
-                    libs.extend(depLibs)
-        return (libs, libpaths, processedComponents)
-    
     def _get_include_files (self):
         include_files = []
         for i in self.inc:
@@ -338,7 +347,6 @@ class StaticLibraryComponent(SourcedComponent):
     def Process(self):
         SourcedComponent.Process(self)
         incpaths = self.getIncludePaths()
-        (libs,libpaths) = self.getLibs()
         target = os.path.join(self.dir, self.name)
         sLib = self.env.StaticLibrary(target, self.src, CPPPATH=incpaths)
         iLib = self.env.Install(self.env['INSTALL_LIB_DIR'], sLib)
@@ -375,7 +383,6 @@ class ObjectComponent(SourcedComponent):
     
     def __init__(self, componentGraph, env, name, compDir, deps, inc, src, aliasGroups):
         SourcedComponent.__init__(self, componentGraph, env, name, compDir, deps, inc, [], src, aliasGroups)
-        self.shouldBeLinked = False
         self.objs = []
 
     def Process(self):
@@ -396,7 +403,6 @@ class ProgramComponent(SourcedComponent):
     
     def __init__(self, componentGraph, env, name, compDir, deps, inc, src, aliasGroups):
         SourcedComponent.__init__(self, componentGraph, env, name, compDir, deps, inc, [], src, aliasGroups)
-        self.shouldBeLinked = False
 
     def Process(self):
         SourcedComponent.Process(self)
@@ -430,6 +436,8 @@ class UnitTestComponent(ProgramComponent):
         #gtest/gmock flags
         CXXFLAGS = [f for f in self.env['CXXFLAGS'] if f not in ['-ansi', '-pedantic']]
         CXXFLAGS.append('-Wno-sign-compare')
+        if not '-ggdb3' in CXXFLAGS:
+            CXXFLAGS.append('-ggdb3')
         self.env.Replace(CXXFLAGS=CXXFLAGS, CFLAGS=CXXFLAGS)
 
         # Should it be a call to ProgramComponent.Process() ??
