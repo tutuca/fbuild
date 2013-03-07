@@ -1,6 +1,6 @@
 <external_dependencies>
     <!-- Format of a component:
-    <component name="component_name"
+    <component name="component_name" type=["LIB" | "PRO"]
         <installer
             distro=["UBUNTU" | "ARCH" | "*"]
             target=["package_name" | "url"]
@@ -10,56 +10,58 @@
         <execute_after> SHELL_SCRIPT </execute_after>
         <create_ext_lib_comp> PYTHON_CALL </create_ext_lib_comp>
     </component>
+    
     IMPORTANT:
         Please maintain alphabetical order based on name to ease maintenance -->
     
-    <component name="boost_thread">
+    <component name="boost_thread" type="LIB">
         <installer
             distro="UBUNTU"
             target="libboost-thread-dev"
-            manager="APT-GET" />
+            manager="APT-GET"/>
         <installer
             distro="ARCH"
             target="boost"
-            manager="PACKER" />
-        <install_checker>stat -f /usr/lib/libboost_thread.a</install_checker>
+            manager="PACKER"/>
         <create_ext_lib_comp>env.CreateExternalLibraryComponent("boost_thread",[],env.Dir('/usr/lib'),[],True)</create_ext_lib_comp>
     </component>
     
-    <component name="boost_system">
+    <component name="boost_system" type="LIB">
         <installer
             distro="UBUNTU"
             target="libboost-system-dev"
-            manager="APT-GET" />
+            manager="APT-GET"/>
         <installer
             distro="ARCH"
             target="boost"
-            manager="PACKER" />
-        <install_checker>stat -f /usr/lib/libboost_system.a</install_checker>
+            manager="PACKER"/>
         <create_ext_lib_comp>env.CreateExternalLibraryComponent("boost_system",[],env.Dir('/usr/lib'),[],True)</create_ext_lib_comp>
     </component>
     
-    <component name="expat">
+    <component name="expat" type="LIB">
         <installer
             distro="UBUNTU"
             target="libexpat-dev"
-            manager="APT-GET" />
-        <install_checker> </install_checker>
+            manager="APT-GET"/>
+        <installer
+            distro="ARCH"
+            target="expat"
+            manager="PACKER"/>
         <create_ext_lib_comp>env.CreateExternalLibraryComponent("expat",[],env.Dir('/usr/lib'),[],True)</create_ext_lib_comp>
     </component>
     
-    <component name="gmock">
+    <component name="gmock" type="LIB">
         <installer
             distro="*"
             target="https://googlemock.googlecode.com/svn/tags/release-1.6.0"
-            manager="SVN" />
+            manager="SVN"/>
         <install_checker>stat -f {WS_DIR}/gmock/SConscript</install_checker>
         <execute_after>
             cp #/site_scons/external/gmockSConscript {WS_DIR}/gmock/SConscript
         </execute_after>
     </component>
     
-    <component name="gtest">
+    <component name="gtest" type="LIB">
         <installer
             distro="*"
             target="https://googletest.googlecode.com/svn/tags/release-1.6.0"
@@ -70,11 +72,11 @@
         </execute_after>
     </component>
     
-    <component name="odeint">
+    <component name="odeint" type="LIB">
         <installer
             distro="*"
             target="http://github.com/headmyshoulder/odeint-v2/tarball/master"
-            manager="WGET" />
+            manager="WGET"/>
         <install_checker>stat -f #/projects/odeint/SConscript</install_checker>
         <execute_after>
             mkdir #/odeint
@@ -86,11 +88,11 @@
         </execute_after>
     </component>
     
-    <component name="xdrfile">
+    <component name="xdrfile" type="LIB">
         <installer
             distro="*"
             target="ftp://ftp.gromacs.org/pub/contrib/xdrfile-1.1.tar.gz/"
-            manager="WGET" />
+            manager="WGET"/>
         <install_checker>stat -f #/projects/xdrfile/SConscript</install_checker>
         <execute_after>
             mkdir #/xdrfile2

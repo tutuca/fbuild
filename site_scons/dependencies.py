@@ -37,16 +37,22 @@ import utils
 # Constants for the createDependency() function.
 DEP_PROJECT = 'project'
 DEP_EXTERNAL = 'external dependency'
-# Stores the distribution name. It's sets within the init() function.
+# Stores the distribution name. It's set within the init() function.
 DISTRO = None
 # Dictionary with the projects from 'conf/projects.xml'
 projects = {}
 # Dictionary with the components from 'conf/external_dependencies.xml'
 external_dependencies = {}
+# A C template file for the internal function _CheckLibInstall().
+C_TEMPLATE_CODE = """int main(){return 0;}"""
+# The C template file name for the internal function _CheckLibInstall().
+C_TEMPLATE_FILE = '_chklib_'
+# A command-line template for the internal function _CheckLibInstall().
+CMD_TEMPLATE = 'gcc -o _chklib_ _chklib_.c -l%s'
 
 
 def init(env):
-    # Sets a list that will store call to CreateExternalLibraryComponent().
+    # Sets a list that will store calls to CreateExternalLibraryComponent().
     env.ExternalDependenciesCreateComponentsList = []
     # We try to get in which distro we are.
     try:
@@ -63,14 +69,14 @@ def init(env):
     updateBuilder = Builder(action = upDep)
     env.Append(BUILDERS={'UpdateDependency': updateBuilder})
     # Creates projects targets.
-    createDependenciesTargets(env)
+    createProjectsDependenciesTargets(env)
     # Create external dependencies targets.
     createExternalDependenciesTargets(env)
     # Puts a public function within the enviroment.
     env.CheckoutDependencyNow = CheckoutDependencyNow
 
 
-def createDependenciesTargets(env):
+def createProjectsDependenciesTargets(env):
     confDir = os.path.join(env.Dir('#').abspath,'conf')
     projectsFile = os.path.join(confDir, 'projects.xml')
     
@@ -174,6 +180,7 @@ class Dependencies(object):
         self.username = node.getAttribute('username')
         self.url = node.getAttribute('repository_url')
         self.target = target
+        self.component_type = node.getAttribute('type')
         # Here we are assuming that the contents of the execute_after node
         # would be of type TEXT_NODE, otherwise, it would cause an error.
         elems = node.getElementsByTagName('execute_after')
@@ -210,15 +217,33 @@ class Dependencies(object):
         return 0
     
     def checkInstall(self):
-        result = False
+        """
+            Description:
+                This method check if the component is installed or not.
+            Arguments:
+                None.
+            Exceptions:
+                None.
+            Return:
+                True if the component is installed.
+                False otherwise.
+        """
+        # If a checker was provided, we use it.
         if len(self.inatllChecker) > 0:
+            # A shortcut for subprocess.PIPE
+            PIPE = subprocess.PIPE
             cmds = self.inatllChecker.split('\n')
             for cmd in cmds:
                 cmd = cmd.replace('{WS_DIR}', self.env['WS_DIR'])
                 cmd = cmd.replace('#', self.env.Dir('#').abspath)
-                rc = subprocess.call(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-                if rc == 0:
-                    result = True
+                rc = subprocess.call(cmd, shell=True, stdout=PIPE, stderr=PIPE)
+                result = rc==0
+        elif self.component_type == 'LIB':
+            result = _CheckLibInstall(self.name)
+        elif self.component_type == 'PRO':
+            result = _CheckProgInstall(self.name)
+        else:
+            result = False
         return result
 
 
@@ -306,13 +331,6 @@ class PACKER(Dependencies):
            return cprint('[error] pacman failed to installing %s, error: %s' 
                           % (self.target, rc), 'red')
         return self.afterCheckout()
-        
-    def update(self):
-        # this is not supported, should be? should we download the version
-        # again an update? that will be time consuming and update should be
-        # fast. This should be supported once we mark the version and there
-        # is a way to know that the version didn't changed from last download
-        return 0
 
 
 class PACMAN(Dependencies):
@@ -324,13 +342,6 @@ class PACMAN(Dependencies):
            return cprint('[error] pacman failed to installing %s, error: %s' 
                           % (self.target, rc), 'red')
         return self.afterCheckout()
-    
-    def update(self):
-        # this is not supported, should be? should we download the version
-        # again an update? that will be time consuming and update should be
-        # fast. This should be supported once we mark the version and there
-        # is a way to know that the version didn't changed from last download
-        return 0
 
 
 class APT_GET(Dependencies):
@@ -342,13 +353,6 @@ class APT_GET(Dependencies):
            return cprint('[error] apt-get failed to installing %s, error: %s' 
                           % (self.target, rc), 'red')
         return self.afterCheckout()
-    
-    def update(self):
-        # this is not supported, should be? should we download the version
-        # again an update? that will be time consuming and update should be
-        # fast. This should be supported once we mark the version and there
-        # is a way to know that the version didn't changed from last download
-        return 0
 
 
 class APTITUDE(Dependencies):
@@ -360,13 +364,6 @@ class APTITUDE(Dependencies):
            return cprint('[error] aptitude failed to installing %s, error: %s' 
                           % (self.target, rc), 'red')
         return self.afterCheckout()
-    
-    def update(self):
-        # this is not supported, should be? should we download the version
-        # again an update? that will be time consuming and update should be
-        # fast. This should be supported once we mark the version and there
-        # is a way to know that the version didn't changed from last download
-        return 0
 
 
 def createDependency(env, name, type, node, target=None, dep_type=DEP_PROJECT):
@@ -410,7 +407,6 @@ def CheckoutDependency(env, source, target):
 
 
 def CheckoutDependencyNow(dep, env):
-    #import ipdb; ipdb.set_trace()
     if dep in external_dependencies.keys():
         dep = external_dependencies.get(dep)
     else:
@@ -432,3 +428,54 @@ def UpdateDependencyMessage(env, source, target):
 def UpdateDependency(env, source, target):
     dep = str(target[0]).split(':')[0]
     return projects[dep].update()
+
+
+def _CheckLibInstall(lib):
+    """
+        Description:
+            This is an internal function that checks if a library is installed or
+            not.
+        Arguments:
+            lib  -  A string with the name of the library. This should not 
+                    contain the 'lib' prefix or extension.
+        Exceptions:
+            None.
+        Return:
+            True if the library exists.
+            False otherwise.
+    """
+    # A shortcut for subprocess.PIPE
+    PIPE = subprocess.PIPE
+    # Create the C file
+    f = open(C_TEMPLATE_FILE+'.c', 'w')
+    f.write(C_TEMPLATE_CODE)
+    f.close()
+    # Create the command line
+    cmd = CMD_TEMPLATE % lib
+    # Check if the library except
+    rc = subprocess.call(cmd, shell=True, stdout=PIPE, stderr=PIPE)
+    # Delete the files.
+    os.remove(C_TEMPLATE_FILE+'.c')
+    os.remove(C_TEMPLATE_FILE)
+    return rc == 0
+
+
+def _CheckProgInstall(prog):
+    """
+        Description:
+            This is an internal function that checks if a program is installed or
+            not.
+        Arguments:
+            prog  -  A string with the name of the program.
+        Exceptions:
+            None.
+        Return:
+            True if the program exists.
+            False otherwise.
+    """
+    # A shortcut for subprocess.PIPE
+    PIPE = subprocess.PIPE
+    # Create the command line
+    cmd = 'which %s' % lib
+    # Check if the program except
+    return subprocess.call(cmd, shell=True, stdout=PIPE, stderr=PIPE) == 0
