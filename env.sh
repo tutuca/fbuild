@@ -2,7 +2,7 @@
 
 # fudepan-build: The build system for FuDePAN projects 
 #
-# Copyright (C) 2011-2012 Esteban Papp, Hugo Arregui FuDePAN
+# Copyright (C) 2011-2012 Esteban Papp, Hugo Arregui, 2013 Gonzalo Bonigo, FuDePAN
 # 
 # This file is part of the fudepan-build build system.
 # 
@@ -28,23 +28,6 @@
 
 # Please try not to much too much logic here, we should maintain this file 
 # as simple as possible
-
-# Detect internet connectivity
-if [ -z "$(ip r | grep default | cut -d ' ' -f 3)" ]; then
-    internet_connection="error"
-else
-    echo ping -q -w 1 -c 1 `ip r | grep default | cut -d ' ' -f 3` > /dev/null && internet_connection="ok" || internet_connection="error"
-fi
-
-# Update the fudepan environment
-if [[ "$(which hg)" && -z $FBUILD_NO_UPDATE ]]; then
-    if [ $internet_connection = "ok" ]; then
-        echo -e "\e[0;35mChecking for updates in the environment\e[0m"
-        hg pull -u
-    else
-        echo -e "\e[0;33m[warn] FuDePan environment not updated since there is no internet connection\e[0m"
-    fi
-fi
 
 # Install section: this section install all the pre-requisites of the 
 # environment. If other installers are supported they should maintain the
