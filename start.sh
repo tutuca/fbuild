@@ -19,16 +19,6 @@
 # You should have received a copy of the GNU General Public License
 # along with fudepan-build.  If not, see <http://www.gnu.org/licenses/>.
 
-# This file was written in shell scripting because we do not have python at 
-# this point.
-# After the first check that python is there, we jump to a python environment 
-# to ensure we support as many platforms as we can. If another platform 
-# besides *nix is required, a different "shell env script" should be created. 
-# i.e. for windows a env.bat should be created.
-
-# Please try not to much too much logic here, we should maintain this file 
-# as simple as possible.
-
 # Detect internet connectivity
 if [ -z "$(ip r | grep default | cut -d ' ' -f 3)" ]; then
     internet_connection="error"
