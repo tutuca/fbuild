@@ -91,8 +91,6 @@ check_install cloc false
 if [ "$?" -ne "0" ]; then return $?; fi
 check_install valgrind false
 if [ "$?" -ne "0" ]; then return $?; fi
-check_install pepe false
-if [ "$?" -ne "0" ]; then return $?; fi
 check_install cppcheck false
 if [ "$?" -ne "0" ]; then return $?; fi
 
