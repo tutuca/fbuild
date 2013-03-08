@@ -27,7 +27,7 @@
 # i.e. for windows a env.bat should be created.
 
 # Please try not to much too much logic here, we should maintain this file 
-# as simple as possible
+# as simple as possible.
 
 # Detect internet connectivity
 if [ -z "$(ip r | grep default | cut -d ' ' -f 3)" ]; then
