@@ -1,9 +1,0 @@
-Import ('env')
-
-name = 'boost'
-inc = env.Dir('.')
-ext_inc = env.Dir('.')
-src = []
-deps = []
-
-#env.AddComponent(name, inc, deps, env.Dir('.'))

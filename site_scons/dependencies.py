@@ -79,7 +79,6 @@ def init(env):
 def createProjectsDependenciesTargets(env):
     confDir = os.path.join(env.Dir('#').abspath,'conf')
     projectsFile = os.path.join(confDir, 'projects.xml')
-    
     projectsDom = minidom.parse(projectsFile)
     projectElements = projectsDom.getElementsByTagName('project') 
     for projectElement in projectElements:
@@ -95,7 +94,6 @@ def createProjectsDependenciesTargets(env):
             project = createDependency(env,projectName,projectType,projectElement)
             if project:
                 projects[projectName] = project
-        
     localProjectsFile = os.path.join(confDir, 'projects_local.xml') 
     if os.path.exists(localProjectsFile):
         localProjectElements = projectsDom.getElementsByTagName('project')
@@ -103,8 +101,7 @@ def createProjectsDependenciesTargets(env):
             projectType = projectElement.getAttribute('repository_type')
             project = createDependency(env,projectName,projectType,projectElement)
             if project:
-                projects[projectName] = project
-    
+                projects[projectName] = project    
     for project in projects.keys():
         # Check if the project was already checked out
         projectDir = os.path.join(env['WS_DIR'],project)
