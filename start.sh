@@ -31,8 +31,9 @@ if [[ "$(which hg)" && -z $FBUILD_NO_UPDATE ]]; then
     if [ $internet_connection = "ok" ]; then
         echo -e "\e[0;35mChecking for updates in the environment\e[0m"
         hg pull -u
-        source env.sh
     else
         echo -e "\e[0;33m[warn] FuDePan environment not updated since there is no internet connection\e[0m"
     fi
 fi
+
+source env.sh
