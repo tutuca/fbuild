@@ -137,42 +137,37 @@ def RunLcov(env, source, target):
     return r
 
 def RunDoxygen(target, source, env):
-    rc = 0
-    tindex = 0
-    for s in source:
-        # Path to the doxygen template file.
-        doxyTamplate = s.abspath
-        # Path to the doc/project directory.
-        target = target[tindex].abspath
-        # Create the doc/project directory.
-        os.mkdir(target)
-        # Split the target path to get the project's name.
-        (targetDir, projectName) = os.path.split(target)
-        # Path yo doxygen file for thise project.
-        projectDir = env.Dir(env['WS_DIR']).Dir(projectName).abspath
-        projectDoxyFile = projectDir + '/__tmp_doxyfile'
-        # Copy the doxygen file template to the project directory.
-        fsrc = open(doxyTamplate, 'r')
-        doxygenSrc = fsrc.read()
-        fsrc.close()
-        targetName = os.path.basename(target)
-        ftgt = open(projectDoxyFile, "w")
-        ftgt.write(doxygenSrc.replace('$PROJECT_NAME', targetName)\
-                             .replace('$OUTPUT_DIR', target))
-        ftgt.flush()
-        ftgt.close()
-        # Create the command for the subprocess.call()
-        cmdOutput = os.path.join(target,'doxyfile_generation.output')
-        cmd = "cd %s; doxygen %s > %s" % (projectDir, projectDoxyFile, cmdOutput)
-        rc = subprocess.call(cmd, shell=True)
-        if env.GetOption('printresults'):
-            subprocess.call("cat %s" % cmdOutput, shell=True)
-        os.remove(projectDoxyFile)
-        if rc:
-            env.cerror('[failed] %s, error: %s' % (target, rc))
-        else:
-            env.cprint('[generated] %s' % target, 'green')
-    tindex = tindex + 1
+    # Path to the doxygen template file.
+    doxyTamplate = source[0].abspath
+    # Path to the doc/project directory.
+    target = target[0].abspath
+    # Create the doc/project directory.
+    os.mkdir(target)
+    # Path to the project directory.
+    projectDir,_ = os.path.split(source[1].abspath)
+    # Path yo doxygen file for thise project.
+    projectDoxyFile = projectDir + '/__tmp_doxyfile'
+    # Copy the doxygen file template to the project directory.
+    fsrc = open(doxyTamplate, 'r')
+    doxygenSrc = fsrc.read()
+    fsrc.close()
+    targetName = os.path.basename(target)
+    ftgt = open(projectDoxyFile, "w")
+    ftgt.write(doxygenSrc.replace('$PROJECT_NAME', targetName)\
+                         .replace('$OUTPUT_DIR', target))
+    ftgt.flush()
+    ftgt.close()
+    # Create the command for the subprocess.call()
+    cmdOutput = os.path.join(target,'doxyfile_generation.output')
+    cmd = "cd %s; doxygen %s > %s" % (projectDir, projectDoxyFile, cmdOutput)
+    rc = subprocess.call(cmd, shell=True)
+    if env.GetOption('printresults'):
+        subprocess.call("cat %s" % cmdOutput, shell=True)
+    os.remove(projectDoxyFile)
+    if rc:
+        env.cerror('[failed] %s, error: %s' % (target, rc))
+    else:
+        env.cprint('[generated] %s' % target, 'green')
     return rc
 
 def MakeTool(target, source, env):
