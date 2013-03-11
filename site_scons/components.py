@@ -17,8 +17,8 @@
 # You should have received a copy of the GNU General Public License
 # along with fudepan-build.  If not, see <http://www.gnu.org/licenses/>.
 
-from core_components import Component, headersFilter
 import os
+from core_components import Component, headersFilter
 
 class PdfLaTeXComponent(Component):
     
@@ -47,6 +47,7 @@ class AutoToolsProjectComponent(Component):
         self.configurationFile = configurationFile
         self.extDir = os.path.join(self.env['WS_DIR'], self.name, ext_dir)
         self.libTargets = libTargets
+        self.shouldBeLinked = True
 
     def Process(self):
         libDir = self.env.Dir(self.env['INSTALL_LIB_DIR'])
@@ -65,18 +66,6 @@ class AutoToolsProjectComponent(Component):
         self.env.Alias(self.name, make, 'Make ' + self.name)
         for alias in self.aliasGroups:
             self.env.Alias(alias, make, "Build group " + alias)
-
-    #def _getLibs(self, processedComponents, depth):
-        #libpaths = []
-        #libs = []
-        #if depth > 0:
-            #libs.append(self.name)
-            ## For statienvc libraries lookup:
-            #libpaths.append(self.env['INSTALL_LIB_DIR'])
-            ## For dynamic libraries lookup:
-            #libpaths.append(self.env['INSTALL_BIN_DIR'])
-        #processedComponents.append(self.name)
-        #return (libs, libpaths, processedComponents)
 
     def getIncludePaths(self):
         (incs, processedComponents) = self._getIncludePaths([], 0)
