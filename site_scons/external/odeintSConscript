@@ -1,8 +1,0 @@
-Import ('env')
-
-name = 'odeint'
-inc = env.Dir('.')
-lib_path = env.Dir('.')
-deps = ['boost_system', 'boost_thread']
-
-env.CreateExternalLibraryComponent(name, inc, lib_path, deps, False)

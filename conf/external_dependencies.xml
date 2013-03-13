@@ -93,15 +93,12 @@
             distro="UBUNTU"
             target="http://github.com/headmyshoulder/odeint-v2/tarball/master"
             manager="WGET"/>
-        <install_checker>stat -f #/projects/odeint/SConscript</install_checker>
+        <install_checker>stat -f /usr/include/boost/numeric/odeint.hpp</install_checker>
         <execute_after>
-            mkdir #/odeint
-            tar zxvf #/projects/odeint/master -C #/odeint
-            rm -r #/projects/odeint
-            mv #/odeint/headmyshoulder-odeint-v2-* #/projects/odeint
-            rmdir #/odeint
-            cp #/site_scons/external/odeintSConscript #/projects/odeint/SConscript
+            cd ./{TMP_DIR}/odeint; tar zxvf master
+            sudo cp -r ./{TMP_DIR}/odeint/headmyshoulder-odeint-v2-da114de/boost/numeric/* /usr/include/boost/numeric/
         </execute_after>
+        <create_ext_lib_comp>env.CreateExternalLibraryComponent('odeint',[],env.Dir('/usr/lib'),['boost_system', 'boost_thread'],False)</create_ext_lib_comp>
     </component>
     
     <component name="xdrfile" type="LIB">
