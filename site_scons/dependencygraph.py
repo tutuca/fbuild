@@ -173,7 +173,6 @@ def WalkDirsForSconscripts(env, topdir, ignore = []):
     
     downloadedDependencies = True
     while downloadedDependencies:
-        
         downloadedDependencies = False
         for root, dirnames, filenames in os.walk(topdir):
             if ignore.count(os.path.relpath(root, topdir)) == 0:
