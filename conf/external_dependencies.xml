@@ -14,7 +14,7 @@
     IMPORTANT:
         Please maintain alphabetical order based on name to ease maintenance -->
     
-    <component name="boost_thread" type="LIB">
+    <component name="boost_thread" type="LIB" check="boost_thread">
         <installer
             distro="UBUNTU"
             target="libboost-thread-dev"
@@ -26,7 +26,7 @@
         <create_ext_lib_comp>env.CreateExternalLibraryComponent("boost_thread",[],env.Dir('/usr/lib'),[],True)</create_ext_lib_comp>
     </component>
     
-    <component name="boost_system" type="LIB">
+    <component name="boost_system" type="LIB" check="boost_system">
         <installer
             distro="UBUNTU"
             target="libboost-system-dev"
@@ -38,7 +38,7 @@
         <create_ext_lib_comp>env.CreateExternalLibraryComponent("boost_system",[],env.Dir('/usr/lib'),[],True)</create_ext_lib_comp>
     </component>
     
-    <component name="expat" type="LIB">
+    <component name="expat" type="LIB" check="expat">
         <installer
             distro="UBUNTU"
             target="libexpat-dev"
@@ -50,7 +50,7 @@
         <create_ext_lib_comp>env.CreateExternalLibraryComponent("expat",[],env.Dir('/usr/lib'),[],True)</create_ext_lib_comp>
     </component>
     
-    <component name="gmock" type="LIB">
+    <component name="gmock" type="LIB" check="gmock">
         <installer
             distro="*"
             target="https://googlemock.googlecode.com/svn/tags/release-1.6.0"
@@ -64,12 +64,11 @@
         <create_ext_lib_comp>env.CreateExternalLibraryComponent("gmock",[],env.Dir('/usr/lib'),['gtest'],True)</create_ext_lib_comp>
     </component>
     
-    <component name="gmock_main" type="LIB">
+    <component name="gmock_main" type="LIB" check="gmock_main">
         <create_ext_lib_comp>env.CreateExternalLibraryComponent("gmock_main",[],env.Dir('/usr/lib'),['gmock'],True)</create_ext_lib_comp>
-        <install_checker>echo > /dev/null</install_checker>
     </component>
     
-    <component name="gtest" type="LIB">
+    <component name="gtest" type="LIB" check="gtest">
         <installer
             distro="*"
             target="https://googletest.googlecode.com/svn/tags/release-1.6.0"
@@ -83,12 +82,11 @@
         <create_ext_lib_comp>env.CreateExternalLibraryComponent("gtest",[],env.Dir('/usr/lib'),[],True)</create_ext_lib_comp>
     </component>
     
-    <component name="gtest_main" type="LIB">
+    <component name="gtest_main" type="LIB" check="gtest_main">
         <create_ext_lib_comp>env.CreateExternalLibraryComponent("gtest_main",[],env.Dir('/usr/lib'),['gtest'],True)</create_ext_lib_comp>
-        <install_checker>echo > /dev/null</install_checker>
     </component>
     
-    <component name="odeint" type="LIB">
+    <component name="odeint" type="HLIB" check="boost/numeric/odeint.hpp">
         <installer
             distro="UBUNTU"
             target="http://github.com/headmyshoulder/odeint-v2/tarball/master"
@@ -101,7 +99,7 @@
         <create_ext_lib_comp>env.CreateExternalLibraryComponent('odeint',[],env.Dir('/usr/lib'),['boost_system', 'boost_thread'],False)</create_ext_lib_comp>
     </component>
     
-    <component name="xdrfile" type="LIB">
+    <component name="xdrfile" type="LIB" check="xdrfile">
         <installer
             distro="*"
             target="ftp://ftp.gromacs.org/pub/contrib/xdrfile-1.1.tar.gz"

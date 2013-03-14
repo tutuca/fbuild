@@ -43,12 +43,14 @@ DISTRO = None
 projects = {}
 # Dictionary with the components from 'conf/external_dependencies.xml'
 external_dependencies = {}
-# A C template file for the internal function _CheckLibInstall().
-C_TEMPLATE_CODE = """int main(){return 0;}\n"""
+# A C template file for the internal functions _Check*Install().
+C_TEMPLATE_CODE = "%sint main(){return 0;}\n"
 # The C template file name for the internal function _CheckLibInstall().
 C_TEMPLATE_FILE = '_chklib_'
 # A command-line template for the internal function _CheckLibInstall().
-CMD_TEMPLATE = 'gcc -o _chklib_ _chklib_.c -l%s'
+CMD_TEMPLATE_LIB = 'gcc -o _chklib_ _chklib_.c -l%s'
+# A command-line template for the internal function _CheckHLibInstall().
+CMD_TEMPLATE_HLIB = 'gcc -E _chklib_.c'
 # The name of the temporal download directory.
 TMP_DIR = '_tmp_downloads'
 # A shortcut for subprocess.PIPE
@@ -56,8 +58,8 @@ PIPE = subprocess.PIPE
 
 
 def init(env):
-    # Sets a list that will store calls to CreateExternalLibraryComponent().
-    env.ExternalDependenciesCreateComponentsList = []
+    # Sets a dictionary that will store calls to CreateExternalLibraryComponent().
+    env.ExternalDependenciesCreateComponentsDict = {}
     # We try to get in which distro we are.
     try:
         global DISTRO
@@ -90,6 +92,7 @@ class Dependencies(object):
         self.url = node.getAttribute('repository_url')
         self.target = target
         self.component_type = node.getAttribute('type')
+        self.component_check = node.getAttribute('check')
         # Here we are assuming that the contents of the execute_after node
         # would be of type TEXT_NODE, otherwise, it would cause an error.
         elems = node.getElementsByTagName('execute_after')
@@ -154,13 +157,18 @@ class Dependencies(object):
             for cmd in commands:
                 rc = subprocess.call(cmd, shell=True, stdout=PIPE, stderr=PIPE)
                 result = rc==0
+        elif self.component_type == 'HLIB':
+            result = _CheckHLibInstall(self.component_check)
         elif self.component_type == 'LIB':
-            result = _CheckLibInstall(self.name)
+            result = _CheckLibInstall(self.component_check)
         elif self.component_type == 'PRO':
-            result = _CheckProgInstall(self.name)
+            result = _CheckProgInstall(self.component_check)
         else:
             result = False
         return result
+
+    def checkout(self):
+        pass
 
 
 class HG(Dependencies):
@@ -391,16 +399,9 @@ def _createExternalDependenciesTargets(env):
                 external_dependencies[componentName] = dep
     # Check if each component is already installed.
     for component in external_dependencies.keys():
-        if not external_dependencies[component].checkInstall():
-            tgt = '%s:install' % component
-            checkoutAction = env.CheckoutDependency(tgt,'SConstruct')
-            alias = env.Alias(tgt,
-                              checkoutAction,
-                              'Install external component [%s]' % component)
-            env.AlwaysBuild(alias)
-        else:
+        if external_dependencies[component].checkInstall():
             st = external_dependencies[component].create_ext_lib_component
-            env.ExternalDependenciesCreateComponentsList.append(st)
+            env.ExternalDependenciesCreateComponentsDict[component] = st
 
 
 def _createDependency(env, name, type, node, target=None, dep_type=DEP_PROJECT):
@@ -428,6 +429,30 @@ def _createDependency(env, name, type, node, target=None, dep_type=DEP_PROJECT):
         return None
 
 
+def _CheckHLibInstall(include):
+    """
+        Description:
+            This is an internal function that checks if a header only library is 
+            installed or not.
+        Arguments:
+            include  -  A string with the name of the main inclued.
+        Exceptions:
+            None.
+        Return:
+            True if the library exists.
+            False otherwise.
+    """
+    # Create the C file
+    f = open(C_TEMPLATE_FILE+'.c', 'w')
+    f.write(C_TEMPLATE_CODE % ('#include <%s>\n' % include))
+    f.close()
+    # Check if the library except
+    rc = subprocess.call(CMD_TEMPLATE_HLIB, shell=True, stdout=PIPE, stderr=PIPE)
+    # Delete the files.
+    os.remove(C_TEMPLATE_FILE+'.c')
+    return rc == 0
+
+
 def _CheckLibInstall(lib):
     """
         Description:
@@ -444,10 +469,10 @@ def _CheckLibInstall(lib):
     """
     # Create the C file
     f = open(C_TEMPLATE_FILE+'.c', 'w')
-    f.write(C_TEMPLATE_CODE)
+    f.write(C_TEMPLATE_CODE % '')
     f.close()
     # Create the command line
-    cmd = CMD_TEMPLATE % lib
+    cmd = CMD_TEMPLATE_LIB % lib
     # Check if the library except
     rc = subprocess.call(cmd, shell=True, stdout=PIPE, stderr=PIPE)
     # Delete the files.
@@ -511,33 +536,33 @@ def CheckoutDependency(env, source, target):
     # Crate a temporary directory for download external components.
     if not os.path.exists(TMP_DIR):
         os.makedirs(TMP_DIR)
-    dep = str(target[0]).split(':')[0]
-    if dep in external_dependencies.keys():
-        dep = external_dependencies[dep]
+    depname = str(target[0]).split(':')[0]
+    if depname in external_dependencies.keys():
+        dep = external_dependencies[depname]
     else:
-        dep = projects[dep]
+        dep = projects[depname]
     result = dep.checkout()
     if dep.create_ext_lib_component:
         st = dep.create_ext_lib_component
-        env.ExternalDependenciesCreateComponentsList.append(st)
+        env.ExternalDependenciesCreateComponentsDict[depname] = st
     # Remove the temporary directory.
     os.system('rm -rf %s' % TMP_DIR)
     return result
 
 
-def CheckoutDependencyNow(dep, env):
+def CheckoutDependencyNow(depname, env):
     # Crate a temporary directory for download external components.
     if not os.path.exists(TMP_DIR):
         os.makedirs(TMP_DIR)
-    if dep in external_dependencies.keys():
-        dep = external_dependencies.get(dep)
+    if depname in external_dependencies.keys():
+        dep = external_dependencies.get(depname)
     else:
-        dep = projects.get(dep)
+        dep = projects.get(depname)
     if dep:
         result = dep.checkout()==0
         if dep.create_ext_lib_component:
             st = dep.create_ext_lib_component
-            env.ExternalDependenciesCreateComponentsList.append(st)
+            env.ExternalDependenciesCreateComponentsDict[depname] = st
     else:
         result = False
     # Remove the temporary directory.

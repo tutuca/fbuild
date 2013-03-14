@@ -168,8 +168,8 @@ def WalkDirsForSconscripts(env, topdir, ignore = []):
     # Initial set to pass the loop test
     originalGraph = componentGraph.copy()
     
-    for st in env.ExternalDependenciesCreateComponentsList:
-        exec st in {'env':env}
+    for component in env.ExternalDependenciesCreateComponentsDict.keys():
+        exec env.ExternalDependenciesCreateComponentsDict[component] in {'env':env}
     
     downloadedDependencies = True
     while downloadedDependencies:
@@ -210,8 +210,9 @@ def WalkDirsForSconscripts(env, topdir, ignore = []):
             # Reset this to allow it to reparse those that were already added
             componentGraph.clear()
             componentGraph.update(originalGraph)
-            for st in env.ExternalDependenciesCreateComponentsList:
-                exec st in {'env':env}
+            for component in env.ExternalDependenciesCreateComponentsDict.keys():
+                d = {'env':env}
+                exec env.ExternalDependenciesCreateComponentsDict[component] in d
 
     # Step 2: real processing we have everything loaded in the dependency graph
     # now we process it
