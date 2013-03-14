@@ -70,9 +70,9 @@ class Component(object):
         libpaths.append(self.env['INSTALL_BIN_DIR'])
         # Look for the libs and its paths.
         try:
-            self._getLibs(libs, libpaths, [self.name], 0)
-        except CyclicDependencieError, stack:
-            msg = ' -> '.join(stack)
+            self._getLibs(libs, libpaths, [], 0)
+        except CyclicDependencieError, error:
+            msg = (' -> ').join(error[0])
             self.env.cerror('[error] A dependency cycle was found:\n  %s' % msg)
         # Remember:
         #   t[0]  ->  depth.
@@ -91,17 +91,18 @@ class Component(object):
         """
             This is a recursive internal method used by the self.getLibs() method.
         """
+        if self.name in stack:
+            # If the component name is within the stack then there is a cycle.
+            stack.append(self.name)
+            raise CyclicDependencieError(stack)
+        else:
+            # Else, we add the component name to the stack.
+            stack.append(self.name)
         if self.shouldBeLinked and depth > 0:
-            if self.name in stack:
-                # If the component name is within the stack then there is a cycle.
-                raise CyclicDependencieError(stack)
-            else:
-                # Else, we add the component name to the stack.
-                stack.append(self.name)
             libs.append((depth,self.name))
+            # We add the directory where the library lives.
             if not self.dir in libpaths:
                 libpaths.append(self.dir)
-        print ">>>>> depth: %d, stack : %s" % (depth, str(stack))
         # Check its dependencies.
         for dep in self.deps:
             c = self.componentGraph.get(dep)
@@ -113,7 +114,8 @@ class Component(object):
             else: #if not isinstance(c, HeaderOnlyComponent):
                 c._getLibs(libs, libpaths, stack, depth+1)
         # We remove the component name from the stack.
-        stack.pop()
+        if self.name in stack:
+            stack.pop()
 
     def Process(self):
         return None
