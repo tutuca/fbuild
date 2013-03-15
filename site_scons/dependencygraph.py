@@ -61,6 +61,7 @@ class ComponentDictionary(dict):
 componentGraph = ComponentDictionary()
 
 def CreateExternalLibraryComponent(env, name, ext_inc, libPath, deps, shouldBeLinked, aliasGroups = []):
+    #import ipdb; ipdb.set_trace()
     return componentGraph.add(ExternalLibraryComponent(componentGraph,
                                                 env,
                                                 name,
@@ -166,7 +167,10 @@ def WalkDirsForSconscripts(env, topdir, ignore = []):
     # dependency graph
     # Initial set to pass the loop test
     originalGraph = componentGraph.copy()
-
+    
+    for component in env.ExternalDependenciesCreateComponentsDict.keys():
+        exec env.ExternalDependenciesCreateComponentsDict[component] in {'env':env}
+    
     downloadedDependencies = True
     while downloadedDependencies:
         downloadedDependencies = False
@@ -188,14 +192,14 @@ def WalkDirsForSconscripts(env, topdir, ignore = []):
         # Check if there is a component that we dont know how to build
         for component in componentGraph.getComponentsNames():
             c = componentGraph.get(component)
-            if not c:
+            if c is None:
                 # check if we know how to download this component
-                downloadedDependencies = env.CheckoutDependencyNow(component)
+                downloadedDependencies = env.CheckoutDependencyNow(component,env)
             else:
                 for dep in c.deps:
                     cdep = componentGraph.get(dep)
                     if cdep == None:
-                        downloadedDependencies = c.env.CheckoutDependencyNow(dep)
+                        downloadedDependencies = c.env.CheckoutDependencyNow(dep,env)
                         break
             # If a dependency was downloaded we need to re-parse all the
             # SConscripts to assurance not to try to download something that
@@ -203,9 +207,12 @@ def WalkDirsForSconscripts(env, topdir, ignore = []):
             if downloadedDependencies:
                 break
         if downloadedDependencies:
-            # reset this to allow it to reparse those that were already added
+            # Reset this to allow it to reparse those that were already added
             componentGraph.clear()
             componentGraph.update(originalGraph)
+            for component in env.ExternalDependenciesCreateComponentsDict.keys():
+                d = {'env':env}
+                exec env.ExternalDependenciesCreateComponentsDict[component] in d
 
     # Step 2: real processing we have everything loaded in the dependency graph
     # now we process it

@@ -1,0 +1,140 @@
+<external_dependencies>
+    <!-- Format of a component:
+    <component name="component_name" type=["LIB" | "PRO"]
+        <installer
+            distro=["UBUNTU" | "ARCH" | "*"]
+            target=["package_name" | "url"]
+            manager=["HG" | "SVN" | "WGET" | "APT-GET" | 
+                     "APTITUDE" | "PACKER" | "PACMAN"] />
+        <install_checker> SHELL_SCRIPT </install_checker>
+        <execute_after> SHELL_SCRIPT </execute_after>
+        <create_ext_lib_comp> PYTHON_CALL </create_ext_lib_comp>
+    </component>
+    
+    IMPORTANT:
+        Please maintain alphabetical order based on name to ease maintenance -->
+
+    <component name="bison" type="PRO" check="bison">
+        <installer
+            distro="UBUNTU"
+            target="bison"
+            manager="APT-GET"/>
+        <installer
+            distro="ARCH"
+            target="bison"
+            manager="PACKER"/>
+        <create_ext_lib_comp>env.CreateExternalLibraryComponent("bison",[],env.Dir('/usr/bin'),[],False)</create_ext_lib_comp>
+    </component>
+
+    <component name="boost_thread" type="LIB" check="boost_thread">
+        <installer
+            distro="UBUNTU"
+            target="libboost-thread-dev"
+            manager="APT-GET"/>
+        <installer
+            distro="ARCH"
+            target="boost"
+            manager="PACKER"/>
+        <create_ext_lib_comp>env.CreateExternalLibraryComponent("boost_thread",[],env.Dir('/usr/lib'),[],True)</create_ext_lib_comp>
+    </component>
+
+    <component name="boost_system" type="LIB" check="boost_system">
+        <installer
+            distro="UBUNTU"
+            target="libboost-system-dev"
+            manager="APT-GET"/>
+        <installer
+            distro="ARCH"
+            target="boost"
+            manager="PACKER"/>
+        <create_ext_lib_comp>env.CreateExternalLibraryComponent("boost_system",[],env.Dir('/usr/lib'),[],True)</create_ext_lib_comp>
+    </component>
+
+    <component name="expat" type="LIB" check="expat">
+        <installer
+            distro="UBUNTU"
+            target="libexpat-dev"
+            manager="APT-GET"/>
+        <installer
+            distro="ARCH"
+            target="expat"
+            manager="PACKER"/>
+        <create_ext_lib_comp>env.CreateExternalLibraryComponent("expat",[],env.Dir('/usr/lib'),[],True)</create_ext_lib_comp>
+    </component>
+
+    <component name="flex" type="PRO" check="flex">
+        <installer
+            distro="UBUNTU"
+            target="flex"
+            manager="APT-GET"/>
+        <installer
+            distro="ARCH"
+            target="flex"
+            manager="PACKER"/>
+        <create_ext_lib_comp>env.CreateExternalLibraryComponent("flex",[],env.Dir('/usr/bin'),[],False)</create_ext_lib_comp>
+    </component>
+
+    <component name="gmock" type="LIB" check="gmock">
+        <installer
+            distro="*"
+            target="https://googlemock.googlecode.com/svn/tags/release-1.6.0"
+            manager="SVN"/>
+        <execute_after>
+            cd {TMP_DIR}/gmock/make; make CFLAGS={CFLAGS} CXXFLAGS={CXXFLAGS} gmock.a; make gmock_main.a
+            sudo mv {TMP_DIR}/gmock/make/gmock.a /usr/lib/libgmock.a
+            sudo mv {TMP_DIR}/gmock/make/gmock_main.a /usr/lib/libgmock_main.a
+            sudo cp -r {TMP_DIR}/gmock/include/gmock /usr/include/gmock
+        </execute_after>
+        <create_ext_lib_comp>env.CreateExternalLibraryComponent("gmock",[],env.Dir('/usr/lib'),['gtest','pthread'],True)</create_ext_lib_comp>
+    </component>
+
+    <component name="gmock_main" type="LIB" check="gmock_main">
+        <create_ext_lib_comp>env.CreateExternalLibraryComponent("gmock_main",[],env.Dir('/usr/lib'),['gmock'],True)</create_ext_lib_comp>
+    </component>
+
+    <component name="gtest" type="LIB" check="gtest">
+        <installer
+            distro="*"
+            target="https://googletest.googlecode.com/svn/tags/release-1.6.0"
+            manager="SVN" />
+        <execute_after>
+            cd {TMP_DIR}/gtest/make; make gtest.a; make gtest_main.a
+            sudo mv {TMP_DIR}/gtest/make/gtest.a /usr/lib/libgtest.a
+            sudo mv {TMP_DIR}/gtest/make/gtest_main.a /usr/lib/libgtest_main.a
+            sudo cp -r {TMP_DIR}/gtest/include/gtest /usr/include/gtest
+        </execute_after>
+        <create_ext_lib_comp>env.CreateExternalLibraryComponent("gtest",[],env.Dir('/usr/lib'),['pthread'],True)</create_ext_lib_comp>
+    </component>
+
+    <component name="gtest_main" type="LIB" check="gtest_main">
+        <create_ext_lib_comp>env.CreateExternalLibraryComponent("gtest_main",[],env.Dir('/usr/lib'),['gtest'],True)</create_ext_lib_comp>
+    </component>
+
+    <component name="odeint" type="HLIB" check="boost/numeric/odeint.hpp">
+        <installer
+            distro="UBUNTU"
+            target="http://github.com/headmyshoulder/odeint-v2/tarball/master"
+            manager="WGET"/>
+        <install_checker>stat -f /usr/include/boost/numeric/odeint.hpp</install_checker>
+        <execute_after>
+            cd ./{TMP_DIR}/odeint; tar zxvf master
+            sudo cp -r ./{TMP_DIR}/odeint/headmyshoulder-odeint-v2-da114de/boost/numeric/* /usr/include/boost/numeric/
+        </execute_after>
+        <create_ext_lib_comp>env.CreateExternalLibraryComponent('odeint',[],env.Dir('/usr/lib'),['boost_system', 'boost_thread'],False)</create_ext_lib_comp>
+    </component>
+
+    <component name="xdrfile" type="LIB" check="xdrfile">
+        <installer
+            distro="*"
+            target="ftp://ftp.gromacs.org/pub/contrib/xdrfile-1.1.tar.gz"
+            manager="WGET"/>
+        <execute_after>
+            cd ./{TMP_DIR}/xdrfile; tar zxvf xdrfile-1.1.tar.gz
+            mv ./{TMP_DIR}/xdrfile/xdrfile-1.1b/* ./{TMP_DIR}/xdrfile/
+            cd ./{TMP_DIR}/xdrfile; ./configure CFLAGS={CFLAGS} CXXFLAGS={CXXFLAGS} --bindir=/usr/bin --libdir=/usr/lib --includedir=/usr/include
+            cd ./{TMP_DIR}/xdrfile; make; sudo make install
+        </execute_after>
+        <create_ext_lib_comp>env.CreateExternalLibraryComponent("xdrfile",[],env.Dir('/usr/lib'),[],True)</create_ext_lib_comp>
+    </component>
+
+</external_dependencies>
