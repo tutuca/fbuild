@@ -14,6 +14,18 @@
     IMPORTANT:
         Please maintain alphabetical order based on name to ease maintenance -->
 
+    <component name="bison" type="PRO" check="bison">
+        <installer
+            distro="UBUNTU"
+            target="bison"
+            manager="APT-GET"/>
+        <installer
+            distro="ARCH"
+            target="bison"
+            manager="PACKER"/>
+        <create_ext_lib_comp>env.CreateExternalLibraryComponent("bison",[],env.Dir('/usr/bin'),[],False)</create_ext_lib_comp>
+    </component>
+
     <component name="boost_thread" type="LIB" check="boost_thread">
         <installer
             distro="UBUNTU"
@@ -62,18 +74,6 @@
         <create_ext_lib_comp>env.CreateExternalLibraryComponent("flex",[],env.Dir('/usr/bin'),[],False)</create_ext_lib_comp>
     </component>
 
-    <component name="bison" type="PRO" check="bison">
-        <installer
-            distro="UBUNTU"
-            target="bison"
-            manager="APT-GET"/>
-        <installer
-            distro="ARCH"
-            target="bison"
-            manager="PACKER"/>
-        <create_ext_lib_comp>env.CreateExternalLibraryComponent("bison",[],env.Dir('/usr/bin'),[],False)</create_ext_lib_comp>
-    </component>
-
     <component name="gmock" type="LIB" check="gmock">
         <installer
             distro="*"
@@ -87,11 +87,11 @@
         </execute_after>
         <create_ext_lib_comp>env.CreateExternalLibraryComponent("gmock",[],env.Dir('/usr/lib'),['gtest','pthread'],True)</create_ext_lib_comp>
     </component>
-    
+
     <component name="gmock_main" type="LIB" check="gmock_main">
         <create_ext_lib_comp>env.CreateExternalLibraryComponent("gmock_main",[],env.Dir('/usr/lib'),['gmock'],True)</create_ext_lib_comp>
     </component>
-    
+
     <component name="gtest" type="LIB" check="gtest">
         <installer
             distro="*"
@@ -105,11 +105,11 @@
         </execute_after>
         <create_ext_lib_comp>env.CreateExternalLibraryComponent("gtest",[],env.Dir('/usr/lib'),['pthread'],True)</create_ext_lib_comp>
     </component>
-    
+
     <component name="gtest_main" type="LIB" check="gtest_main">
         <create_ext_lib_comp>env.CreateExternalLibraryComponent("gtest_main",[],env.Dir('/usr/lib'),['gtest'],True)</create_ext_lib_comp>
     </component>
-    
+
     <component name="odeint" type="HLIB" check="boost/numeric/odeint.hpp">
         <installer
             distro="UBUNTU"
@@ -122,7 +122,7 @@
         </execute_after>
         <create_ext_lib_comp>env.CreateExternalLibraryComponent('odeint',[],env.Dir('/usr/lib'),['boost_system', 'boost_thread'],False)</create_ext_lib_comp>
     </component>
-    
+
     <component name="xdrfile" type="LIB" check="xdrfile">
         <installer
             distro="*"
@@ -136,5 +136,5 @@
         </execute_after>
         <create_ext_lib_comp>env.CreateExternalLibraryComponent("xdrfile",[],env.Dir('/usr/lib'),[],True)</create_ext_lib_comp>
     </component>
-    
+
 </external_dependencies>
