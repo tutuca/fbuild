@@ -64,10 +64,6 @@ check_install svn true
 if [ "$?" -ne "0" ]; then return $?; fi
 check_install wget true 
 if [ "$?" -ne "0" ]; then return $?; fi
-check_install flex false
-if [ "$?" -ne "0" ]; then return $?; fi
-check_install bison false
-if [ "$?" -ne "0" ]; then return $?; fi
 check_install cccc false
 if [ "$?" -ne "0" ]; then return $?; fi
 check_install cloc false
