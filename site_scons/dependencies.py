@@ -25,6 +25,7 @@
 
 import os
 import os.path
+import platform
 import subprocess
 from xml.dom import minidom
 from SCons.Script import Builder
@@ -515,6 +516,13 @@ def _getExecutableCommands(env, string_commands):
             A list instance which contains string that represents shell commands 
             that be executed.
     """
+    
+    (arch,binType) = platform.architecture()
+    CXXFLAGS = ''
+    CFLAGS = ''
+    if arch == '64bit':
+        CFLAGS = '"-fPIC"'
+        CXXFLAGS = '"-fPIC"'
     result = []
     lines = string_commands.split('\n')
     for line in lines:
@@ -524,6 +532,8 @@ def _getExecutableCommands(env, string_commands):
             line = line.replace('{WS_DIR}', env['WS_DIR'])
             line = line.replace('#', env.Dir('#').abspath)
             line = line.replace('{TMP_DIR}', TMP_DIR)
+            line = line.replace('{CFLAGS}', CFLAGS)
+            line = line.replace('{CXXFLAGS}', CXXFLAGS)
             result.append(line)
     return result
 

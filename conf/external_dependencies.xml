@@ -61,7 +61,7 @@
             sudo mv {TMP_DIR}/gmock/make/gmock_main.a /usr/lib/libgmock_main.a
             sudo cp -r {TMP_DIR}/gmock/include/gmock /usr/include/gmock
         </execute_after>
-        <create_ext_lib_comp>env.CreateExternalLibraryComponent("gmock",[],env.Dir('/usr/lib'),['gtest'],True)</create_ext_lib_comp>
+        <create_ext_lib_comp>env.CreateExternalLibraryComponent("gmock",[],env.Dir('/usr/lib'),['gtest','pthread'],True)</create_ext_lib_comp>
     </component>
     
     <component name="gmock_main" type="LIB" check="gmock_main">
@@ -79,7 +79,7 @@
             sudo mv {TMP_DIR}/gtest/make/gtest_main.a /usr/lib/libgtest_main.a
             sudo cp -r {TMP_DIR}/gtest/include/gtest /usr/include/gtest
         </execute_after>
-        <create_ext_lib_comp>env.CreateExternalLibraryComponent("gtest",[],env.Dir('/usr/lib'),[],True)</create_ext_lib_comp>
+        <create_ext_lib_comp>env.CreateExternalLibraryComponent("gtest",[],env.Dir('/usr/lib'),['pthread'],True)</create_ext_lib_comp>
     </component>
     
     <component name="gtest_main" type="LIB" check="gtest_main">
@@ -107,9 +107,8 @@
         <execute_after>
             cd ./{TMP_DIR}/xdrfile; tar zxvf xdrfile-1.1.tar.gz
             mv ./{TMP_DIR}/xdrfile/xdrfile-1.1b/* ./{TMP_DIR}/xdrfile/
-            cd ./{TMP_DIR}/xdrfile; ./configure --bindir=/usr/bin --libdir=/usr/lib --includedir=/usr/include
+            cd ./{TMP_DIR}/xdrfile; ./configure CFLAGS={CFLAGS} CXXFLAGS={CXXFLAGS} --bindir=/usr/bin --libdir=/usr/lib --includedir=/usr/include
             cd ./{TMP_DIR}/xdrfile; make; sudo make install
-            sudo mv /usr/local/lib/libxdrfile.a /usr/lib/libxdrfile.a
         </execute_after>
         <create_ext_lib_comp>env.CreateExternalLibraryComponent("xdrfile",[],env.Dir('/usr/lib'),[],True)</create_ext_lib_comp>
     </component>

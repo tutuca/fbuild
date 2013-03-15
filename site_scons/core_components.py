@@ -96,7 +96,7 @@ class Component(object):
             stack.append(self.name)
             raise CyclicDependencieError(stack)
         else:
-            # Else, we add the component name to the stack.
+            # We add the component name to the stack.
             stack.append(self.name)
         if self.shouldBeLinked and depth > 0:
             libs.append((depth,self.name))
