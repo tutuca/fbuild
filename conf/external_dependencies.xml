@@ -13,7 +13,7 @@
     
     IMPORTANT:
         Please maintain alphabetical order based on name to ease maintenance -->
-    
+
     <component name="boost_thread" type="LIB" check="boost_thread">
         <installer
             distro="UBUNTU"
@@ -25,7 +25,7 @@
             manager="PACKER"/>
         <create_ext_lib_comp>env.CreateExternalLibraryComponent("boost_thread",[],env.Dir('/usr/lib'),[],True)</create_ext_lib_comp>
     </component>
-    
+
     <component name="boost_system" type="LIB" check="boost_system">
         <installer
             distro="UBUNTU"
@@ -37,7 +37,7 @@
             manager="PACKER"/>
         <create_ext_lib_comp>env.CreateExternalLibraryComponent("boost_system",[],env.Dir('/usr/lib'),[],True)</create_ext_lib_comp>
     </component>
-    
+
     <component name="expat" type="LIB" check="expat">
         <installer
             distro="UBUNTU"
@@ -49,14 +49,38 @@
             manager="PACKER"/>
         <create_ext_lib_comp>env.CreateExternalLibraryComponent("expat",[],env.Dir('/usr/lib'),[],True)</create_ext_lib_comp>
     </component>
-    
+
+    <component name="flex" type="PRO" check="flex">
+        <installer
+            distro="UBUNTU"
+            target="flex"
+            manager="APT-GET"/>
+        <installer
+            distro="ARCH"
+            target="flex"
+            manager="PACKER"/>
+        <create_ext_lib_comp>env.CreateExternalLibraryComponent("flex",[],env.Dir('/usr/bin'),[],False)</create_ext_lib_comp>
+    </component>
+
+    <component name="bison" type="PRO" check="bison">
+        <installer
+            distro="UBUNTU"
+            target="bison"
+            manager="APT-GET"/>
+        <installer
+            distro="ARCH"
+            target="bison"
+            manager="PACKER"/>
+        <create_ext_lib_comp>env.CreateExternalLibraryComponent("bison",[],env.Dir('/usr/bin'),[],False)</create_ext_lib_comp>
+    </component>
+
     <component name="gmock" type="LIB" check="gmock">
         <installer
             distro="*"
             target="https://googlemock.googlecode.com/svn/tags/release-1.6.0"
             manager="SVN"/>
         <execute_after>
-            cd {TMP_DIR}/gmock/make; make gmock.a; make gmock_main.a
+            cd {TMP_DIR}/gmock/make; make CFLAGS={CFLAGS} CXXFLAGS={CXXFLAGS} gmock.a; make gmock_main.a
             sudo mv {TMP_DIR}/gmock/make/gmock.a /usr/lib/libgmock.a
             sudo mv {TMP_DIR}/gmock/make/gmock_main.a /usr/lib/libgmock_main.a
             sudo cp -r {TMP_DIR}/gmock/include/gmock /usr/include/gmock

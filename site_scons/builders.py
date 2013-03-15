@@ -48,9 +48,9 @@ def init(env):
     bldAStyle = Builder(action = SCons.Action.Action(AStyle, PrintDummy))
     env.Append(BUILDERS = {'RunAStyle' : bldAStyle})
 
-    env.Tool('makebuilder')
-    makeBuilder = Builder(action = SCons.Action.Action(MakeTool, PrintDummy))
-    env.Append(BUILDERS = {'RunMakeTool' : makeBuilder})
+    #env.Tool('makebuilder')
+    #makeBuilder = Builder(action = SCons.Action.Action(MakeTool, PrintDummy))
+    #env.Append(BUILDERS = {'RunMakeTool' : makeBuilder})
 
     bldPdfLatex = Builder(action = SCons.Action.Action(RunPdfLatex, PrintDummy))
     env.Append(BUILDERS = {'RunPdfLatex':  bldPdfLatex})
@@ -170,16 +170,16 @@ def RunDoxygen(target, source, env):
         env.cprint('[generated] %s' % target, 'green')
     return rc
 
-def MakeTool(target, source, env):
-    s = source[0].abspath;
-    (pathHead, pathTail) = os.path.split(s)
-    configureOpts = ('--bindir=%(INSTALL_BIN_DIR)s --libdir=%(INSTALL_LIB_DIR)s --includedir=%(INSTALL_HEADERS_DIR)s' % env)
-    procEnv = os.environ
-    (arch,binType) = platform.architecture()
-    if arch == '64bit':
-        procEnv["CXXFLAGS"] = str(env["CXXFLAGS"])
-        procEnv["CFLAGS"] = '-fPIC'
-    return subprocess.call('./configure %s ; make; make install' % configureOpts, cwd=pathHead, shell=True, env=procEnv)
+#def MakeTool(target, source, env):
+    #s = source[0].abspath;
+    #(pathHead, pathTail) = os.path.split(s)
+    #configureOpts = ('--bindir=%(INSTALL_BIN_DIR)s --libdir=%(INSTALL_LIB_DIR)s --includedir=%(INSTALL_HEADERS_DIR)s' % env)
+    #procEnv = os.environ
+    #(arch,binType) = platform.architecture()
+    #if arch == '64bit':
+        #procEnv["CXXFLAGS"] = str(env["CXXFLAGS"])
+        #procEnv["CFLAGS"] = '-fPIC'
+    #return subprocess.call('./configure %s ; make; make install' % configureOpts, cwd=pathHead, shell=True, env=procEnv)
 
 def AStyle(target, source, env):
     rc = 0

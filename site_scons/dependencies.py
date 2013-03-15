@@ -497,7 +497,7 @@ def _CheckProgInstall(prog):
             False otherwise.
     """
     # Create the command line
-    cmd = 'which %s' % lib
+    cmd = 'which %s' % prog
     # Check if the program except
     return subprocess.call(cmd, shell=True, stdout=PIPE, stderr=PIPE) == 0
 
