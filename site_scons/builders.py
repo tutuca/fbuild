@@ -45,6 +45,9 @@ def init(env):
     env.Append(BUILDERS = {'RunDoxygen' : bldDoxygen})
     env['DEFAULT_DOXYFILE'] = env.File('#/conf/doxygenTemplate').abspath
 
+    bldAStyleCheck = Builder(action = SCons.Action.Action(AStyleCheck, PrintDummy))
+    env.Append(BUILDERS = {'RunAStyleCheck' : bldAStyleCheck})
+    
     bldAStyle = Builder(action = SCons.Action.Action(AStyle, PrintDummy))
     env.Append(BUILDERS = {'RunAStyle' : bldAStyle})
 
@@ -180,6 +183,9 @@ def RunDoxygen(target, source, env):
         #procEnv["CXXFLAGS"] = str(env["CXXFLAGS"])
         #procEnv["CFLAGS"] = '-fPIC'
     #return subprocess.call('./configure %s ; make; make install' % configureOpts, cwd=pathHead, shell=True, env=procEnv)
+
+def AStyleCheck(target, source, env):
+    pass
 
 def AStyle(target, source, env):
     rc = 0
