@@ -30,8 +30,7 @@ fi
 if [[ "$(which hg)" && -z $FBUILD_NO_UPDATE ]]; then
     if [ $internet_connection = "ok" ]; then
         # Check mercurial version.
-        #hg_version=$(hg --version | grep "version"|cut -d"(" -f2|cut -d" " -f2|cut -d")" -f1)
-        hg_version=2.1
+        hg_version=$(hg --version | grep "version"|cut -d"(" -f2|cut -d" " -f2|cut -d")" -f1)
         if [[ "$hg_version" == "2.1.0" || "$hg_version" == "2.1" ]]; then
             # fbuild doesn't work with mercurial 2.1.
             echo -e "\e[0;31m[error] fbuild does not work with mercurial version 2.1.\e[0m"
