@@ -257,12 +257,22 @@ class HeaderOnlyComponent(Component):
         self.env.Alias(self.name+':doc', doc, 'Generate documentation for ' + self.name)
     
     def _create_astyle_check_target(self, sources):
-        pass
+        # Create the target.
+        target = self.env.Dir(self.env['BUILD_DIR']).Dir('astyle').Dir(self.name)
+        # Call RunAStyleCheck().
+        astyle_check = self.env.RunAStyleCheck(target, sources)
+        # Create info message.
+        msg = "Checks if the project %s has been astyled." % self.name
+        # Create an alias for the astyle checker.
+        self.env.Alias('%s:astyle-check' % self.name, astyle_check, msg)
     
     def _create_astyle_target(self, sources):
+        # Create the target.
         target = self.env.Dir(self.env['BUILD_DIR']).Dir('astyle').Dir(self.name)
+        # Call RunAStyle().
         astyleOut = self.env.RunAStyle(target, sources)
-        self.env.Alias(self.name + ':astyle', astyleOut, "Runs astyle on " + self.name)
+        # Create an alias for astyle.
+        self.env.Alias('%s:astyle' % self.name, astyleOut, "Runs astyle on " + self.name)
 
     def Process(self, called_from_subclass=False):
         Component.Process(self)
