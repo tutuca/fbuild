@@ -41,7 +41,13 @@ function check_install {
         fi
         echo "info: 'sudo packer -S $pkg' should do the job, do you want"
         echo "      me to do it? (your password could be required)"
-        read -p "Install (y/[n])?" REPLY
+        REPLY="extremelyLongStringUnlikelyToBeUsed"
+        while [[ "$REPLY" != "y" && "$REPLY" != "n" && "$REPLY" != "" ]]; do
+            read -p "Install (y/[n])?" REPLY
+            if [[ "$REPLY" != "y" && "$REPLY" != "n" && "$REPLY" != "" ]]; then
+                echo -e "\e[0;31mID-10-T Error: please insert 'y' or 'n' or nothing. \e[0m"
+            fi
+        done
         if [ "$REPLY" = "y" ]; then
             sudo packer -S $pkg
             if [ "$?" -ne "0" ]; then
