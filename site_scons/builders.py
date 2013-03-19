@@ -185,7 +185,24 @@ def RunDoxygen(target, source, env):
     #return subprocess.call('./configure %s ; make; make install' % configureOpts, cwd=pathHead, shell=True, env=procEnv)
 
 def AStyleCheck(target, source, env):
-    pass
+    # We use the target as a temporary directory.
+    targetDir = target[0]
+    target = str(target[0].abspath)
+    # If it doesn't exist we create it.
+    if not os.path.exists(target):
+        os.makedirs(target)
+    for f in source:
+        os.system('cp %s %s' % (f.abspath,target))
+    # Get the list of copied files.
+    #import ipdb; ipdb.set_trace()
+    files = ' '.join([x.abspath for x in utils.findFiles(env,targetDir)])
+    # Create the command for subprocess.call().
+    cmd = 'astyle -k1 --options=none --convert-tabs -bSKpUH %s' % files
+    # Apply astyle to those files.
+    subprocess.call(cmd, shell=True)
+    #import time; time.sleep(60)
+    # Remove the 'astyle' directory.                                                        '
+    #os.system('rm -rf %s' % os.path.split(target)[0])
 
 def AStyle(target, source, env):
     rc = 0
