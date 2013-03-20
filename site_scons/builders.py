@@ -45,6 +45,9 @@ def init(env):
     env.Append(BUILDERS = {'RunDoxygen' : bldDoxygen})
     env['DEFAULT_DOXYFILE'] = env.File('#/conf/doxygenTemplate').abspath
 
+    bldAStyleCheck = Builder(action = SCons.Action.Action(AStyleCheck, PrintDummy))
+    env.Append(BUILDERS = {'RunAStyleCheck' : bldAStyleCheck})
+    
     bldAStyle = Builder(action = SCons.Action.Action(AStyle, PrintDummy))
     env.Append(BUILDERS = {'RunAStyle' : bldAStyle})
 
@@ -180,6 +183,51 @@ def RunDoxygen(target, source, env):
         #procEnv["CXXFLAGS"] = str(env["CXXFLAGS"])
         #procEnv["CFLAGS"] = '-fPIC'
     #return subprocess.call('./configure %s ; make; make install' % configureOpts, cwd=pathHead, shell=True, env=procEnv)
+
+def AStyleCheck(target, source, env):
+    # We use the target as a temporary directory.
+    targetDir = target[0]
+    target = str(target[0].abspath)
+    # If it doesn't exist we create it.
+    if not os.path.exists(target):
+        os.makedirs(target)
+    for f in source:
+        os.system('cp %s %s' % (f.abspath,target))
+    # Get the list of copied files.
+    files_lis = utils.findFiles(env,targetDir)
+    files_str = ' '.join([x.abspath for x in files_lis])
+    # Create the command for subprocess.call().
+    cmd = 'astyle -k1 --options=none --convert-tabs -bSKpUH %s' % files_str
+    # This variable holds if some file needs to be astyled.
+    need_astyle = False
+    # A list for the files that needs astyle.
+    need_astyle_list = []
+    # Apply astyle to those files.
+    rc = subprocess.call(cmd, shell=True, stdout=subprocess.PIPE)
+    if rc != 0:
+        return rc
+    # Check if astyle did some modifications.
+    for f in files_lis:
+        # If the '.orig' file exists for the file 'f' then it was modify for 
+        # astyle.
+        if os.path.exists('%s.orig' % f.abspath):
+            # Print the differences between files.
+            cmd = 'diff -Nau %s %s.orig' % (f.abspath,f.abspath)
+            diff = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
+            diff_stdout = diff.stdout.read()
+            rc = diff.wait()
+            need_astyle_list.append((os.path.split(f.abspath)[1],diff_stdout))
+            need_astyle = True
+    # Remove the '*.orig' files.
+    os.system('rm -rf %s/*.orig' % target)
+    # Print info.
+    if need_astyle:
+        env.cprint('[ERROR] The following files need astyle:', 'red')
+        for f,info in need_astyle_list:
+            env.cprint('====> %s' % f, 'red')
+            env.cprint(info,'yellow')
+    else:
+        env.cprint('[OK] No file needs astyle.', 'green')
 
 def AStyle(target, source, env):
     rc = 0

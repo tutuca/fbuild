@@ -255,11 +255,39 @@ class HeaderOnlyComponent(Component):
         doc = self.env.RunDoxygen(targetDocDir, [doxyfile,sconscript])
         self.env.Clean(doc, targetDocDir)
         self.env.Alias(self.name+':doc', doc, 'Generate documentation for ' + self.name)
+    
+    def _create_astyle_check_target(self, sources):
+        # Create the target.
+        target = self.env.Dir(self.env['BUILD_DIR']).Dir('astyle-check').Dir(self.name)
+        # Call RunAStyleCheck().
+        astyle_check = self.env.RunAStyleCheck(target, sources)
+        self.env.AlwaysBuild(astyle_check)
+        # Create info message.
+        msg = "Checks if the project %s has been astyled." % self.name
+        # Create an alias for the astyle checker.
+        self.env.Alias('%s:astyle-check' % self.name, astyle_check, msg)
+    
+    def _create_astyle_target(self, sources):
+        # Create the target.
+        target = self.env.Dir(self.env['BUILD_DIR']).Dir('astyle').Dir(self.name)
+        # Call RunAStyle().
+        astyleOut = self.env.RunAStyle(target, sources)
+        # Create an alias for astyle.
+        self.env.Alias('%s:astyle' % self.name, astyleOut, "Runs astyle on " + self.name)
 
     def Process(self, called_from_subclass=False):
         Component.Process(self)
+        # Look for the sources of this component.
+        filters = []
+        filters.extend(headersFilter)
+        filters.extend(sourceFilters)
+        sources = utils.files_flatten(self.env, self.projDir, filters)
         # Create target for generate the documentation.
         self._create_doc_target()
+        # We add astyle target to all the components that can have a header.
+        self._create_astyle_target(sources)
+        # We add a traget for check if the component is astyled.
+        self._create_astyle_check_target(sources)
         # This condition is for the cases when the method is called from a subclass.
         if not called_from_subclass:
             # Create the list of the 'sources' files.
@@ -269,15 +297,6 @@ class HeaderOnlyComponent(Component):
             self._create_cccc_target(sources)
             self._create_cloc_target(sources)
             self._create_cppcheck_target(sources)
-        # We add astyle to all the components that can have a header (includes
-        # the ones that have source)
-        filters = []
-        filters.extend(headersFilter)
-        filters.extend(sourceFilters)
-        sources = utils.files_flatten(self.env, self.projDir, filters)
-        target = self.env.Dir(self.env['BUILD_DIR']).Dir('astyle').Dir(self.name)
-        astyleOut = self.env.RunAStyle(target, sources)
-        self.env.Alias(self.name + ':astyle', astyleOut, "Runs astyle on " + self.name)
         # If the component doesnt have external headers, we dont process it since
         # there is nothing to install
         if len(self.extInc) > 0:
