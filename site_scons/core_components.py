@@ -237,6 +237,15 @@ class HeaderOnlyComponent(Component):
         # Create Componentan alias to be show when run 'fbuild targets'.
         self.env.Alias(self.name+":cloc", cloc, 'Generate software metrics for %s' % self.name)
     
+    def _create_jenkins_target(self):
+        # Create the target for jenkins.
+        if self.name.endswith(':test'):
+            name = self.name.split(':')[0]
+        else:
+            name = self.name
+        self.jenkins_target = self.env.Alias('%s:jenkins' % name, None, '')
+        self.env.AlwaysBuild(self.jenkins_target)
+    
     def _create_cppcheck_target(self, sources):
         # Create the 'target', it is the directory where the result will be put.
         target = self.env.Dir(self.env['INSTALL_METRICS_DIR']).Dir('cppcheck').Dir(self.name)
@@ -288,13 +297,8 @@ class HeaderOnlyComponent(Component):
         filters.extend(headersFilter)
         filters.extend(sourceFilters)
         sources = utils.files_flatten(self.env, self.projDir, filters)
-        # Create the target for jenkins.
-        if self.name.endswith(':test'):
-            name = self.name.split(':')[0]
-        else:
-            name = self.name
-        self.jenkins_target = self.env.Alias('%s:jenkins' % name,None,'')
-        self.env.AlwaysBuild(self.jenkins_target)
+        # Create target for jenkins.
+        self._create_jenkins_target()
         # Create target for generate the documentation.
         self._create_doc_target()
         # We add astyle target to all the components that can have a header.
@@ -509,7 +513,9 @@ class UnitTestComponent(ProgramComponent):
         prog = self.env.Program(target, self.find_sources(), CPPPATH=incpaths, LIBS=libs, LIBPATH=libpaths)
         self.env.Alias(self.name, prog, "Build and install " + self.name)
         self.env.Alias('all:build', prog, "Build all targets")
-
+        if env.GetOption('--jenkins'):
+            report = self.env.Dir(self.env['INSTALL_METRICS_DIR']).Dir('test').Dir(self.name)
+            report = '%s/test-report.xml' % report.abspath 
         target = os.path.join(self.dir, self.name + '.passed')
         tTest = self.env.RunUnittest(target, prog)
         # Add dependence for jenkins.
@@ -523,6 +529,10 @@ class UnitTestComponent(ProgramComponent):
             name = self.name
             vtname = '%s:valgrind' % name
         tvalg = os.path.join(self.env['INSTALL_LIB_DIR'], self.name)
+        if env.GetOption('--jenkins'):
+            report = self.env.Dir(self.env['INSTALL_METRICS_DIR']).Dir('valgrind').Dir(self.name)
+            report = '%s/valgrind-report.xml' % report.abspath 
+            self.env.Append(VALGRIND_OPTIONS = '--xml=yes --xml-file=%s' % report)
         rvalg = self.env.RunValgrind(vtname, prog)
         self.env.Alias(vtname, [tTest,rvalg], 'Run valgrind for %s test' % name)
         # Add dependence for jenkins.
