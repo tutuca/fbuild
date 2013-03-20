@@ -163,7 +163,6 @@ def RunDoxygen(target, source, env):
     # Create the command for the subprocess.call()
     cmdOutput = os.path.join(target,'doxyfile_generation.output')
     cmd = "cd %s; doxygen %s > %s" % (projectDir, projectDoxyFile, cmdOutput)
-    print cmd
     rc = subprocess.call(cmd, shell=True)
     if env.GetOption('printresults'):
         subprocess.call("cat %s" % cmdOutput, shell=True)
