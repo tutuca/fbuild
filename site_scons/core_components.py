@@ -245,6 +245,8 @@ class HeaderOnlyComponent(Component):
         self.env.AlwaysBuild(cppcheck)
         # Create an alias to be show when run 'fbuild targets'.
         self.env.Alias(self.name+":cppcheck", cppcheck, 'C/C++ code analyse for %s' % self.name)
+        # Add dependence for jenkins.
+        self.env.Depends(self.jenkins_target,cppcheck)
     
     def _create_doc_target(self):
         targetDocDir = self.env.Dir(self.env['INSTALL_DOC_DIR']).Dir(self.name)
@@ -255,6 +257,8 @@ class HeaderOnlyComponent(Component):
         doc = self.env.RunDoxygen(targetDocDir, [doxyfile,sconscript])
         self.env.Clean(doc, targetDocDir)
         self.env.Alias(self.name+':doc', doc, 'Generate documentation for ' + self.name)
+        # Add dependence for jenkins.
+        self.env.Depends(self.jenkins_target,doc)
     
     def _create_astyle_check_target(self, sources):
         # Create the target.
@@ -266,6 +270,8 @@ class HeaderOnlyComponent(Component):
         msg = "Checks if the project %s has been astyled." % self.name
         # Create an alias for the astyle checker.
         self.env.Alias('%s:astyle-check' % self.name, astyle_check, msg)
+        # Add dependence for jenkins.
+        self.env.Depends(self.jenkins_target,astyle_check)
     
     def _create_astyle_target(self, sources):
         # Create the target.
@@ -282,6 +288,13 @@ class HeaderOnlyComponent(Component):
         filters.extend(headersFilter)
         filters.extend(sourceFilters)
         sources = utils.files_flatten(self.env, self.projDir, filters)
+        # Create the target for jenkins.
+        if self.name.endswith(':test'):
+            name = self.name.split(':')[0]
+        else:
+            name = self.name
+        self.jenkins_target = self.env.Alias('%s:jenkins' % name,None,'')
+        self.env.AlwaysBuild(self.jenkins_target)
         # Create target for generate the documentation.
         self._create_doc_target()
         # We add astyle target to all the components that can have a header.
@@ -487,7 +500,7 @@ class UnitTestComponent(ProgramComponent):
         # Should it be a call to ProgramComponent.Process() ??
         # Right now we do not need a call like that, because we don't want 
         # 'astyle', 'cccc', 'cloc' nether 'cppcheck' for test.
-        # SourcedComponent.Process(self)
+        SourcedComponent.Process(self)
 
         incpaths = self.getIncludePaths()
         (libs,libpaths) = self.getLibs()
@@ -499,6 +512,8 @@ class UnitTestComponent(ProgramComponent):
 
         target = os.path.join(self.dir, self.name + '.passed')
         tTest = self.env.RunUnittest(target, prog)
+        # Add dependence for jenkins.
+        self.env.Depends(self.jenkins_target,tTest)
 
         # Adding valgrind for tests.
         if self.name.endswith(':test'):
@@ -510,6 +525,8 @@ class UnitTestComponent(ProgramComponent):
         tvalg = os.path.join(self.env['INSTALL_LIB_DIR'], self.name)
         rvalg = self.env.RunValgrind(vtname, prog)
         self.env.Alias(vtname, [tTest,rvalg], 'Run valgrind for %s test' % name)
+        # Add dependence for jenkins.
+        self.env.Depends(self.jenkins_target,rvalg)
 
         if self.env.GetOption('gcoverage'):
             project = self.componentGraph.get(self.name.split(':')[0])
