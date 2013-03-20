@@ -249,7 +249,7 @@ class HeaderOnlyComponent(Component):
     def _create_doc_target(self):
         targetDocDir = self.env.Dir(self.env['INSTALL_DOC_DIR']).Dir(self.name)
         doxyfile = self.env.File(self.env.Dir('#').abspath+'/conf/doxygenTemplate')
-        sconscript = '%s/SConscript' % self.dir
+        sconscript = ('%s/SConscript' % self.dir).replace('/build/','/projects/')
         # We pass it the path to the SConscript file because we need the path to 
         # the project directory but we only can put 'env.File' objects as sources.
         doc = self.env.RunDoxygen(targetDocDir, [doxyfile,sconscript])

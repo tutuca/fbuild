@@ -215,7 +215,7 @@ def AStyleCheck(target, source, env):
             cmd = 'diff -Nau %s %s.orig' % (f.abspath,f.abspath)
             diff = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
             diff_stdout = diff.stdout.read()
-            rc = diff.wait()
+            diff.wait()
             need_astyle_list.append((os.path.split(f.abspath)[1],diff_stdout))
             need_astyle = True
     # Remove the '*.orig' files.
