@@ -194,15 +194,42 @@ def AStyleCheck(target, source, env):
     for f in source:
         os.system('cp %s %s' % (f.abspath,target))
     # Get the list of copied files.
-    #import ipdb; ipdb.set_trace()
-    files = ' '.join([x.abspath for x in utils.findFiles(env,targetDir)])
+    files_lis = utils.findFiles(env,targetDir)
+    files_str = ' '.join([x.abspath for x in files_lis])
     # Create the command for subprocess.call().
-    cmd = 'astyle -k1 --options=none --convert-tabs -bSKpUH %s' % files
+    cmd = 'astyle -k1 --options=none --convert-tabs -bSKpUH %s' % files_str
+    # This variable holds if some file needs to be astyled.
+    need_astyle = False
+    # A list for the files that needs astyle.
+    need_astyle_list = []
     # Apply astyle to those files.
-    subprocess.call(cmd, shell=True)
-    #import time; time.sleep(60)
-    # Remove the 'astyle' directory.                                                        '
-    #os.system('rm -rf %s' % os.path.split(target)[0])
+    rc = subprocess.call(cmd, shell=True, stdout=subprocess.PIPE)
+    if rc != 0:
+        return rc
+    # Check if astyle did some modifications.
+    for f in files_lis:
+        # If the '.orig' file exists for the file 'f' then it was modify for 
+        # astyle.
+        if os.path.exists('%s.orig' % f.abspath):
+            # Print the differences between files.
+            cmd = 'diff -aur %s %s.orig' % (f.abspath,f.abspath)
+            diff = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
+            diff_stdout = diff.stdout.read()
+            rc = diff.wait()
+            #if rc != 0:
+                #return rc
+            need_astyle_list.append((os.path.split(f.abspath)[1],diff_stdout))
+            need_astyle = True
+    # Remove the '*.orig' files.
+    os.system('rm -rf %s/*.orig' % target)
+    # Print info.
+    if need_astyle:
+        env.cprint('[ERROR] The following files need astyle:', 'red')
+        for f,info in need_astyle_list:
+            env.cprint('====> %s' % f, 'red')
+            env.cprint(info,'yellow')
+    else:
+        env.cprint('[OK] No file needs astyle.', 'green')
 
 def AStyle(target, source, env):
     rc = 0
