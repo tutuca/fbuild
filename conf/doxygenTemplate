@@ -23,3 +23,6 @@ CALL_GRAPH = YES
 CALLER_GRAPH = YES
 MAX_DOT_GRAPH_DEPTH = 5
 RECURSIVE = YES
+FILE_PATTERNS = *.c *.cc *.cxx *.cpp *.c++ *.java *.ii *.ixx *.ipp *.i++ *.inl \
+*.h *.hh *.hxx *.hpp *.h++ *.idl *.odl *.cs *.php *.php3 *.inc *.m *.mm *.dox  \
+*.*.py *.f90 *.f *.for *.vhd *.vhdl
