@@ -19,21 +19,16 @@
 
 #import os
 #import platform
-#import sys
 #import os
+import sys
 import extension_qt
 import SCons
 
 env = Environment()
 
-import options
-options.init(env)
-
 hasQt = extension_qt.hasQt(env)
-
 if hasQt:
     env = Environment(tools=['default', 'qt4'])
-
 env['QT_PRESENT'] = hasQt
 
 Export('env')
@@ -41,15 +36,19 @@ Export('env')
 vars = Variables('SConfig')
 Export('vars')
 
+# Set command line arguments.
+import options
+options.init(env)
+
 # Color pretty printing
 import termcolor
 termcolor.init(env, ARGUMENTS)
 
-# default configuration options
+# Default configuration options
 import scons_defaults
 scons_defaults.init(env, vars, ARGUMENTS)
 
-# things to debug the environment
+# Things to debug the environment
 import debug
 debug.init(env)
 

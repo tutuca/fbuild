@@ -26,10 +26,8 @@ from SCons.Script import AddOption
 def init(env):
     AddOption(
         '--jenkins',
-        dest='accumulate',
-        action='store_const',
-        help='Switch the run mode to jenkins.'
+        dest='jenkins',
+        action='store_true',
+        help='Switch the run mode to jenkins.',
+        default=False
     )
-    
-    
-    

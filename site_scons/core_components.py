@@ -18,6 +18,7 @@
 # along with fudepan-build.  If not, see <http://www.gnu.org/licenses/>.
 
 import os
+import sys
 import utils
 from utils import RecursiveInstall, findFiles
 
@@ -494,33 +495,34 @@ class UnitTestComponent(ProgramComponent):
         ProgramComponent.__init__(self, componentGraph, env, name, compDir, deps, inc, src, aliasGroups)
 
     def Process(self):
-        #gtest/gmock flags
+        # Class to super-class.
+        SourcedComponent.Process(self)
+        # gtest/gmock flags
         CXXFLAGS = [f for f in self.env['CXXFLAGS'] if f not in ['-ansi', '-pedantic']]
         CXXFLAGS.append('-Wno-sign-compare')
         if not '-ggdb3' in CXXFLAGS:
             CXXFLAGS.append('-ggdb3')
         self.env.Replace(CXXFLAGS=CXXFLAGS, CFLAGS=CXXFLAGS)
-
-        # Should it be a call to ProgramComponent.Process() ??
-        # Right now we do not need a call like that, because we don't want 
-        # 'astyle', 'cccc', 'cloc' nether 'cppcheck' for test.
-        SourcedComponent.Process(self)
-
+        # Set the environment for the 'project:jenkins' target.
+        if self.env.GetOption('jenkins'):
+            valg_report = self.env.Dir(self.env['INSTALL_METRICS_DIR']).Dir('valgrind').Dir(self.name[:-5])
+            if not os.path.exists(valg_report.abspath):
+                os.makedirs(valg_report.abspath)
+            valg_report = '%s/valgrind-report.xml' % valg_report.abspath 
+            self.env.Append(VALGRIND_OPTIONS = '--xml=yes --xml-file=%s' % valg_report)
+            gtest_report = self.env.Dir(self.env['INSTALL_METRICS_DIR']).Dir('test').Dir(self.name[:-5])
+            self.env.gtest_report = 'xml:%s/test-report.xml' % gtest_report.abspath
+        # Create the Program() builder for the 'test' executable.
         incpaths = self.getIncludePaths()
         (libs,libpaths) = self.getLibs()
         target = os.path.join(self.dir, self.name)
-
         prog = self.env.Program(target, self.find_sources(), CPPPATH=incpaths, LIBS=libs, LIBPATH=libpaths)
         self.env.Alias(self.name, prog, "Build and install " + self.name)
         self.env.Alias('all:build', prog, "Build all targets")
-        if env.GetOption('--jenkins'):
-            report = self.env.Dir(self.env['INSTALL_METRICS_DIR']).Dir('test').Dir(self.name)
-            report = '%s/test-report.xml' % report.abspath 
         target = os.path.join(self.dir, self.name + '.passed')
         tTest = self.env.RunUnittest(target, prog)
         # Add dependence for jenkins.
         self.env.Depends(self.jenkins_target,tTest)
-
         # Adding valgrind for tests.
         if self.name.endswith(':test'):
             name = self.name.split(':')[0]
@@ -528,17 +530,12 @@ class UnitTestComponent(ProgramComponent):
         else:
             name = self.name
             vtname = '%s:valgrind' % name
-        tvalg = os.path.join(self.env['INSTALL_LIB_DIR'], self.name)
-        if env.GetOption('--jenkins'):
-            report = self.env.Dir(self.env['INSTALL_METRICS_DIR']).Dir('valgrind').Dir(self.name)
-            report = '%s/valgrind-report.xml' % report.abspath 
-            self.env.Append(VALGRIND_OPTIONS = '--xml=yes --xml-file=%s' % report)
         rvalg = self.env.RunValgrind(vtname, prog)
         self.env.Alias(vtname, [tTest,rvalg], 'Run valgrind for %s test' % name)
         # Add dependence for jenkins.
         self.env.Depends(self.jenkins_target,rvalg)
-
-        if self.env.GetOption('gcoverage'):
+        # Prepare environment for coverage.
+        if self.env.GetOption('gcoverage') or self.env.GetOption('jenkins'):
             project = self.componentGraph.get(self.name.split(':')[0])
             self.env['PROJECT_DIR'] = project.dir
             initLcov = self.env.InitLcov(os.path.join(self.dir, 'coverage_data'), prog)
@@ -547,16 +544,18 @@ class UnitTestComponent(ProgramComponent):
             self.env.Depends(lcov, tTest)
             self.env.AlwaysBuild(tTest)
             self.env.Alias(self.name, lcov)
-
+            # Add dependence for jenkins.
+            self.env.Depends(self.jenkins_target,lcov)
+        # Check if the user want to run the test anyway.
         if self.env.GetOption('forcerun'):
             self.env.AlwaysBuild(tTest)
-
+        # Crete the 'project:test' target.
         self.env.Alias(self.name, tTest, "Run test for " + self.name)
-
+        # Make the test depend from source files.
         for refFile in findFiles(self.env, self.compDir.Dir('ref')):
             self.env.Depends(tTest, refFile)
+        # Alias target for 'all'.
         self.env.Alias('all:test', tTest, "Run all tests")
-
         for alias in self.aliasGroups:
             self.env.Alias(alias, tTest, "Build group " + alias)
 

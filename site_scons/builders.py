@@ -86,6 +86,8 @@ def RunUnittest(env, source, target):
         t = target[tindex].abspath;
         app = s.abspath
         (dir, appbin) = os.path.split(app)
+        if env.GetOption('jenkins'):
+            os.environ['GTEST_OUTPUT'] = env.gtest_report
         cmd = "cd %s; ./%s > %s" % (dir, appbin, t)
         rc = subprocess.call(cmd, shell=True)
         if env.GetOption('printresults'):
@@ -98,6 +100,7 @@ def RunUnittest(env, source, target):
     return rc
 
 def InitLcov(env, source, target):
+    import ipdb; ipdb.set_trace()
     from os.path import dirname, join
     test_executable = source[0].abspath
     indexFile = target[0].abspath
@@ -105,7 +108,7 @@ def InitLcov(env, source, target):
             'coverage_file': join(dirname(dirname(indexFile)), 'coverage_output.dat'),
             'output_dir'   : dirname(indexFile),
             'project_dir'  : env['PROJECT_DIR']
-            }
+           }
 
     r = chain_calls(env, [
         'lcov --zerocounters --directory %(project_dir)s -b .' % data,
@@ -121,7 +124,7 @@ def RunLcov(env, source, target):
             'coverage_file': join(dirname(dirname(indexFile)), 'coverage_output.dat'),
             'output_dir'   : dirname(indexFile),
             'project_dir'  : env['PROJECT_DIR']
-            }
+           }
 
     r = chain_calls(env, [
         'rm -f %(coverage_file)s' % data,
