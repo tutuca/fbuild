@@ -454,14 +454,14 @@ class ProgramComponent(SourcedComponent):
         incpaths = self.getIncludePaths()
         (libs,libpaths) = self.getLibs()
         target = os.path.join(self.env['INSTALL_LIB_DIR'], self.name)
-        prog = self.env.Program(target, self.find_sources(), CPPPATH=incpaths, LIBS=libs, LIBPATH=libpaths)
-        iProg = self.env.Install(self.env['INSTALL_BIN_DIR'], prog)
+        self.prog = self.env.Program(target, self.find_sources(), CPPPATH=incpaths, LIBS=libs, LIBPATH=libpaths)
+        iProg = self.env.Install(self.env['INSTALL_BIN_DIR'], self.prog)
         self.env.Alias(self.name, iProg, "Build and install " + self.name)
-        self.env.Alias('all:build', prog, "Build all targets")
+        self.env.Alias('all:build', self.prog, "Build all targets")
         self.env.Alias('all:install', iProg, "Install all targets")
         for alias in self.aliasGroups:
             self.env.Alias(alias, iProg, "Build group " + alias)
-        return prog
+        return self.prog
 
     def find_sources(self):
         src = self.src
@@ -478,62 +478,73 @@ class UnitTestComponent(ProgramComponent):
         ProgramComponent.__init__(self, componentGraph, env, name, compDir, deps, inc, src, aliasGroups)
 
     def Process(self):
-        
+        # Call to super-class Process().
+        ProgramComponent.Process(self)
         # Flags for gtest and gmock.
         CXXFLAGS = [f for f in self.env['CXXFLAGS'] if f not in ['-ansi', '-pedantic']]
         CXXFLAGS.append('-Wno-sign-compare')
         if not '-ggdb3' in CXXFLAGS:
             CXXFLAGS.append('-ggdb3')
         self.env.Replace(CXXFLAGS=CXXFLAGS, CFLAGS=CXXFLAGS)
-
-        # Should it be a call to ProgramComponent.Process() ??
-        # Right now we do not need a call like that, because we don't want 
-        # 'astyle', 'cccc', 'cloc' nether 'cppcheck' for test.
-        # SourcedComponent.Process(self)
-
-        incpaths = self.getIncludePaths()
-        (libs,libpaths) = self.getLibs()
-        target = os.path.join(self.dir, self.name)
-        prog = self.env.Program(target, self.find_sources(), CPPPATH=incpaths, LIBS=libs, LIBPATH=libpaths)
-        self.env.Alias(self.name, prog, "Build and install " + self.name)
-        self.env.Alias('all:build', prog, "Build all targets")
-
+        # File to store the test results.
         target = os.path.join(self.dir, self.name + '.passed')
-        tTest = self.env.RunUnittest(target, prog)
+        tTest = self.env.RunUnittest(target, self.prog)
+        # Check if the user want to run the tests anyway.
         if self.env.GetOption('forcerun'):
             self.env.AlwaysBuild(tTest)
-
+        # Create the target for the test.
         self.env.Alias(self.name, tTest, "Run test for " + self.name)
-
+        # Make the test depends from the files.
         for refFile in findFiles(self.env, self.compDir.Dir('ref')):
             self.env.Depends(tTest, refFile)
         self.env.Alias('all:test', tTest, "Run all tests")
-
         # Adding a valgrind target for tests.
+        self._createValgrindTarget(tTest)
+        # Adding a coverage target for tests.
+        self._createCoverageTarget(target)
+        # Create alias for aliasGroups.
+        for alias in self.aliasGroups:
+            self.env.Alias(alias, tTest, "Build group " + alias)
+
+    def _createValgrindTarget(self, tTest): 
+        # Remove the ':test' from the name of the project.
         if self.name.endswith(':test'):
             name = self.name.split(':')[0]
             vtname = '%s:valgrind' % name
         else:
             name = self.name
             vtname = '%s:valgrind' % name
+        # Target for the RunValgrind() builder.
         tvalg = os.path.join(self.env['INSTALL_LIB_DIR'], self.name)
-        rvalg = self.env.RunValgrind(vtname, prog)
+        # Call builder RunValgrind().
+        rvalg = self.env.RunValgrind(vtname, self.prog)
+        # Create an alias for valgrind.
         self.env.Alias(vtname, [tTest,rvalg], 'Run valgrind for %s test' % name)
-
-        # Adding a coverage target for tests.
+        
+    def _createCoverageTarget(self, target):
+        # Get the path directory to the project.
         project = self.componentGraph.get(self.name.split(':')[0])
         self.env['PROJECT_DIR'] = project.dir
-        initLcov = self.env.InitLcov(os.path.join(self.dir, 'coverage_data'), prog)
-        covTest = self.env.RunUnittest(target, prog)
-        lcov = self.env.RunLcov(os.path.join(self.dir, 'lcov_output/index.html'), prog)
+        # Targets and sources for builder InitLcov.
+        initLcovTarget = os.path.join(self.dir, 'coverage_data')
+        initLcovSoureces = [self.prog]
+        # Call builder initLcov().
+        initLcov = self.env.InitLcov(initLcovTarget, initLcovSoureces)
+        # Call builder RunLcov().
+        covTest = self.env.RunUnittest(target, self.prog)
+        # Targets and sources for RunLcov() builder.
+        runLcovTargets = os.path.join(self.dir, 'lcov_output/index.html')
+        runLcovSources = [self.prog]
+        # Call builder RunLcov().
+        lcov = self.env.RunLcov(runLcovTargets, runLcovSources)
+        # Create dependencies between targets.
         self.env.Depends(covTest, initLcov)
         self.env.Depends(lcov, covTest)
+        # Create the target for coverage.
         cov = self.env.Alias('%s:coverage' % self.name[:-5], lcov)
+        # Coverage can always be built.
         self.env.AlwaysBuild(cov)
         self.env.AlwaysBuild(covTest)
-
-        for alias in self.aliasGroups:
-            self.env.Alias(alias, tTest, "Build group " + alias)
 
     def getIncludePaths(self):
         includes = super(UnitTestComponent, self).getIncludePaths()
