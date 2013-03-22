@@ -478,7 +478,8 @@ class UnitTestComponent(ProgramComponent):
         ProgramComponent.__init__(self, componentGraph, env, name, compDir, deps, inc, src, aliasGroups)
 
     def Process(self):
-        #gtest/gmock flags
+        
+        # Flags for gtest and gmock.
         CXXFLAGS = [f for f in self.env['CXXFLAGS'] if f not in ['-ansi', '-pedantic']]
         CXXFLAGS.append('-Wno-sign-compare')
         if not '-ggdb3' in CXXFLAGS:
@@ -493,15 +494,22 @@ class UnitTestComponent(ProgramComponent):
         incpaths = self.getIncludePaths()
         (libs,libpaths) = self.getLibs()
         target = os.path.join(self.dir, self.name)
-
         prog = self.env.Program(target, self.find_sources(), CPPPATH=incpaths, LIBS=libs, LIBPATH=libpaths)
         self.env.Alias(self.name, prog, "Build and install " + self.name)
         self.env.Alias('all:build', prog, "Build all targets")
 
         target = os.path.join(self.dir, self.name + '.passed')
         tTest = self.env.RunUnittest(target, prog)
+        if self.env.GetOption('forcerun'):
+            self.env.AlwaysBuild(tTest)
 
-        # Adding valgrind for tests.
+        self.env.Alias(self.name, tTest, "Run test for " + self.name)
+
+        for refFile in findFiles(self.env, self.compDir.Dir('ref')):
+            self.env.Depends(tTest, refFile)
+        self.env.Alias('all:test', tTest, "Run all tests")
+
+        # Adding a valgrind target for tests.
         if self.name.endswith(':test'):
             name = self.name.split(':')[0]
             vtname = '%s:valgrind' % name
@@ -512,24 +520,17 @@ class UnitTestComponent(ProgramComponent):
         rvalg = self.env.RunValgrind(vtname, prog)
         self.env.Alias(vtname, [tTest,rvalg], 'Run valgrind for %s test' % name)
 
-        if self.env.GetOption('gcoverage'):
-            project = self.componentGraph.get(self.name.split(':')[0])
-            self.env['PROJECT_DIR'] = project.dir
-            initLcov = self.env.InitLcov(os.path.join(self.dir, 'coverage_data'), prog)
-            self.env.Depends(tTest, initLcov)
-            lcov = self.env.RunLcov(os.path.join(self.dir, 'lcov_output/index.html'), prog)
-            self.env.Depends(lcov, tTest)
-            self.env.AlwaysBuild(tTest)
-            self.env.Alias(self.name, lcov)
-
-        if self.env.GetOption('forcerun'):
-            self.env.AlwaysBuild(tTest)
-
-        self.env.Alias(self.name, tTest, "Run test for " + self.name)
-
-        for refFile in findFiles(self.env, self.compDir.Dir('ref')):
-            self.env.Depends(tTest, refFile)
-        self.env.Alias('all:test', tTest, "Run all tests")
+        # Adding a coverage target for tests.
+        project = self.componentGraph.get(self.name.split(':')[0])
+        self.env['PROJECT_DIR'] = project.dir
+        initLcov = self.env.InitLcov(os.path.join(self.dir, 'coverage_data'), prog)
+        covTest = self.env.RunUnittest(target, prog)
+        lcov = self.env.RunLcov(os.path.join(self.dir, 'lcov_output/index.html'), prog)
+        self.env.Depends(covTest, initLcov)
+        self.env.Depends(lcov, covTest)
+        cov = self.env.Alias('%s:coverage' % self.name[:-5], lcov)
+        self.env.AlwaysBuild(cov)
+        self.env.AlwaysBuild(covTest)
 
         for alias in self.aliasGroups:
             self.env.Alias(alias, tTest, "Build group " + alias)
