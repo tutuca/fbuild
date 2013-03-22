@@ -533,7 +533,9 @@ class UnitTestComponent(ProgramComponent):
         # Call builder RunLcov().
         covTest = self.env.RunUnittest(target, self.prog)
         # Targets and sources for RunLcov() builder.
-        runLcovTargets = os.path.join(self.dir, 'lcov_output/index.html')
+        metrics_dir = self.env['INSTALL_METRICS_DIR']
+        coverage_dir = self.env.Dir(metrics_dir).Dir('coverage').Dir(self.name)
+        runLcovTargets = os.path.join(coverage_dir, 'index.html')
         runLcovSources = [self.prog]
         # Call builder RunLcov().
         lcov = self.env.RunLcov(runLcovTargets, runLcovSources)
