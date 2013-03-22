@@ -288,7 +288,7 @@ def RunCCCC(target, source, env):
     cmd = 'cccc %s %s' % (options, files)
     ret_val = subprocess.call(cmd, shell=True)
     # Remove unnecessary files.
-    rm = "cd %s; rm -f *.*; mv MainHTMLReport CCCCMainHTMLReport.html" % target
+    rm = "cd %s; mv MainHTMLReport CCCCMainHTMLReport.html" % target
     subprocess.call(rm, shell=True)
     return ret_val
 
