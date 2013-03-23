@@ -60,8 +60,9 @@ class ComponentDictionary(dict):
 
 componentGraph = ComponentDictionary()
 
-def CreateExternalLibraryComponent(env, name, ext_inc, libPath, deps, shouldBeLinked, aliasGroups = []):
-    #import ipdb; ipdb.set_trace()
+def CreateExternalLibraryComponent(env, name, ext_inc, libPath, deps, shouldBeLinked, aliasGroups=None):
+    if aliasGroups == None:
+        aliasGroups = []
     return componentGraph.add(ExternalLibraryComponent(componentGraph,
                                                 env,
                                                 name,
@@ -72,7 +73,9 @@ def CreateExternalLibraryComponent(env, name, ext_inc, libPath, deps, shouldBeLi
                                                 aliasGroups),
                        False)
 
-def CreateHeaderOnlyLibrary(env, name, ext_inc, deps, aliasGroups = []):
+def CreateHeaderOnlyLibrary(env, name, ext_inc, deps, aliasGroups=None):
+    if aliasGroups == None:
+        aliasGroups = []
     return componentGraph.add(HeaderOnlyComponent(componentGraph,
                                            env,
                                            name,
@@ -81,7 +84,9 @@ def CreateHeaderOnlyLibrary(env, name, ext_inc, deps, aliasGroups = []):
                                            ext_inc,
                                            aliasGroups))
 
-def CreateStaticLibrary(env, name, inc, ext_inc, src, deps, aliasGroups = []):
+def CreateStaticLibrary(env, name, inc, ext_inc, src, deps, aliasGroups=None):
+    if aliasGroups == None:
+        aliasGroups = []
     return componentGraph.add(StaticLibraryComponent(componentGraph,
                                               env,
                                               name,
@@ -92,7 +97,9 @@ def CreateStaticLibrary(env, name, inc, ext_inc, src, deps, aliasGroups = []):
                                               src,
                                               aliasGroups))
 
-def CreateSharedLibrary(env, name, inc, ext_inc, src, deps, aliasGroups = []):
+def CreateSharedLibrary(env, name, inc, ext_inc, src, deps, aliasGroups=None):
+    if aliasGroups == None:
+        aliasGroups = []
     return componentGraph.add(DynamicLibraryComponent(componentGraph,
                                                env,
                                                name,
@@ -103,7 +110,9 @@ def CreateSharedLibrary(env, name, inc, ext_inc, src, deps, aliasGroups = []):
                                                src,
                                                aliasGroups))
 
-def CreateObject(env, name, inc, src, deps, aliasGroups = []):
+def CreateObject(env, name, inc, src, deps, aliasGroups=None:
+    if aliasGroups == None:
+        aliasGroups = []
     return componentGraph.add(ObjectComponent(componentGraph,
                                        env,
                                        name,
@@ -113,7 +122,9 @@ def CreateObject(env, name, inc, src, deps, aliasGroups = []):
                                        src,
                                        aliasGroups))
 
-def CreateProgram(env, name, inc, src, deps, aliasGroups = []):
+def CreateProgram(env, name, inc, src, deps, aliasGroups=None):
+    if aliasGroups == None:
+        aliasGroups = []
     return componentGraph.add(ProgramComponent(componentGraph,
                                         env,
                                         name,
@@ -123,7 +134,9 @@ def CreateProgram(env, name, inc, src, deps, aliasGroups = []):
                                         src,
                                         aliasGroups))
 
-def CreateTest(env, name, inc, src, deps, aliasGroups = []):
+def CreateTest(env, name, inc, src, deps, aliasGroups=None):
+    if aliasGroups == None:
+        aliasGroups = []
     testName = name + ':test'
     # the test automatically depends on the thing that is testing
     if deps.count(name) == 0:
@@ -137,7 +150,9 @@ def CreateTest(env, name, inc, src, deps, aliasGroups = []):
                                          src,
                                          aliasGroups))
 
-def CreatePdfLaTeX(env, name, latexfile = '', options='', aliasGroups = []):
+def CreatePdfLaTeX(env, name, latexfile = '', options='', aliasGroups=None):
+    if aliasGroups == None:
+        aliasGroups = []
     docName = name + ':pdf:' + latexfile
     latexfile = env['INSTALL_DOC_DIR'] + "/" + name + ":doc/latex/" + latexfile
     env['PDFLATEX_OPTIONS'] = options
@@ -148,7 +163,9 @@ def CreatePdfLaTeX(env, name, latexfile = '', options='', aliasGroups = []):
                                     latexfile,
                                     aliasGroups))
 
-def CreateAutoToolsProject(env, name, ext_dir, lib_targets, configurationFile, aliasGroups = []):
+def CreateAutoToolsProject(env, name, ext_dir, lib_targets, configurationFile, aliasGroups=None):
+    if aliasGroups == None:
+        aliasGroups = []
     return componentGraph.add(AutoToolsProjectComponent(componentGraph,
                                         env,
                                         name,
@@ -158,9 +175,12 @@ def CreateAutoToolsProject(env, name, ext_dir, lib_targets, configurationFile, a
                                         configurationFile,
                                         aliasGroups))
 
-def WalkDirsForSconscripts(env, topdir, ignore = []):
+def WalkDirsForSconscripts(env, topdir, ignore=None):
     global componentGraph
 
+    if ignore == None:
+        ignore = []
+    
     # Step 1: load all the components in the dependency graph
     # if we find a download dependency, we download it and re-process everything
     # to be sure that all the components are downloaded and loaded in the

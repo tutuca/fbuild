@@ -42,7 +42,9 @@ class DistroError (Exception):
     pass
 
 
-def findFiles(env, fromDir, filters=['*']):
+def findFiles(env, fromDir, filters=None):
+    if filters == None:
+        filters = ['*']
     path = fromDir.abspath
     files = []
     for s in env.Glob(path + '/*'):
@@ -54,13 +56,14 @@ def findFiles(env, fromDir, filters=['*']):
     return files
 
 
-def RecursiveInstall(env, sourceDir, sourcesRel, targetName, fileFilter=['*.*']):
+def RecursiveInstall(env, sourceDir, sourcesRel, targetName, fileFilter=None):
+    if fileFilter == None:
+        fileFilter = ['*.*']
     nodes = []
     for s in sourcesRel:
         nodes.extend(findFiles(env, s, fileFilter))
     l = len(sourceDir.abspath) + 1
     relnodes = [ n.abspath[l:] for n in nodes ]
-
     targetHeaderDir = env.Dir(env['INSTALL_HEADERS_DIR']).Dir(targetName).abspath
     targets = []
     sources = []
