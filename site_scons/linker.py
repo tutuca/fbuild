@@ -21,8 +21,11 @@
 # Description: linker options settings
 #
 
+
+import platform
+
+
 def init(env):
-    import platform
     (arch,binType) = platform.architecture()
     if binType == 'ELF':
         linuxOptions(env)

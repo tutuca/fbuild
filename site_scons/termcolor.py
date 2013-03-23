@@ -20,10 +20,12 @@
 #
 # Description: color settings, pretty messages
 #
-
 # http://www.scons.org/wiki/ColorBuildMessages
+
+
 import sys
 import os
+
 
 colors = {}
 colors['cyan']   = '\033[96m'
@@ -33,6 +35,7 @@ colors['green']  = '\033[92m'
 colors['yellow'] = '\033[93m'
 colors['red']    = '\033[91m'
 colors['end']    = '\033[0m'
+
 
 #If the output is not a terminal, remove the colors
 if not sys.stdout.isatty():

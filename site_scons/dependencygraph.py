@@ -22,15 +22,20 @@
 #              components to better solve include paths and library linking
 #
 
-import os
+
 import fnmatch
+import os
+
+from SCons.Script.SConscript import SConsEnvironment
+
 from core_components import *
 from components import *
 
+
 downloadedDependencies = False
 
+
 def init(env):
-    from SCons.Script.SConscript import SConsEnvironment
     SConsEnvironment.CreateObject = CreateObject
     SConsEnvironment.CreateProgram = CreateProgram
     SConsEnvironment.CreateExternalLibraryComponent = CreateExternalLibraryComponent
@@ -110,7 +115,7 @@ def CreateSharedLibrary(env, name, inc, ext_inc, src, deps, aliasGroups=None):
                                                src,
                                                aliasGroups))
 
-def CreateObject(env, name, inc, src, deps, aliasGroups=None:
+def CreateObject(env, name, inc, src, deps, aliasGroups=None):
     if aliasGroups == None:
         aliasGroups = []
     return componentGraph.add(ObjectComponent(componentGraph,

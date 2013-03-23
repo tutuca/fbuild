@@ -17,9 +17,14 @@
 # You should have received a copy of the GNU General Public License
 # along with fudepan-build.  If not, see <http://www.gnu.org/licenses/>.
 
+
+"""
+    Add a description here!
+"""
+
+
 import os
 import utils
-from utils import RecursiveInstall, findFiles
 
 
 headersFilter = ['*.h','*.hpp']
@@ -293,14 +298,14 @@ class HeaderOnlyComponent(Component):
             # Create the list of the 'sources' files.
             sources = []
             for d in self.extInc:
-                sources.extend(findFiles(self.env, d,['*.h']))
+                sources.extend(utils.findFiles(self.env, d,['*.h']))
             self._create_cccc_target(sources)
             self._create_cloc_target(sources)
             self._create_cppcheck_target(sources)
         # If the component doesnt have external headers, we dont process it since
         # there is nothing to install
         if len(self.extInc) > 0:
-            hLib = RecursiveInstall(self.env, self.compDir, self.extInc, self.name, headersFilter)
+            hLib = utils.RecursiveInstall(self.env, self.compDir, self.extInc, self.name, headersFilter)
             self.env.Alias(self.name, hLib, 'Install ' + self.name + ' headers')
             self.env.Clean(self.name, hLib)
             self.env.Alias('all:install', hLib, "Install all targets")
@@ -526,7 +531,7 @@ class UnitTestComponent(ProgramComponent):
 
         self.env.Alias(self.name, tTest, "Run test for " + self.name)
 
-        for refFile in findFiles(self.env, self.compDir.Dir('ref')):
+        for refFile in utils.findFiles(self.env, self.compDir.Dir('ref')):
             self.env.Depends(tTest, refFile)
         self.env.Alias('all:test', tTest, "Run all tests")
 
