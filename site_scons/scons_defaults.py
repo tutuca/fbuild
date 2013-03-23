@@ -1,6 +1,6 @@
 # fudepan-build: The build system for FuDePAN projects 
 #
-# Copyright (C) 2011 Esteban Papp, FuDePAN
+# Copyright (C) 2011 Esteban Papp, 2013 Gonzalo Bonigo, FuDePAN
 # 
 # This file is part of the fudepan-build build system.
 # 
@@ -17,9 +17,10 @@
 # You should have received a copy of the GNU General Public License
 # along with fudepan-build.  If not, see <http://www.gnu.org/licenses/>.
 
-#
-# Description: this file contains default configuration options for scons
-#
+
+"""
+    This file contains default configuration options for scons.
+"""
 
 
 import os.path
@@ -32,14 +33,11 @@ def init(env,vars,args):
     # Add parallelism to the build system
     if not env.GetOption('num_jobs'):
         env.SetOption('num_jobs', cpu_count() + 1)
-
     # Some environment tunnings so this runs faster
     env.Decider( 'MD5-timestamp' )
     env.SConsignFile()
-
     # Let the default to do nothing
     env.Default()
-
     # Get the scons root path, this can be tricky because
     # scons can be ran with the -v option
     INSTALL_DIR = os.path.join(env.Dir('#').abspath, "install")
@@ -85,9 +83,7 @@ def init(env,vars,args):
             'software metrics directory',
             os.path.join(INSTALL_DIR, "metrics"),
             PathVariable.PathIsDirCreate))
-    
     vars.Update(env)
-
     if args.get('VERBOSE') == '1':
         env.cdebug('Install information:')
         env.cdebug('    bin dir    : ' + env['INSTALL_BIN_DIR'])

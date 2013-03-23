@@ -1,6 +1,6 @@
 # fudepan-build: The build system for FuDePAN projects 
 #
-# Copyright (C) 2011 Esteban Papp, FuDePAN
+# Copyright (C) 2011 Esteban Papp, 2013 Gonzalo Bonigo, FuDePAN
 # 
 # This file is part of the fudepan-build build system.
 # 
@@ -16,6 +16,7 @@
 # 
 # You should have received a copy of the GNU General Public License
 # along with fudepan-build.  If not, see <http://www.gnu.org/licenses/>.
+
 
 """
     This file contains all the compiler related stuff
@@ -38,32 +39,26 @@ def init(env):
     if binType == 'ELF':
         linuxOptions(env)
 
+
 def linuxOptions(env):
     AddOption('--effective',
               dest='effective',
               action='store_true',
               help='Sets the effective C++ mode',
               default=False)
-#    AddOption('--gprofile',
-#              dest='gprofile',
-#              action='store_true',
-#              help='Sets the -pg flag to enable gprof',
-#              default=False)
+    #AddOption('--gprofile',
+              #dest='gprofile',
+              #action='store_true',
+              #help='Sets the -pg flag to enable gprof',
+              #default=False)
     AddOption('--gcoverage',
               dest='gcoverage',
               action='store_true',
               help='Sets the required flags to enable gcov',
               default=False)
-
     # common options
-    commonFlags = [
-        '-Wall',
-        '-Wextra',
-        '-pedantic',
-        '-ansi'
-    ]
+    commonFlags = ['-Wall', '-Wextra', '-pedantic', '-ansi']
     env.Append(CXXFLAGS = commonFlags, CFLAGS = commonFlags)
-    
     # Options for 64bit archs
     (arch,binType) = platform.architecture()
     if arch == '64bit':
@@ -77,12 +72,10 @@ def linuxOptions(env):
         dbgFlags = ['-ggdb3']
         env.Append(CXXFLAGS=dbgFlags, CFLAGS=dbgFlags)
         env.Append(CPPDEFINES=['DEBUG'])
-#    if env.GetOption('effective'):
-#        env.Append(CXXFLAGS='-Weffc++', CFLAGS='-Weffc++')
-#    if env.GetOption('gprofile'):
-#        env.Append(CXXFLAGS='-pg', CFLAGS='-pg')
+    #if env.GetOption('effective'):
+        #env.Append(CXXFLAGS='-Weffc++', CFLAGS='-Weffc++')
+    #if env.GetOption('gprofile'):
+        #env.Append(CXXFLAGS='-pg' CFLAGS='-pg')
     if env.GetOption('gcoverage'):
-        gprofFlags = [
-                '--coverage'
-            ]
+        gprofFlags = ['--coverage']
         env.Append(CXXFLAGS=gprofFlags, CFLAGS=gprofFlags, LINKFLAGS=gprofFlags)
