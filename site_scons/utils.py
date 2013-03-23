@@ -99,11 +99,9 @@ def removeDuplicates(s):
     equality-testing.  Then unique() will usually work in quadratic
     time.
     """
-
     n = len(s)
     if n == 0:
         return []
-
     # Try using a dict first, as that's the fastest and will usually
     # work.  If it doesn't work, it will usually fail quickly, so it
     # usually doesn't cost much to *try* it.  It requires that all the
@@ -116,7 +114,6 @@ def removeDuplicates(s):
         del u  # move on to the next method
     else:
         return u.keys()
-
     # We can't hash all the elements.  Second fastest is to sort,
     # which brings the equal elements together; then duplicates are
     # easy to weed out in a single pass.
@@ -139,7 +136,6 @@ def removeDuplicates(s):
                 lasti += 1
             i += 1
         return t[:lasti]
-
     # Brute force is all that's left.
     u = []
     for x in s:

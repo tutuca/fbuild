@@ -18,6 +18,7 @@
 # You should have received a copy of the GNU General Public License
 # along with fudepan-build.  If not, see <http://www.gnu.org/licenses/>.
 
+
 """
     Add description here!
 """
@@ -57,10 +58,6 @@ def init(env):
     bldAStyle = Builder(action = SCons.Action.Action(AStyle, PrintDummy))
     env.Append(BUILDERS = {'RunAStyle' : bldAStyle})
 
-    #env.Tool('makebuilder')
-    #makeBuilder = Builder(action = SCons.Action.Action(MakeTool, PrintDummy))
-    #env.Append(BUILDERS = {'RunMakeTool' : makeBuilder})
-
     bldPdfLatex = Builder(action = SCons.Action.Action(RunPdfLatex, PrintDummy))
     env.Append(BUILDERS = {'RunPdfLatex':  bldPdfLatex})
     env['PDFLATEX_OPTIONS'] = ''
@@ -82,8 +79,10 @@ def init(env):
     env.Append(BUILDERS = {'RunCppCheck':bldCppCheck})
     env['CPPCHECK_OPTIONS'] = []
 
+
 def PrintDummy(env, source, target):
     return ""
+
 
 def RunUnittest(env, source, target):
     rc = 0
@@ -103,6 +102,7 @@ def RunUnittest(env, source, target):
         tindex = tindex + 1
     return rc
 
+
 def InitLcov(env, source, target):
     test_executable = source[0].abspath
     indexFile = target[0].abspath
@@ -117,6 +117,7 @@ def InitLcov(env, source, target):
         'lcov --capture --initial --directory %(project_dir)s -b . --output-file %(coverage_file)s' % data,
         ])
     return r
+
 
 def RunLcov(env, source, target):
     test_executable = source[0].abspath
@@ -142,6 +143,7 @@ def RunLcov(env, source, target):
     if r == 0:
         env.cprint('lcov report in: %s' % indexFile, 'green')
     return r
+
 
 def RunDoxygen(target, source, env):
     # Path to the doxygen template file.
@@ -177,16 +179,6 @@ def RunDoxygen(target, source, env):
         env.cprint('[generated] %s' % target, 'green')
     return rc
 
-#def MakeTool(target, source, env):
-    #s = source[0].abspath;
-    #(pathHead, pathTail) = os.path.split(s)
-    #configureOpts = ('--bindir=%(INSTALL_BIN_DIR)s --libdir=%(INSTALL_LIB_DIR)s --includedir=%(INSTALL_HEADERS_DIR)s' % env)
-    #procEnv = os.environ
-    #(arch,binType) = platform.architecture()
-    #if arch == '64bit':
-        #procEnv["CXXFLAGS"] = str(env["CXXFLAGS"])
-        #procEnv["CFLAGS"] = '-fPIC'
-    #return subprocess.call('./configure %s ; make; make install' % configureOpts, cwd=pathHead, shell=True, env=procEnv)
 
 def AStyleCheck(target, source, env):
     # We use the target as a temporary directory.
@@ -233,6 +225,7 @@ def AStyleCheck(target, source, env):
     else:
         env.cprint('[OK] No file needs astyle.', 'green')
 
+
 def AStyle(target, source, env):
     rc = 0
     t = target[0].abspath
@@ -245,18 +238,19 @@ def AStyle(target, source, env):
         env.cprint('[astyle] %s' % t, 'green')
     return rc
 
+
 def RunPdfLatex(target, source, env):
     #Deberiamos usar las env.{operation} ya que son crossplatform.
     (pathHead, pathTail) = os.path.split(source[0].abspath)
 
     tmpPdf2TexDir = pathHead + '/tmp_Pdf2Texfile/'
     if not os.path.exists(tmpPdf2TexDir):
-#        env.Execute(env.Mkdir(tmpPdf2TexDir))
+        #env.Execute(env.Mkdir(tmpPdf2TexDir))
         os.mkdir(tmpPdf2TexDir)
 
     targetDir = os.path.split(target[0].abspath)[0]
     if not os.path.exists(targetDir):
-#        env.Execute(env.Mkdir(targetDir))
+        #env.Execute(env.Mkdir(targetDir))
         os.mkdir(targetDir)
 
     rt = subprocess.call('cd ' + pathHead + ' ; pdflatex ' + env['PDFLATEX_OPTIONS']
@@ -264,8 +258,9 @@ def RunPdfLatex(target, source, env):
     shutil.move(targetDir, tmpPdf2TexDir + pathTail[:-4] + ".pdf")
     shutil.rmtree(tmpPdf2TexDir)
     return rt
-#    env.Execute(env.Move(targetDir, tmpPdf2TexDir + pathTail[:-4] +".pdf"))
-#    env.Execute(env.Delete(tmpPdf2TexDir))
+    #env.Execute(env.Move(targetDir, tmpPdf2TexDir + pathTail[:-4] +".pdf"))
+    #env.Execute(env.Delete(tmpPdf2TexDir))
+
 
 def RunValgrind(target, source, env):
     cwd = env.Dir('#').abspath
@@ -275,6 +270,7 @@ def RunValgrind(target, source, env):
     ret_val = subprocess.call(cmd, shell=True)
     os.chdir(cwd)
     return ret_val
+
 
 def RunCCCC(target, source, env):
     env.cprint('Running cccc...', 'green')
@@ -296,6 +292,7 @@ def RunCCCC(target, source, env):
     subprocess.call(rm, shell=True)
     return ret_val
 
+
 def RunCLOC(target, source, env):
     env.cprint('Running cloc...', 'green')
     target = target[0].abspath
@@ -309,6 +306,7 @@ def RunCLOC(target, source, env):
     # Create the command to be pass to subprocess.call()
     cmd = 'cloc %s %s' % (options, files)
     return subprocess.call(cmd, shell=True)
+
 
 def RunCppCheck(target, source, env):
     env.cprint('Running cppcheck...', 'green')
