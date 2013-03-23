@@ -110,7 +110,7 @@ def CreateSharedLibrary(env, name, inc, ext_inc, src, deps, aliasGroups=None):
                                                src,
                                                aliasGroups))
 
-def CreateObject(env, name, inc, src, deps, aliasGroups=None:
+def CreateObject(env, name, inc, src, deps, aliasGroups=None):
     if aliasGroups == None:
         aliasGroups = []
     return componentGraph.add(ObjectComponent(componentGraph,

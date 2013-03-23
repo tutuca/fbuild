@@ -18,20 +18,26 @@
 # You should have received a copy of the GNU General Public License
 # along with fudepan-build.  If not, see <http://www.gnu.org/licenses/>.
 
+"""
+    Add description here!
+"""
+
+
 import subprocess
 import platform
 import os.path
 import shutil
 import os
+
 from SCons.Script import *
 import SCons.Builder
+
 from utils import findFiles
 from utils import chain_calls
 import utils
 
-def init(env):
-    from SCons.Script import Builder
 
+def init(env):
     bldRUT = Builder(action = SCons.Action.Action(RunUnittest, PrintDummy))
     env.Append(BUILDERS = {'RunUnittest' : bldRUT})
 
@@ -98,12 +104,11 @@ def RunUnittest(env, source, target):
     return rc
 
 def InitLcov(env, source, target):
-    from os.path import dirname, join
     test_executable = source[0].abspath
     indexFile = target[0].abspath
     data = {
-            'coverage_file': join(dirname(dirname(indexFile)), 'coverage_output.dat'),
-            'output_dir'   : dirname(indexFile),
+            'coverage_file': os.path.join(os.path.dirname(os.path.dirname(indexFile)), 'coverage_output.dat'),
+            'output_dir'   : os.path.dirname(indexFile),
             'project_dir'  : env['PROJECT_DIR']
             }
 
@@ -114,12 +119,11 @@ def InitLcov(env, source, target):
     return r
 
 def RunLcov(env, source, target):
-    from os.path import dirname, join
     test_executable = source[0].abspath
     indexFile = target[0].abspath
     data = {
-            'coverage_file': join(dirname(dirname(indexFile)), 'coverage_output.dat'),
-            'output_dir'   : dirname(indexFile),
+            'coverage_file': os.path.join(os.path.dirname(os.path.dirname(indexFile)), 'coverage_output.dat'),
+            'output_dir'   : os.path.dirname(indexFile),
             'project_dir'  : env['PROJECT_DIR']
             }
 
