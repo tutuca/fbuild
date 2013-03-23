@@ -17,12 +17,15 @@
 # You should have received a copy of the GNU General Public License
 # along with fudepan-build.  If not, see <http://www.gnu.org/licenses/>.
 
-#
-# Description: this file contains all the compiler related stuff
-#
+"""
+    This file contains all the compiler related stuff
+"""
+
 
 import platform
+
 from SCons.Script import AddOption
+
 
 def init(env):
     AddOption('--type',

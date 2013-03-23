@@ -20,8 +20,12 @@
 #
 # Description: this file contains everything related to debug the environment
 #
+
+
+from SCons.Script import AddOption
+
+
 def init(env):
-    from SCons.Script import AddOption
     AddOption('--buildtests',
               dest='buildtests',
               action='store_true',

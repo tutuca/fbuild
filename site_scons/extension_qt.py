@@ -21,9 +21,11 @@
 # Description: qt settings and modules loading
 #
 
+
 import glob
-import os
 import sys
+import os
+
 
 def hasQt(env):
     hasQt = False

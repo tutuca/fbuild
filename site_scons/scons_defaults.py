@@ -21,24 +21,28 @@
 # Description: this file contains default configuration options for scons
 #
 
+
+import os.path
+from multiprocessing import cpu_count
+
+from SCons.Variables import PathVariable
+
+
 def init(env,vars,args):
     # Add parallelism to the build system
     if not env.GetOption('num_jobs'):
-        from multiprocessing import cpu_count
         env.SetOption('num_jobs', cpu_count() + 1)
-    
+
     # Some environment tunnings so this runs faster
     env.Decider( 'MD5-timestamp' )
     env.SConsignFile()
-    
+
     # Let the default to do nothing
     env.Default()
-    
+
     # Get the scons root path, this can be tricky because
     # scons can be ran with the -v option
-    import os.path
     INSTALL_DIR = os.path.join(env.Dir('#').abspath, "install")
-    from SCons.Variables import PathVariable
     vars.AddVariables(
         PathVariable(
             'WS_DIR',

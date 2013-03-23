@@ -26,16 +26,18 @@
 #              of description of the targets
 #
 
+
+import SCons.Builder
 from SCons.Script.SConscript import SConsEnvironment
 from SCons.Script import *
-import SCons.Builder
+from SCons.Script import Builder
+
 
 def init(env):
     SConsEnvironment.HookedAlias = env.Alias
     SConsEnvironment.AliasHelpData = AliasHelpData()
     SConsEnvironment.Alias = AliasHelp
     SConsEnvironment.AddAliasDescription = AddAliasDescription
-    from SCons.Script import Builder
     bld = Builder(action = SCons.Action.Action(PrintTargets, PrintTargetsDummy))
     env.Append(BUILDERS = {'PrintTargets': bld})
     action = env.PrintTargets('dummy','SConstruct')

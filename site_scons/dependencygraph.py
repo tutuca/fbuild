@@ -22,15 +22,20 @@
 #              components to better solve include paths and library linking
 #
 
-import os
+
 import fnmatch
+import os
+
+from SCons.Script.SConscript import SConsEnvironment
+
 from core_components import *
 from components import *
 
+
 downloadedDependencies = False
 
+
 def init(env):
-    from SCons.Script.SConscript import SConsEnvironment
     SConsEnvironment.CreateObject = CreateObject
     SConsEnvironment.CreateProgram = CreateProgram
     SConsEnvironment.CreateExternalLibraryComponent = CreateExternalLibraryComponent

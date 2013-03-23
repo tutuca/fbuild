@@ -23,8 +23,10 @@
 """
 
 
+import subprocess
 import fnmatch
 import os
+
 from SCons.Node.FS import Dir
 
 
@@ -169,7 +171,6 @@ def dirs_flatten(env, path):
 
 
 def chain_calls(env, cmds, silent=True):
-    import subprocess
     if cmds:
         cmd = cmds[0]
         with open(os.devnull, "w") as fnull:
