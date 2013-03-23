@@ -60,8 +60,9 @@ class ComponentDictionary(dict):
 
 componentGraph = ComponentDictionary()
 
-def CreateExternalLibraryComponent(env, name, ext_inc, libPath, deps, shouldBeLinked, aliasGroups = []):
-    #import ipdb; ipdb.set_trace()
+def CreateExternalLibraryComponent(env, name, ext_inc, libPath, deps, shouldBeLinked, aliasGroups=None):
+    if aliasGroups == None:
+        aliasGroups = []
     return componentGraph.add(ExternalLibraryComponent(componentGraph,
                                                 env,
                                                 name,
