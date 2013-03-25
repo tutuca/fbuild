@@ -41,40 +41,40 @@ import utils
 def init(env):
     bldRUT = Builder(action = SCons.Action.Action(RunUnittest, PrintDummy))
     env.Append(BUILDERS = {'RunUnittest' : bldRUT})
-
+    #-
     bldInitLcov = Builder(action = SCons.Action.Action(InitLcov, PrintDummy))
     env.Append(BUILDERS = {'InitLcov' : bldInitLcov })
-
+    #-
     bldRLcov= Builder(action = SCons.Action.Action(RunLcov, PrintDummy))
     env.Append(BUILDERS = {'RunLcov' : bldRLcov})
-
+    #-
     bldDoxygen = Builder(action = SCons.Action.Action(RunDoxygen, PrintDummy))
     env.Append(BUILDERS = {'RunDoxygen' : bldDoxygen})
     env['DEFAULT_DOXYFILE'] = env.File('#/conf/doxygenTemplate').abspath
-
+    #-
     bldAStyleCheck = Builder(action = SCons.Action.Action(AStyleCheck, PrintDummy))
     env.Append(BUILDERS = {'RunAStyleCheck' : bldAStyleCheck})
-    
+    #-
     bldAStyle = Builder(action = SCons.Action.Action(AStyle, PrintDummy))
     env.Append(BUILDERS = {'RunAStyle' : bldAStyle})
-
+    #-
     bldPdfLatex = Builder(action = SCons.Action.Action(RunPdfLatex, PrintDummy))
     env.Append(BUILDERS = {'RunPdfLatex':  bldPdfLatex})
     env['PDFLATEX_OPTIONS'] = ''
-
+    #-
     bldValgrind = Builder(action = SCons.Action.Action(RunValgrind, PrintDummy))
     env.Append(BUILDERS = {'RunValgrind':  bldValgrind})
     env['VALGRIND_OPTIONS'] = ' --leak-check=full --show-reachable=yes --error-limit=no '
-
+    #-
     bldCCCC = Builder(action = SCons.Action.Action(RunCCCC, PrintDummy))
     env.Append(BUILDERS = {'RunCCCC':  bldCCCC})
     env['CCCC_OPTIONS'] = []
-
+    #-
     bldCLOC = Builder(action = SCons.Action.Action(RunCLOC, PrintDummy))
     env.Append(BUILDERS = {'RunCLOC':  bldCLOC})
     env['CLOC_OUTPUT_FORMAT'] = 'txt' # txt | sql | xml
     env['CLOC_OPTIONS'] = []
-    
+    #-
     bldCppCheck = Builder(action = SCons.Action.Action(RunCppCheck, PrintDummy))
     env.Append(BUILDERS = {'RunCppCheck':bldCppCheck})
     env['CPPCHECK_OPTIONS'] = []
@@ -108,7 +108,7 @@ def InitLcov(env, source, target):
     indexFile = target[0].abspath
     data = {
             'coverage_file': os.path.join(os.path.dirname(os.path.dirname(indexFile)), 'coverage_output.dat'),
-            'output_dir'   : os.path.dirname(indexFile),
+            'output_dir'   : env.Dir('INSTALL_METRICS_DIR'),
             'project_dir'  : env['PROJECT_DIR']
             }
 
@@ -145,7 +145,7 @@ def RunLcov(env, source, target):
     return r
 
 
-def RunDoxygen(target, source, env):
+def RunDoxygen(env, source, target):
     # Path to the doxygen template file.
     doxyTamplate = source[0].abspath
     # Path to the doc/project directory.
@@ -180,7 +180,7 @@ def RunDoxygen(target, source, env):
     return rc
 
 
-def AStyleCheck(target, source, env):
+def AStyleCheck(env, source, target):
     # We use the target as a temporary directory.
     targetDir = target[0]
     target = str(target[0].abspath)
@@ -226,7 +226,7 @@ def AStyleCheck(target, source, env):
         env.cprint('[OK] No file needs astyle.', 'green')
 
 
-def AStyle(target, source, env):
+def AStyle(env, source, target):
     rc = 0
     t = target[0].abspath
     cmd = "astyle -k1 --options=none --convert-tabs -bSKpUH %s"
@@ -239,20 +239,17 @@ def AStyle(target, source, env):
     return rc
 
 
-def RunPdfLatex(target, source, env):
+def RunPdfLatex(env, source, target):
     #Deberiamos usar las env.{operation} ya que son crossplatform.
     (pathHead, pathTail) = os.path.split(source[0].abspath)
-
     tmpPdf2TexDir = pathHead + '/tmp_Pdf2Texfile/'
     if not os.path.exists(tmpPdf2TexDir):
         #env.Execute(env.Mkdir(tmpPdf2TexDir))
         os.mkdir(tmpPdf2TexDir)
-
     targetDir = os.path.split(target[0].abspath)[0]
     if not os.path.exists(targetDir):
         #env.Execute(env.Mkdir(targetDir))
         os.mkdir(targetDir)
-
     rt = subprocess.call('cd ' + pathHead + ' ; pdflatex ' + env['PDFLATEX_OPTIONS']
         + ' -output-directory "' + tmpPdf2TexDir + '" ' + pathTail, shell=True)
     shutil.move(targetDir, tmpPdf2TexDir + pathTail[:-4] + ".pdf")
@@ -262,7 +259,7 @@ def RunPdfLatex(target, source, env):
     #env.Execute(env.Delete(tmpPdf2TexDir))
 
 
-def RunValgrind(target, source, env):
+def RunValgrind(env, source, target):
     cwd = env.Dir('#').abspath
     test_dir = source[0].dir.abspath
     os.chdir(test_dir)
@@ -272,7 +269,7 @@ def RunValgrind(target, source, env):
     return ret_val
 
 
-def RunCCCC(target, source, env):
+def RunCCCC(env, source, target):
     env.cprint('Running cccc...', 'green')
     target = target[0].abspath
     # It tells to cccc the name of the directory that will contain the result.
@@ -293,7 +290,7 @@ def RunCCCC(target, source, env):
     return ret_val
 
 
-def RunCLOC(target, source, env):
+def RunCLOC(env, source, target):
     env.cprint('Running cloc...', 'green')
     target = target[0].abspath
     # Check if the install directory for the cloc results already exists.
@@ -308,7 +305,7 @@ def RunCLOC(target, source, env):
     return subprocess.call(cmd, shell=True)
 
 
-def RunCppCheck(target, source, env):
+def RunCppCheck(env, source, target):
     env.cprint('Running cppcheck...', 'green')
     target = target[0].abspath
     # Check if the install directory for the cppcheck results already exists.

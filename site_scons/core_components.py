@@ -52,6 +52,9 @@ class Component(object):
         self.componentGraph = componentGraph
         self.projDir = os.path.join(env['WS_DIR'], os.path.relpath(self.dir, env['BUILD_DIR']))
         self.shouldBeLinked = False
+
+    def Process(self):
+        return None
     
     def getLibs(self):
         """
@@ -122,9 +125,6 @@ class Component(object):
         if self.name in stack:
             stack.pop()
 
-    def Process(self):
-        return None
-
 
 class ExternalLibraryComponent(Component):
     
@@ -138,6 +138,9 @@ class ExternalLibraryComponent(Component):
             else:
                 self.extInc.append( extInc )
         self.shouldBeLinked = shouldBeLinked
+
+    def Process(self):
+        return Component.Process(self)
 
     def getIncludePaths(self):
         (incs, processedComponents) = self._getIncludePaths([], 0)
@@ -163,9 +166,6 @@ class ExternalLibraryComponent(Component):
                 incs.extend(depIncs)
         return (incs, processedComponents)
 
-    def Process(self):
-        return Component.Process(self)
-
 
 class HeaderOnlyComponent(Component):
     
@@ -177,6 +177,41 @@ class HeaderOnlyComponent(Component):
                 self.extInc.extend(extInc)
             else:
                 self.extInc.append(extInc)
+
+    def Process(self, called_from_subclass=False):
+        Component.Process(self)
+        # Look for the sources of this component.
+        filters = []
+        filters.extend(headersFilter)
+        filters.extend(sourceFilters)
+        sources = utils.files_flatten(self.env, self.projDir, filters)
+        # Create target for generate the documentation.
+        self._create_doc_target()
+        # We add astyle target to all the components that can have a header.
+        self._create_astyle_target(sources)
+        # We add a traget for check if the component is astyled.
+        self._create_astyle_check_target(sources)
+        # This condition is for the cases when the method is called from a subclass.
+        if not called_from_subclass:
+            # Create the list of the 'sources' files.
+            sources = []
+            for d in self.extInc:
+                sources.extend(utils.findFiles(self.env, d,['*.h']))
+            self._create_cccc_target(sources)
+            self._create_cloc_target(sources)
+            self._create_cppcheck_target(sources)
+        # If the component doesnt have external headers, we dont process it since
+        # there is nothing to install
+        if len(self.extInc) > 0:
+            hLib = utils.RecursiveInstall(self.env, self.compDir, self.extInc, self.name, headersFilter)
+            self.env.Alias(self.name, hLib, 'Install ' + self.name + ' headers')
+            self.env.Clean(self.name, hLib)
+            self.env.Alias('all:install', hLib, "Install all targets")
+            for alias in self.aliasGroups:
+                self.env.Alias(alias, hLib, "Build group " + alias)
+            return hLib
+        else:
+            return None
 
     def getIncludePaths(self):
         (incs, processedComponents) = self._getIncludePaths([], 0)
@@ -280,41 +315,6 @@ class HeaderOnlyComponent(Component):
         # Create an alias for astyle.
         self.env.Alias('%s:astyle' % self.name, astyleOut, "Runs astyle on " + self.name)
 
-    def Process(self, called_from_subclass=False):
-        Component.Process(self)
-        # Look for the sources of this component.
-        filters = []
-        filters.extend(headersFilter)
-        filters.extend(sourceFilters)
-        sources = utils.files_flatten(self.env, self.projDir, filters)
-        # Create target for generate the documentation.
-        self._create_doc_target()
-        # We add astyle target to all the components that can have a header.
-        self._create_astyle_target(sources)
-        # We add a traget for check if the component is astyled.
-        self._create_astyle_check_target(sources)
-        # This condition is for the cases when the method is called from a subclass.
-        if not called_from_subclass:
-            # Create the list of the 'sources' files.
-            sources = []
-            for d in self.extInc:
-                sources.extend(utils.findFiles(self.env, d,['*.h']))
-            self._create_cccc_target(sources)
-            self._create_cloc_target(sources)
-            self._create_cppcheck_target(sources)
-        # If the component doesnt have external headers, we dont process it since
-        # there is nothing to install
-        if len(self.extInc) > 0:
-            hLib = utils.RecursiveInstall(self.env, self.compDir, self.extInc, self.name, headersFilter)
-            self.env.Alias(self.name, hLib, 'Install ' + self.name + ' headers')
-            self.env.Clean(self.name, hLib)
-            self.env.Alias('all:install', hLib, "Install all targets")
-            for alias in self.aliasGroups:
-                self.env.Alias(alias, hLib, "Build group " + alias)
-            return hLib
-        else:
-            return None
-
 
 class SourcedComponent(HeaderOnlyComponent):
 
@@ -352,6 +352,14 @@ class SourcedComponent(HeaderOnlyComponent):
         for x in self.src:
             self.src_files.append(self.env.File(x))
 
+    def Process(self):
+        HeaderOnlyComponent.Process(self,True)
+        # Create the list of the 'sources' files.
+        sources = self.src_files + self.inc_files
+        self._create_cccc_target(sources)
+        self._create_cloc_target(sources)
+        self._create_cppcheck_target(sources)
+
     def getIncludePaths(self):
         (incs, processedComponents) = self._getIncludePaths([], 0)
         return incs
@@ -377,14 +385,6 @@ class SourcedComponent(HeaderOnlyComponent):
             for p in [hDir+x for x in headersFilter]:
                 include_files.extend(self.env.Glob(p))
         return include_files
-
-    def Process(self):
-        HeaderOnlyComponent.Process(self,True)
-        # Create the list of the 'sources' files.
-        sources = self.src_files + self.inc_files
-        self._create_cccc_target(sources)
-        self._create_cloc_target(sources)
-        self._create_cppcheck_target(sources)
 
 
 class StaticLibraryComponent(SourcedComponent):
@@ -458,14 +458,14 @@ class ProgramComponent(SourcedComponent):
         incpaths = self.getIncludePaths()
         (libs,libpaths) = self.getLibs()
         target = os.path.join(self.env['INSTALL_LIB_DIR'], self.name)
-        prog = self.env.Program(target, self.find_sources(), CPPPATH=incpaths, LIBS=libs, LIBPATH=libpaths)
-        iProg = self.env.Install(self.env['INSTALL_BIN_DIR'], prog)
+        self.prog = self.env.Program(target, self.find_sources(), CPPPATH=incpaths, LIBS=libs, LIBPATH=libpaths)
+        iProg = self.env.Install(self.env['INSTALL_BIN_DIR'], self.prog)
         self.env.Alias(self.name, iProg, "Build and install " + self.name)
-        self.env.Alias('all:build', prog, "Build all targets")
+        self.env.Alias('all:build', self.prog, "Build all targets")
         self.env.Alias('all:install', iProg, "Install all targets")
         for alias in self.aliasGroups:
             self.env.Alias(alias, iProg, "Build group " + alias)
-        return prog
+        return self.prog
 
     def find_sources(self):
         src = self.src
@@ -482,59 +482,31 @@ class UnitTestComponent(ProgramComponent):
         ProgramComponent.__init__(self, componentGraph, env, name, compDir, deps, inc, src, aliasGroups)
 
     def Process(self):
-        #gtest/gmock flags
+        # Call to super-class Process().
+        ProgramComponent.Process(self)
+        # Flags for gtest and gmock.
         CXXFLAGS = [f for f in self.env['CXXFLAGS'] if f not in ['-ansi', '-pedantic']]
         CXXFLAGS.append('-Wno-sign-compare')
         if not '-ggdb3' in CXXFLAGS:
             CXXFLAGS.append('-ggdb3')
         self.env.Replace(CXXFLAGS=CXXFLAGS, CFLAGS=CXXFLAGS)
-
-        # Should it be a call to ProgramComponent.Process() ??
-        # Right now we do not need a call like that, because we don't want 
-        # 'astyle', 'cccc', 'cloc' nether 'cppcheck' for test.
-        # SourcedComponent.Process(self)
-
-        incpaths = self.getIncludePaths()
-        (libs,libpaths) = self.getLibs()
-        target = os.path.join(self.dir, self.name)
-
-        prog = self.env.Program(target, self.find_sources(), CPPPATH=incpaths, LIBS=libs, LIBPATH=libpaths)
-        self.env.Alias(self.name, prog, "Build and install " + self.name)
-        self.env.Alias('all:build', prog, "Build all targets")
-
+        # File to store the test results.
         target = os.path.join(self.dir, self.name + '.passed')
-        tTest = self.env.RunUnittest(target, prog)
-
-        # Adding valgrind for tests.
-        if self.name.endswith(':test'):
-            name = self.name.split(':')[0]
-            vtname = '%s:valgrind' % name
-        else:
-            name = self.name
-            vtname = '%s:valgrind' % name
-        tvalg = os.path.join(self.env['INSTALL_LIB_DIR'], self.name)
-        rvalg = self.env.RunValgrind(vtname, prog)
-        self.env.Alias(vtname, [tTest,rvalg], 'Run valgrind for %s test' % name)
-
-        if self.env.GetOption('gcoverage'):
-            project = self.componentGraph.get(self.name.split(':')[0])
-            self.env['PROJECT_DIR'] = project.dir
-            initLcov = self.env.InitLcov(os.path.join(self.dir, 'coverage_data'), prog)
-            self.env.Depends(tTest, initLcov)
-            lcov = self.env.RunLcov(os.path.join(self.dir, 'lcov_output/index.html'), prog)
-            self.env.Depends(lcov, tTest)
-            self.env.AlwaysBuild(tTest)
-            self.env.Alias(self.name, lcov)
-
+        tTest = self.env.RunUnittest(target, self.prog)
+        # Check if the user want to run the tests anyway.
         if self.env.GetOption('forcerun'):
             self.env.AlwaysBuild(tTest)
-
+        # Create the target for the test.
         self.env.Alias(self.name, tTest, "Run test for " + self.name)
-
+        # Make the test depends from the files.
         for refFile in utils.findFiles(self.env, self.compDir.Dir('ref')):
             self.env.Depends(tTest, refFile)
         self.env.Alias('all:test', tTest, "Run all tests")
-
+        # Adding a valgrind target for tests.
+        self._createValgrindTarget(tTest)
+        # Adding a coverage target for tests.
+        self._createCoverageTarget(target)
+        # Create alias for aliasGroups.
         for alias in self.aliasGroups:
             self.env.Alias(alias, tTest, "Build group " + alias)
 
@@ -555,3 +527,45 @@ class UnitTestComponent(ProgramComponent):
             if not in_build_dir and not is_tested_project:
                 filtered_includes.append(path)
         return filtered_includes
+
+    def _createValgrindTarget(self, tTest): 
+        # Remove the ':test' from the name of the project.
+        if self.name.endswith(':test'):
+            name = self.name.split(':')[0]
+            vtname = '%s:valgrind' % name
+        else:
+            name = self.name
+            vtname = '%s:valgrind' % name
+        # Target for the RunValgrind() builder.
+        tvalg = os.path.join(self.env['INSTALL_LIB_DIR'], self.name)
+        # Call builder RunValgrind().
+        rvalg = self.env.RunValgrind(vtname, self.prog)
+        # Create an alias for valgrind.
+        self.env.Alias(vtname, [tTest,rvalg], 'Run valgrind for %s test' % name)
+        
+    def _createCoverageTarget(self, target):
+        # Get the path directory to the project.
+        project = self.componentGraph.get(self.name.split(':')[0])
+        self.env['PROJECT_DIR'] = project.dir
+        # Targets and sources for builder InitLcov.
+        initLcovTarget = os.path.join(self.dir, 'coverage_data')
+        initLcovSoureces = [self.prog]
+        # Call builder initLcov().
+        initLcov = self.env.InitLcov(initLcovTarget, initLcovSoureces)
+        # Call builder RunLcov().
+        covTest = self.env.RunUnittest(target, self.prog)
+        # Targets and sources for RunLcov() builder.
+        metrics_dir = self.env['INSTALL_METRICS_DIR']
+        coverage_dir = self.env.Dir(metrics_dir).Dir('coverage').Dir(self.name)
+        runLcovTargets = os.path.join(coverage_dir.abspath, 'index.html')
+        runLcovSources = [self.prog]
+        # Call builder RunLcov().
+        lcov = self.env.RunLcov(runLcovTargets, runLcovSources)
+        # Create dependencies between targets.
+        self.env.Depends(covTest, initLcov)
+        self.env.Depends(lcov, covTest)
+        # Create the target for coverage.
+        cov = self.env.Alias('%s:coverage' % self.name[:-5], lcov)
+        # Coverage can always be built.
+        self.env.AlwaysBuild(cov)
+        self.env.AlwaysBuild(covTest)

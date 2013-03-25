@@ -18,12 +18,12 @@
 # along with fudepan-build.  If not, see <http://www.gnu.org/licenses/>.
 
 
-"""
-    This file contains all the compiler related stuff
-"""
+
+"""This file contains all the compiler related stuff."""
 
 
 import platform
+import sys
 
 from SCons.Script import AddOption
 
@@ -51,12 +51,12 @@ def linuxOptions(env):
               #action='store_true',
               #help='Sets the -pg flag to enable gprof',
               #default=False)
-    AddOption('--gcoverage',
-              dest='gcoverage',
-              action='store_true',
-              help='Sets the required flags to enable gcov',
-              default=False)
-    # common options
+    #AddOption('--gcoverage',
+              #dest='gcoverage',
+              #action='store_true',
+              #help='Sets the required flags to enable gcov',
+              #default=False)
+    # Common options.
     commonFlags = ['-Wall', '-Wextra', '-pedantic', '-ansi']
     env.Append(CXXFLAGS = commonFlags, CFLAGS = commonFlags)
     # Options for 64bit archs
@@ -75,7 +75,17 @@ def linuxOptions(env):
     #if env.GetOption('effective'):
         #env.Append(CXXFLAGS='-Weffc++', CFLAGS='-Weffc++')
     #if env.GetOption('gprofile'):
-        #env.Append(CXXFLAGS='-pg' CFLAGS='-pg')
-    if env.GetOption('gcoverage'):
+        #env.Append(CXXFLAGS='-pg', CFLAGS='-pg')
+    if _is_coverage():
         gprofFlags = ['--coverage']
         env.Append(CXXFLAGS=gprofFlags, CFLAGS=gprofFlags, LINKFLAGS=gprofFlags)
+
+#
+# This is not a very good idea, but is the way out i found for not using a flag 
+# ('--gcoverage') when running the ':coverage' target.
+#
+def _is_coverage():
+    for arg in sys.argv:
+        if 'coverage' in arg:
+            return True
+    return False
