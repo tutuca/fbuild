@@ -483,7 +483,15 @@ class UnitTestComponent(ProgramComponent):
 
     def Process(self):
         # Call to super-class Process().
-        ProgramComponent.Process(self)
+        #SourcedComponent.Process(self)
+        
+        incpaths = self.getIncludePaths()
+        (libs,libpaths) = self.getLibs()
+        target = os.path.join(self.dir, self.name)
+        self.prog = self.env.Program(target, self.find_sources(), CPPPATH=incpaths, LIBS=libs, LIBPATH=libpaths)
+        self.env.Alias(self.name, self.prog, "Build and install " + self.name)
+        self.env.Alias('all:build', self.prog, "Build all targets")
+        
         # Flags for gtest and gmock.
         CXXFLAGS = [f for f in self.env['CXXFLAGS'] if f not in ['-ansi', '-pedantic']]
         CXXFLAGS.append('-Wno-sign-compare')
@@ -499,11 +507,11 @@ class UnitTestComponent(ProgramComponent):
         # Create the target for the test.
         self.env.Alias(self.name, tTest, "Run test for " + self.name)
         # Make the test depends from the files.
-        for refFile in utils.findFiles(self.env, self.compDir.Dir('ref')):
-            self.env.Depends(tTest, refFile)
+        #for refFile in utils.findFiles(self.env, self.compDir.Dir('ref')):
+            #self.env.Depends(tTest, refFile)
         self.env.Alias('all:test', tTest, "Run all tests")
         # Adding a valgrind target for tests.
-        self._createValgrindTarget(tTest)
+        self._createValgrindTarget(self.prog)
         # Adding a coverage target for tests.
         self._createCoverageTarget(target)
         # Create alias for aliasGroups.
@@ -551,7 +559,7 @@ class UnitTestComponent(ProgramComponent):
         initLcovTarget = os.path.join(self.dir, 'coverage_data')
         initLcovSoureces = [self.prog]
         # Call builder initLcov().
-        initLcov = self.env.InitLcov(initLcovTarget, initLcovSoureces)
+        z = self.env.InitLcov(initLcovTarget, initLcovSoureces)
         # Call builder RunLcov().
         covTest = self.env.RunUnittest(target, self.prog)
         # Targets and sources for RunLcov() builder.
