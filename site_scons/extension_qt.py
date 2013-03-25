@@ -1,6 +1,6 @@
 # fudepan-build: The build system for FuDePAN projects
 #
-# Copyright (C) 2011 Esteban Papp, FuDePAN
+# Copyright (C) 2011 Esteban Papp, 2013 Gonzalo Bonigo, FuDePAN
 #
 # This file is part of the fudepan-build build system.
 #
@@ -17,13 +17,16 @@
 # You should have received a copy of the GNU General Public License
 # along with fudepan-build.  If not, see <http://www.gnu.org/licenses/>.
 
-#
-# Description: qt settings and modules loading
-#
+
+""".
+    The qt settings and modules loading
+"""
+
 
 import glob
-import os
 import sys
+import os
+
 
 def hasQt(env):
     hasQt = False
@@ -39,7 +42,8 @@ def hasQt(env):
             os.environ['QTDIR'] = qtdir
             hasQt = True
     return hasQt
-    
+
+
 def init(env):
     # This is a base component, it will include the qt base include path
     qtdir =  os.environ.get('QT4DIR') or os.environ.get('QTDIR')
@@ -49,7 +53,6 @@ def init(env):
                                        env.Dir('/usr/lib/x86_64-linux-gnu'), 
                                        [],
                                        False)
-    
     validModules = [
         'QtCore',
         'QtGui',
@@ -81,4 +84,3 @@ def init(env):
                                            env.Dir('/usr/lib/x86_64-linux-gnu'), 
                                            ['QtInc'],
                                            True)
-

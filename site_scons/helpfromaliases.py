@@ -1,6 +1,6 @@
 # fudepan-build: The build system for FuDePAN projects 
 #
-# Copyright (C) 2011 Esteban Papp, FuDePAN
+# Copyright (C) 2011 Esteban Papp, 2013 Gonzalo Bonigo, FuDePAN
 # 
 # This file is part of the fudepan-build build system.
 # 
@@ -21,34 +21,41 @@
 # http://www.scons.org/wiki/AutomaticHelpFromAliases
 # It was modified to suit fudepan-build environment needs
 
-#
-# Description: this file does some hooking in the aliasing to create a system
-#              of description of the targets
-#
 
+"""
+    This file does some hooking in the aliasing to create a system of description
+    of the targets.
+"""
+
+
+import SCons.Builder
 from SCons.Script.SConscript import SConsEnvironment
 from SCons.Script import *
-import SCons.Builder
+from SCons.Script import Builder
+
 
 def init(env):
     SConsEnvironment.HookedAlias = env.Alias
     SConsEnvironment.AliasHelpData = AliasHelpData()
     SConsEnvironment.Alias = AliasHelp
     SConsEnvironment.AddAliasDescription = AddAliasDescription
-    from SCons.Script import Builder
     bld = Builder(action = SCons.Action.Action(PrintTargets, PrintTargetsDummy))
     env.Append(BUILDERS = {'PrintTargets': bld})
     action = env.PrintTargets('dummy','SConstruct')
     env.AlwaysBuild(env.HookedAlias('targets', action))
 
+
 class AliasHelpData:
+    
     mHelpText = {}
     mHelpTextHead = []
     mHelpTextTail = []
 
+
 def AliasHelp(env, aliasname, tgt, helptext=None):
     env.AddAliasDescription(aliasname, helptext)
     return env.HookedAlias(aliasname, tgt)
+
 
 def AddAliasDescription(env, aliasname, helptext=None):
     if helptext is None:
@@ -57,8 +64,10 @@ def AddAliasDescription(env, aliasname, helptext=None):
     else:
         env.AliasHelpData.mHelpText[aliasname] = helptext
 
+
 def PrintTargetsDummy(env, source, target):
     return ""
+
 
 def PrintTargets(env, source, target):
     print 'Targets:'

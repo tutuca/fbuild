@@ -23,8 +23,10 @@
 """
 
 
+import subprocess
 import fnmatch
 import os
+
 from SCons.Node.FS import Dir
 
 
@@ -42,7 +44,9 @@ class DistroError (Exception):
     pass
 
 
-def findFiles(env, fromDir, filters=['*']):
+def findFiles(env, fromDir, filters=None):
+    if filters == None:
+        filters = ['*']
     path = fromDir.abspath
     files = []
     for s in env.Glob(path + '/*'):
@@ -54,13 +58,14 @@ def findFiles(env, fromDir, filters=['*']):
     return files
 
 
-def RecursiveInstall(env, sourceDir, sourcesRel, targetName, fileFilter=['*.*']):
+def RecursiveInstall(env, sourceDir, sourcesRel, targetName, fileFilter=None):
+    if fileFilter == None:
+        fileFilter = ['*.*']
     nodes = []
     for s in sourcesRel:
         nodes.extend(findFiles(env, s, fileFilter))
     l = len(sourceDir.abspath) + 1
     relnodes = [ n.abspath[l:] for n in nodes ]
-
     targetHeaderDir = env.Dir(env['INSTALL_HEADERS_DIR']).Dir(targetName).abspath
     targets = []
     sources = []
@@ -94,11 +99,9 @@ def removeDuplicates(s):
     equality-testing.  Then unique() will usually work in quadratic
     time.
     """
-
     n = len(s)
     if n == 0:
         return []
-
     # Try using a dict first, as that's the fastest and will usually
     # work.  If it doesn't work, it will usually fail quickly, so it
     # usually doesn't cost much to *try* it.  It requires that all the
@@ -111,7 +114,6 @@ def removeDuplicates(s):
         del u  # move on to the next method
     else:
         return u.keys()
-
     # We can't hash all the elements.  Second fastest is to sort,
     # which brings the equal elements together; then duplicates are
     # easy to weed out in a single pass.
@@ -134,7 +136,6 @@ def removeDuplicates(s):
                 lasti += 1
             i += 1
         return t[:lasti]
-
     # Brute force is all that's left.
     u = []
     for x in s:
@@ -166,7 +167,6 @@ def dirs_flatten(env, path):
 
 
 def chain_calls(env, cmds, silent=True):
-    import subprocess
     if cmds:
         cmd = cmds[0]
         with open(os.devnull, "w") as fnull:

@@ -19,6 +19,11 @@
 # along with fudepan-build.  If not, see <http://www.gnu.org/licenses/>.
 
 
+"""
+    Add description here!
+"""
+
+
 import subprocess
 import platform
 import os.path
@@ -34,8 +39,6 @@ import utils
 
 
 def init(env):
-    from SCons.Script import Builder
-    #-
     bldRUT = Builder(action = SCons.Action.Action(RunUnittest, PrintDummy))
     env.Append(BUILDERS = {'RunUnittest' : bldRUT})
     #-
@@ -104,7 +107,7 @@ def InitLcov(env, source, target):
     test_executable = source[0].abspath
     indexFile = target[0].abspath
     data = {
-            'coverage_file': join(os.path.dirname(os.path.dirname(indexFile)), 'coverage_output.dat'),
+            'coverage_file': os.path.join(os.path.dirname(os.path.dirname(indexFile)), 'coverage_output.dat'),
             'output_dir'   : env.Dir('INSTALL_METRICS_DIR'),
             'project_dir'  : env['PROJECT_DIR']
             }
@@ -120,7 +123,7 @@ def RunLcov(env, source, target):
     test_executable = source[0].abspath
     indexFile = target[0].abspath
     data = {
-            'coverage_file': join(os.path.dirname(os.path.dirname(indexFile)), 'coverage_output.dat'),
+            'coverage_file': os.path.join(os.path.dirname(os.path.dirname(indexFile)), 'coverage_output.dat'),
             'output_dir'   : os.path.dirname(indexFile),
             'project_dir'  : env['PROJECT_DIR']
             }
@@ -282,7 +285,7 @@ def RunCCCC(env, source, target):
     cmd = 'cccc %s %s' % (options, files)
     ret_val = subprocess.call(cmd, shell=True)
     # Remove unnecessary files.
-    rm = "cd %s; rm -f *.*; mv MainHTMLReport CCCCMainHTMLReport.html" % target
+    rm = "cd %s; mv MainHTMLReport CCCCMainHTMLReport.html" % target
     subprocess.call(rm, shell=True)
     return ret_val
 

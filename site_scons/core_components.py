@@ -18,9 +18,13 @@
 # along with fudepan-build.  If not, see <http://www.gnu.org/licenses/>.
 
 
+"""
+    Add a description here!
+"""
+
+
 import os
 import utils
-from utils import RecursiveInstall, findFiles
 
 
 headersFilter = ['*.h','*.hpp']
@@ -174,6 +178,41 @@ class HeaderOnlyComponent(Component):
             else:
                 self.extInc.append(extInc)
 
+    def Process(self, called_from_subclass=False):
+        Component.Process(self)
+        # Look for the sources of this component.
+        filters = []
+        filters.extend(headersFilter)
+        filters.extend(sourceFilters)
+        sources = utils.files_flatten(self.env, self.projDir, filters)
+        # Create target for generate the documentation.
+        self._create_doc_target()
+        # We add astyle target to all the components that can have a header.
+        self._create_astyle_target(sources)
+        # We add a traget for check if the component is astyled.
+        self._create_astyle_check_target(sources)
+        # This condition is for the cases when the method is called from a subclass.
+        if not called_from_subclass:
+            # Create the list of the 'sources' files.
+            sources = []
+            for d in self.extInc:
+                sources.extend(utils.findFiles(self.env, d,['*.h']))
+            self._create_cccc_target(sources)
+            self._create_cloc_target(sources)
+            self._create_cppcheck_target(sources)
+        # If the component doesnt have external headers, we dont process it since
+        # there is nothing to install
+        if len(self.extInc) > 0:
+            hLib = utils.RecursiveInstall(self.env, self.compDir, self.extInc, self.name, headersFilter)
+            self.env.Alias(self.name, hLib, 'Install ' + self.name + ' headers')
+            self.env.Clean(self.name, hLib)
+            self.env.Alias('all:install', hLib, "Install all targets")
+            for alias in self.aliasGroups:
+                self.env.Alias(alias, hLib, "Build group " + alias)
+            return hLib
+        else:
+            return None
+
     def getIncludePaths(self):
         (incs, processedComponents) = self._getIncludePaths([], 0)
         return incs
@@ -276,41 +315,6 @@ class HeaderOnlyComponent(Component):
         # Create an alias for astyle.
         self.env.Alias('%s:astyle' % self.name, astyleOut, "Runs astyle on " + self.name)
 
-    def Process(self, called_from_subclass=False):
-        Component.Process(self)
-        # Look for the sources of this component.
-        filters = []
-        filters.extend(headersFilter)
-        filters.extend(sourceFilters)
-        sources = utils.files_flatten(self.env, self.projDir, filters)
-        # Create target for generate the documentation.
-        self._create_doc_target()
-        # We add astyle target to all the components that can have a header.
-        self._create_astyle_target(sources)
-        # We add a traget for check if the component is astyled.
-        self._create_astyle_check_target(sources)
-        # This condition is for the cases when the method is called from a subclass.
-        if not called_from_subclass:
-            # Create the list of the 'sources' files.
-            sources = []
-            for d in self.extInc:
-                sources.extend(findFiles(self.env, d,['*.h']))
-            self._create_cccc_target(sources)
-            self._create_cloc_target(sources)
-            self._create_cppcheck_target(sources)
-        # If the component doesnt have external headers, we dont process it since
-        # there is nothing to install
-        if len(self.extInc) > 0:
-            hLib = RecursiveInstall(self.env, self.compDir, self.extInc, self.name, headersFilter)
-            self.env.Alias(self.name, hLib, 'Install ' + self.name + ' headers')
-            self.env.Clean(self.name, hLib)
-            self.env.Alias('all:install', hLib, "Install all targets")
-            for alias in self.aliasGroups:
-                self.env.Alias(alias, hLib, "Build group " + alias)
-            return hLib
-        else:
-            return None
-
 
 class SourcedComponent(HeaderOnlyComponent):
 
@@ -348,6 +352,14 @@ class SourcedComponent(HeaderOnlyComponent):
         for x in self.src:
             self.src_files.append(self.env.File(x))
 
+    def Process(self):
+        HeaderOnlyComponent.Process(self,True)
+        # Create the list of the 'sources' files.
+        sources = self.src_files + self.inc_files
+        self._create_cccc_target(sources)
+        self._create_cloc_target(sources)
+        self._create_cppcheck_target(sources)
+
     def getIncludePaths(self):
         (incs, processedComponents) = self._getIncludePaths([], 0)
         return incs
@@ -373,14 +385,6 @@ class SourcedComponent(HeaderOnlyComponent):
             for p in [hDir+x for x in headersFilter]:
                 include_files.extend(self.env.Glob(p))
         return include_files
-
-    def Process(self):
-        HeaderOnlyComponent.Process(self,True)
-        # Create the list of the 'sources' files.
-        sources = self.src_files + self.inc_files
-        self._create_cccc_target(sources)
-        self._create_cloc_target(sources)
-        self._create_cppcheck_target(sources)
 
 
 class StaticLibraryComponent(SourcedComponent):
@@ -506,6 +510,24 @@ class UnitTestComponent(ProgramComponent):
         for alias in self.aliasGroups:
             self.env.Alias(alias, tTest, "Build group " + alias)
 
+    def getIncludePaths(self):
+        includes = super(UnitTestComponent, self).getIncludePaths()
+        project = self.componentGraph.get(self.name.split(':')[0])
+        #adding current test dir
+        filtered_includes = [self.dir, project.dir]
+        #adding project in test include path (relative to build dir)
+        for i in getattr(project, 'inc', []):
+            filtered_includes.append(os.path.join(project.dir, i))
+            filtered_includes.append(os.path.join(project.projDir, i))
+        prjInstallPath = os.path.join(self.env['INSTALL_HEADERS_DIR'], project.name)
+        for i in includes:
+            path = os.path.realpath(i)
+            in_build_dir = self.env['BUILD_DIR'] in path
+            is_tested_project = project.dir in path or project.projDir in path or prjInstallPath in path
+            if not in_build_dir and not is_tested_project:
+                filtered_includes.append(path)
+        return filtered_includes
+
     def _createValgrindTarget(self, tTest): 
         # Remove the ':test' from the name of the project.
         if self.name.endswith(':test'):
@@ -547,21 +569,3 @@ class UnitTestComponent(ProgramComponent):
         # Coverage can always be built.
         self.env.AlwaysBuild(cov)
         self.env.AlwaysBuild(covTest)
-
-    def getIncludePaths(self):
-        includes = super(UnitTestComponent, self).getIncludePaths()
-        project = self.componentGraph.get(self.name.split(':')[0])
-        #adding current test dir
-        filtered_includes = [self.dir, project.dir]
-        #adding project in test include path (relative to build dir)
-        for i in getattr(project, 'inc', []):
-            filtered_includes.append(os.path.join(project.dir, i))
-            filtered_includes.append(os.path.join(project.projDir, i))
-        prjInstallPath = os.path.join(self.env['INSTALL_HEADERS_DIR'], project.name)
-        for i in includes:
-            path = os.path.realpath(i)
-            in_build_dir = self.env['BUILD_DIR'] in path
-            is_tested_project = project.dir in path or project.projDir in path or prjInstallPath in path
-            if not in_build_dir and not is_tested_project:
-                filtered_includes.append(path)
-        return filtered_includes

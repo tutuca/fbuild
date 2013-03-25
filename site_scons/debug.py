@@ -1,6 +1,6 @@
 # fudepan-build: The build system for FuDePAN projects 
 #
-# Copyright (C) 2011 Esteban Papp, FuDePAN
+# Copyright (C) 2011 Esteban Papp, 2013 Gonzalo Bonigo, FuDePAN
 # 
 # This file is part of the fudepan-build build system.
 # 
@@ -17,34 +17,35 @@
 # You should have received a copy of the GNU General Public License
 # along with fudepan-build.  If not, see <http://www.gnu.org/licenses/>.
 
-#
-# Description: this file contains everything related to debug the environment
-#
+
+"""
+    This file contains everything related to debug the environment.
+"""
+
+
+from SCons.Script import AddOption
+
+
 def init(env):
-    from SCons.Script import AddOption
     AddOption('--buildtests',
               dest='buildtests',
               action='store_true',
               help='this flag is used to test the build environment, it will parse the buildtests folder instead of the projects folder',
               default=False)
-    
     AddOption('--printresults',
               dest='printresults',
               action='store_true',
               help='if indicated, the results will also be printed to console',
               default=False)
-    
     AddOption('--forcerun',
               dest='forcerun',
               action='store_true',
               help='if indicated, tests will run regardless something they depend on changed, if not indicated, tests will only run if something that they depend on changed',
               default=False)
-    
     AddOption('--nostdin',
               dest='nostdin',
               action='store_true',
               help='this flag is used to avoid the environment to use stdin to ask stuff, it should assume the default behavior (added to support Eclipse plugin)',
               default=False)
-    
     if env.GetOption('buildtests'):
         env['WS_DIR'] = env.Dir('#/buildtests').abspath

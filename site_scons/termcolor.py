@@ -1,6 +1,6 @@
 # fudepan-build: The build system for FuDePAN projects 
 #
-# Copyright (C) 2011 Esteban Papp, Hugo Arregui, FuDePAN
+# Copyright (C) 2011 Esteban Papp, Hugo Arregui, 2013 Gonzalo Bonigo, FuDePAN
 # 
 # This file is part of the fudepan-build build system.
 # 
@@ -17,13 +17,17 @@
 # You should have received a copy of the GNU General Public License
 # along with fudepan-build.  If not, see <http://www.gnu.org/licenses/>.
 
-#
-# Description: color settings, pretty messages
-#
 
-# http://www.scons.org/wiki/ColorBuildMessages
+"""
+    This file contains color settings, pretty messages.
+
+    http://www.scons.org/wiki/ColorBuildMessages
+"""
+
+
 import sys
 import os
+
 
 colors = {}
 colors['cyan']   = '\033[96m'
@@ -49,6 +53,7 @@ install_message = '%s[installing] $SOURCE => $TARGET%s' % (colors['green'], colo
 qtuic_message = '%s[uic] $SOURCE%s' % (colors['blue'], colors['end'])
 qtmoc_message = '%s[moc] $SOURCE%s' % (colors['blue'], colors['end'])
 
+
 def init(env, args):
     if args.get('VERBOSE') != '1':
         prettyMessages(env)
@@ -58,6 +63,7 @@ def init(env, args):
     env.cerror = lambda m: cprint(m, 'red')
     env.cformat = cformat
 
+
 def ask_user(message, color, alternatives):
     message += ' (' + '/'.join(alternatives) + ')'
     userResponse = None
@@ -66,11 +72,14 @@ def ask_user(message, color, alternatives):
         userResponse = raw_input().lower()
     return userResponse
 
+
 def cprint(msg, color):
     print(cformat(msg,color))
 
+
 def cformat(msg, color):
     return '%s%s%s' % (colors[color], msg, colors['end'])
+
 
 def prettyMessages(env):
     # TODO: find a way to change the "Removed" message
@@ -95,4 +104,3 @@ def prettyMessages(env):
     env['QT4_MOCFROMHCOMSTR'] = qtmoc_message
     env['QT4_MOCFROMCXXCOMSTR'] = qtmoc_message
     env['QT4_UICCOMSTR'] = qtuic_message
-    
