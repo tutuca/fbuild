@@ -28,8 +28,10 @@ import os.path
 import platform
 import subprocess
 from xml.dom import minidom
+
 from SCons.Script import Builder
 import SCons
+
 from termcolor import cformat
 from termcolor import cprint
 import utils

@@ -1,6 +1,6 @@
 # fudepan-build: The build system for FuDePAN projects 
 #
-# Copyright (C) 2011 Esteban Papp, FuDePAN
+# Copyright (C) 2011 Esteban Papp, 2013 Gonzalo Bonigo, FuDePAN
 # 
 # This file is part of the fudepan-build build system.
 # 
@@ -17,9 +17,10 @@
 # You should have received a copy of the GNU General Public License
 # along with fudepan-build.  If not, see <http://www.gnu.org/licenses/>.
 
-#
-# Description: adds boost modules
-#
+
+"""
+    Adds boost modules.
+"""
 
 def init(env):
     validModules = [
