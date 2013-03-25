@@ -52,6 +52,9 @@ class Component(object):
         self.componentGraph = componentGraph
         self.projDir = os.path.join(env['WS_DIR'], os.path.relpath(self.dir, env['BUILD_DIR']))
         self.shouldBeLinked = False
+
+    def Process(self):
+        return None
     
     def getLibs(self):
         """
@@ -122,9 +125,6 @@ class Component(object):
         if self.name in stack:
             stack.pop()
 
-    def Process(self):
-        return None
-
 
 class ExternalLibraryComponent(Component):
     
@@ -138,6 +138,9 @@ class ExternalLibraryComponent(Component):
             else:
                 self.extInc.append( extInc )
         self.shouldBeLinked = shouldBeLinked
+
+    def Process(self):
+        return Component.Process(self)
 
     def getIncludePaths(self):
         (incs, processedComponents) = self._getIncludePaths([], 0)
@@ -162,9 +165,6 @@ class ExternalLibraryComponent(Component):
                 (depIncs, depProcessedComp) = c._getIncludePaths(processedComponents,depth+1)
                 incs.extend(depIncs)
         return (incs, processedComponents)
-
-    def Process(self):
-        return Component.Process(self)
 
 
 class HeaderOnlyComponent(Component):
@@ -499,7 +499,7 @@ class UnitTestComponent(ProgramComponent):
         # Create the target for the test.
         self.env.Alias(self.name, tTest, "Run test for " + self.name)
         # Make the test depends from the files.
-        for refFile in findFiles(self.env, self.compDir.Dir('ref')):
+        for refFile in utils.findFiles(self.env, self.compDir.Dir('ref')):
             self.env.Depends(tTest, refFile)
         self.env.Alias('all:test', tTest, "Run all tests")
         # Adding a valgrind target for tests.
@@ -557,7 +557,7 @@ class UnitTestComponent(ProgramComponent):
         # Targets and sources for RunLcov() builder.
         metrics_dir = self.env['INSTALL_METRICS_DIR']
         coverage_dir = self.env.Dir(metrics_dir).Dir('coverage').Dir(self.name)
-        runLcovTargets = os.path.join(coverage_dir, 'index.html')
+        runLcovTargets = os.path.join(coverage_dir.abspath, 'index.html')
         runLcovSources = [self.prog]
         # Call builder RunLcov().
         lcov = self.env.RunLcov(runLcovTargets, runLcovSources)
