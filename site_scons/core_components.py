@@ -501,7 +501,15 @@ class UnitTestComponent(ProgramComponent):
 
     def Process(self):
         # Call to super-class Process().
-        ProgramComponent.Process(self)
+        #SourcedComponent.Process(self)
+        
+        incpaths = self.getIncludePaths()
+        (libs,libpaths) = self.getLibs()
+        target = os.path.join(self.dir, self.name)
+        self.prog = self.env.Program(target, self.find_sources(), CPPPATH=incpaths, LIBS=libs, LIBPATH=libpaths)
+        self.env.Alias(self.name, self.prog, "Build and install " + self.name)
+        self.env.Alias('all:build', self.prog, "Build all targets")
+        
         # Flags for gtest and gmock.
         CXXFLAGS = [f for f in self.env['CXXFLAGS'] if f not in ['-ansi', '-pedantic']]
         CXXFLAGS.append('-Wno-sign-compare')
@@ -522,7 +530,7 @@ class UnitTestComponent(ProgramComponent):
         # Alias target for 'all'.
         self.env.Alias('all:test', tTest, "Run all tests")
         # Adding a valgrind target for tests.
-        tvalg = self._createValgrindTarget(tTest)
+        self._createValgrindTarget(self.prog)
         # Adding a coverage target for tests.
         tcov = self._createCoverageTarget(target)
         # Add dependence for jenkins.
