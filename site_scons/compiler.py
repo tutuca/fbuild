@@ -79,13 +79,17 @@ def linuxOptions(env):
     if _is_coverage():
         gprofFlags = ['--coverage']
         env.Append(CXXFLAGS=gprofFlags, CFLAGS=gprofFlags, LINKFLAGS=gprofFlags)
+        metrics_dir = self.env['INSTALL_METRICS_DIR']
+        coverage_dir = self.env.Dir(metrics_dir).Dir('coverage').Dir(self.name)
+        valgrind_report = '%s/valgrind-report.xml' % 
+        env['VALGRIND_OPTIONS'] = '--xml=yes --xml-file=%s'
 
 #
-# This is not a very good idea, but is the way out i found for not using a flag 
+# This is not a very good idea, but is the way i found for not using a flag 
 # ('--gcoverage') when running the ':coverage' target.
 #
 def _is_coverage():
     for arg in sys.argv:
-        if 'coverage' in arg:
+        if 'coverage' in arg or 'jenkins' in arg:
             return True
     return False

@@ -500,16 +500,17 @@ class UnitTestComponent(ProgramComponent):
         ProgramComponent.__init__(self, componentGraph, env, name, compDir, deps, inc, src, aliasGroups)
 
     def Process(self):
-        # Call to super-class Process().
-        #SourcedComponent.Process(self)
-        
+        # Call to super-super-class SourcedComponent().
+        # We not call directly to the supper class ProgramComponent.Process() 
+        # since it generates a problem when running the test executable.
+        SourcedComponent.Process(self)
+        # So, we have to call the Program() builder.
         incpaths = self.getIncludePaths()
         (libs,libpaths) = self.getLibs()
         target = os.path.join(self.dir, self.name)
         self.prog = self.env.Program(target, self.find_sources(), CPPPATH=incpaths, LIBS=libs, LIBPATH=libpaths)
         self.env.Alias(self.name, self.prog, "Build and install " + self.name)
         self.env.Alias('all:build', self.prog, "Build all targets")
-        
         # Flags for gtest and gmock.
         CXXFLAGS = [f for f in self.env['CXXFLAGS'] if f not in ['-ansi', '-pedantic']]
         CXXFLAGS.append('-Wno-sign-compare')
@@ -524,13 +525,13 @@ class UnitTestComponent(ProgramComponent):
             self.env.AlwaysBuild(tTest)
         # Create the target for the test.
         self.env.Alias(self.name, tTest, "Run test for " + self.name)
-        # Make the test depends from the files.
+        # Make the test depends from coverage generated files.
         for refFile in utils.findFiles(self.env, self.compDir.Dir('ref')):
             self.env.Depends(tTest, refFile)
         # Alias target for 'all'.
         self.env.Alias('all:test', tTest, "Run all tests")
         # Adding a valgrind target for tests.
-        self._createValgrindTarget(self.prog)
+        tvalg = self._createValgrindTarget(self.prog)
         # Adding a coverage target for tests.
         tcov = self._createCoverageTarget(target)
         # Add dependence for jenkins.
@@ -583,6 +584,7 @@ class UnitTestComponent(ProgramComponent):
         # Call builder initLcov().
         initLcov = self.env.InitLcov(initLcovTarget, initLcovSoureces)
         # Call builder RunLcov().
+        target = "%s.cov" % target
         covTest = self.env.RunUnittest(target, self.prog)
         # Targets and sources for RunLcov() builder.
         metrics_dir = self.env['INSTALL_METRICS_DIR']
