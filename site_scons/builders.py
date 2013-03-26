@@ -108,7 +108,7 @@ def InitLcov(env, source, target):
     indexFile = target[0].abspath
     data = {
             'coverage_file': os.path.join(os.path.dirname(os.path.dirname(indexFile)), 'coverage_output.dat'),
-            'output_dir'   : os.path.dirname(indexFile),
+            'output_dir'   : env.Dir('INSTALL_METRICS_DIR'),
             'project_dir'  : env['PROJECT_DIR']
             }
 
