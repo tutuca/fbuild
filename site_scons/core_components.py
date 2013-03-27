@@ -505,7 +505,7 @@ class UnitTestComponent(ProgramComponent):
         # Adding a valgrind target for tests.
         self._createValgrindTarget(tTest)
         # Adding a coverage target for tests.
-        self._createCoverageTarget(target)
+        self._CreateCoverageTarget(target)
         # Create alias for aliasGroups.
         for alias in self.aliasGroups:
             self.env.Alias(alias, tTest, "Build group " + alias)
@@ -543,7 +543,7 @@ class UnitTestComponent(ProgramComponent):
         # Create an alias for valgrind.
         self.env.Alias(vtname, [tTest,rvalg], 'Run valgrind for %s test' % name)
         
-    def _createCoverageTarget(self, target):
+    def _CreateCoverageTarget(self, target):
         # Get the path directory to the project.
         project = self.componentGraph.get(self.name.split(':')[0])
         self.env['PROJECT_DIR'] = project.dir
