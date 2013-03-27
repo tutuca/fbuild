@@ -170,7 +170,7 @@ class Dependencies(object):
             result = False
         return result
 
-    def checkout(self):
+    def Checkout(self):
         pass
 
 
@@ -182,13 +182,13 @@ class HG(Dependencies):
             self.url = target
             self.target = self.env.Dir(os.path.join(TMP_DIR, name)).abspath
     
-    def checkout(self):
+    def Checkout(self):
         if not os.path.exists(self.target):
             os.makedirs(self.target)
-        cprint('[hg] checkout %s => %s' % (self.url, self.target), 'purple')
+        cprint('[hg] Checkout %s => %s' % (self.url, self.target), 'purple')
         rc = subprocess.call(['hg', 'clone', self.url, self.target])
         if rc != 0:
-            return cformat('[error] hg failed to checkout target %s from %s, ' + \
+            return cformat('[error] hg failed to Checkout target %s from %s, ' + \
                            'error: %s' % (self.target, self.url, rc),
                            'red')
         return self.AfterCheckout()
@@ -211,11 +211,11 @@ class SVN(Dependencies):
             self.url = target
             self.target = self.env.Dir(os.path.join(TMP_DIR, name)).abspath
     
-    def checkout(self):
+    def Checkout(self):
         if not os.path.exists(self.target):
             os.makedirs(self.target)
-        cprint('[svn] checkout %s => %s' % (self.url, self.target), 'purple')
-        cmd = ['svn', 'checkout'] + (['--username', self.username] if self.username else []) + [self.url, self.target]
+        cprint('[svn] Checkout %s => %s' % (self.url, self.target), 'purple')
+        cmd = ['svn', 'Checkout'] + (['--username', self.username] if self.username else []) + [self.url, self.target]
         rc = subprocess.call(cmd)
         if rc != 0 :
             return cformat('[error] svn failed to checkout target %s from %s, error: %s' 
@@ -239,7 +239,7 @@ class WGET(Dependencies):
             self.url = target
             self.target = self.env.Dir(os.path.join(TMP_DIR, name)).abspath
     
-    def checkout(self):
+    def Checkout(self):
         if not os.path.exists(self.target):
             os.makedirs(self.target)
         cprint('[wget] downloading %s => %s' % (self.url, self.target), 'purple')
@@ -259,7 +259,7 @@ class WGET(Dependencies):
 
 class PACKER(Dependencies):
     
-    def checkout(self):
+    def Checkout(self):
         cprint('[packer] installing %s ' % self.name, 'purple')
         rc = subprocess.call('sudo packer -S %s' % self.target, shell=True)
         if rc != 0 :
@@ -270,7 +270,7 @@ class PACKER(Dependencies):
 
 class PACMAN(Dependencies):
     
-    def checkout(self):
+    def Checkout(self):
         cprint('[pacman] installing %s ' % self.name, 'purple')
         rc = subprocess.call('sudo pacman -S %s' % self.target, shell=True)
         if rc != 0 :
@@ -281,7 +281,7 @@ class PACMAN(Dependencies):
 
 class APT_GET(Dependencies):
     
-    def checkout(self):
+    def Checkout(self):
         cprint('[apt-get] installing %s ' % self.name, 'purple')
         rc = subprocess.call('sudo apt-get install %s' % self.target, shell=True)
         if rc != 0 :
@@ -292,7 +292,7 @@ class APT_GET(Dependencies):
 
 class APTITUDE(Dependencies):
     
-    def checkout(self):
+    def Checkout(self):
         cprint('[aptitude] installing %s ' % self.name, 'purple')
         rc = subprocess.call('sudo aptitude install %s' % self.target, shell=True)
         if rc != 0 :
@@ -349,7 +349,7 @@ def _createProjectsDependenciesTargets(env):
         else:
             tgt = project + ':checkout'
             checkoutAction = env.CheckoutDependency(tgt,'SConstruct')
-            env.AlwaysBuild( env.Alias(tgt, checkoutAction, 'checkout ' + project))
+            env.AlwaysBuild( env.Alias(tgt, checkoutAction, 'Checkout ' + project))
 
 
 def _createExternalDependenciesTargets(env):
@@ -553,7 +553,7 @@ def CheckoutDependency(env, source, target):
         dep = external_dependencies[depname]
     else:
         dep = projects[depname]
-    result = dep.checkout()
+    result = dep.Checkout()
     if dep.create_ext_lib_component:
         st = dep.create_ext_lib_component
         env.ExternalDependenciesCreateComponentsDict[depname] = st
@@ -571,7 +571,7 @@ def CheckoutDependencyNow(depname, env):
     else:
         dep = projects.get(depname)
     if dep:
-        result = dep.checkout()==0
+        result = dep.Checkout()==0
         if dep.create_ext_lib_component:
             st = dep.create_ext_lib_component
             env.ExternalDependenciesCreateComponentsDict[depname] = st
