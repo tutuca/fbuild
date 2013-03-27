@@ -37,10 +37,10 @@ def init(env):
               help='type of build, options: release, opt')
     (arch,binType) = platform.architecture()
     if binType == 'ELF':
-        linuxOptions(env)
+        LinuxOptions(env)
 
 
-def linuxOptions(env):
+def LinuxOptions(env):
     AddOption('--effective',
               dest='effective',
               action='store_true',

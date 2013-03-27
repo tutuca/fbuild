@@ -29,9 +29,9 @@ import platform
 def init(env):
     (arch,binType) = platform.architecture()
     if binType == 'ELF':
-        linuxOptions(env)
+        LinuxOptions(env)
 
-def linuxOptions(env):
+def LinuxOptions(env):
     # Resolve the rpath so everything works smooth from
     # the install dir. This makes easier to deploy somewhere
     # else, you only need to pass INSTALL_<BIN/LIB/HEADERS>_DIR parameters to 
