@@ -37,7 +37,7 @@ from termcolor import cprint
 import utils
 
 
-# Constants for the _createDependency() function.
+# Constants for the _CreateDependency() function.
 DEP_PROJECT = 'project'
 DEP_EXTERNAL = 'external dependency'
 # Stores the distribution name. It's set within the init() function.
@@ -327,7 +327,7 @@ def _CreateProjectsDependenciesTargets(env):
             )
         else:
             projectType = projectElement.getAttribute('repository_type')
-            project = _createDependency(env,projectName,projectType,projectElement)
+            project = _CreateDependency(env,projectName,projectType,projectElement)
             if project:
                 projects[projectName] = project
     localProjectsFile = os.path.join(confDir, 'projects_local.xml') 
@@ -335,7 +335,7 @@ def _CreateProjectsDependenciesTargets(env):
         localProjectElements = projectsDom.getElementsByTagName('project')
         for localProjectElment in localProjectElements:
             projectType = projectElement.getAttribute('repository_type')
-            project = _createDependency(env,projectName,projectType,projectElement)
+            project = _CreateDependency(env,projectName,projectType,projectElement)
             if project:
                 projects[projectName] = project    
     for project in projects.keys():
@@ -392,7 +392,7 @@ def _CreateExternalDependenciesTargets(env):
                     componentTarget = installer.getAttribute('target')
                     componentType = installer.getAttribute('manager')
                     break
-            dep = _createDependency(env,
+            dep = _CreateDependency(env,
                                     componentName,
                                     componentType,
                                     componentElement,
@@ -407,7 +407,7 @@ def _CreateExternalDependenciesTargets(env):
             env.ExternalDependenciesCreateComponentsDict[component] = st
 
 
-def _createDependency(env, name, type, node, target=None, dep_type=DEP_PROJECT):
+def _CreateDependency(env, name, type, node, target=None, dep_type=DEP_PROJECT):
     if target is None:
         target = os.path.join(env['WS_DIR'], name)
     if type == 'DEP':
