@@ -48,7 +48,7 @@ def init(env):
 
 class ComponentDictionary(dict):
 
-    def add(self, component, check = True):
+    def Add(self, component, check = True):
         if check:
             if not component.name.islower():
                 component.env.cprint('[warn] modules names should be lower case: ' + component.name, 'yellow')
@@ -68,7 +68,7 @@ componentGraph = ComponentDictionary()
 def CreateExternalLibraryComponent(env, name, ext_inc, libPath, deps, shouldBeLinked, aliasGroups=None):
     if aliasGroups == None:
         aliasGroups = []
-    return componentGraph.add(ExternalLibraryComponent(componentGraph,
+    return componentGraph.Add(ExternalLibraryComponent(componentGraph,
                                                 env,
                                                 name,
                                                 libPath,
@@ -81,7 +81,7 @@ def CreateExternalLibraryComponent(env, name, ext_inc, libPath, deps, shouldBeLi
 def CreateHeaderOnlyLibrary(env, name, ext_inc, deps, aliasGroups=None):
     if aliasGroups == None:
         aliasGroups = []
-    return componentGraph.add(HeaderOnlyComponent(componentGraph,
+    return componentGraph.Add(HeaderOnlyComponent(componentGraph,
                                            env,
                                            name,
                                            env.Dir('.'),
@@ -92,7 +92,7 @@ def CreateHeaderOnlyLibrary(env, name, ext_inc, deps, aliasGroups=None):
 def CreateStaticLibrary(env, name, inc, ext_inc, src, deps, aliasGroups=None):
     if aliasGroups == None:
         aliasGroups = []
-    return componentGraph.add(StaticLibraryComponent(componentGraph,
+    return componentGraph.Add(StaticLibraryComponent(componentGraph,
                                               env,
                                               name,
                                               env.Dir('.'),
@@ -105,7 +105,7 @@ def CreateStaticLibrary(env, name, inc, ext_inc, src, deps, aliasGroups=None):
 def CreateSharedLibrary(env, name, inc, ext_inc, src, deps, aliasGroups=None):
     if aliasGroups == None:
         aliasGroups = []
-    return componentGraph.add(DynamicLibraryComponent(componentGraph,
+    return componentGraph.Add(DynamicLibraryComponent(componentGraph,
                                                env,
                                                name,
                                                env.Dir('.'),
@@ -118,7 +118,7 @@ def CreateSharedLibrary(env, name, inc, ext_inc, src, deps, aliasGroups=None):
 def CreateObject(env, name, inc, src, deps, aliasGroups=None):
     if aliasGroups == None:
         aliasGroups = []
-    return componentGraph.add(ObjectComponent(componentGraph,
+    return componentGraph.Add(ObjectComponent(componentGraph,
                                        env,
                                        name,
                                        env.Dir('.'),
@@ -130,7 +130,7 @@ def CreateObject(env, name, inc, src, deps, aliasGroups=None):
 def CreateProgram(env, name, inc, src, deps, aliasGroups=None):
     if aliasGroups == None:
         aliasGroups = []
-    return componentGraph.add(ProgramComponent(componentGraph,
+    return componentGraph.Add(ProgramComponent(componentGraph,
                                         env,
                                         name,
                                         env.Dir('.'),
@@ -146,7 +146,7 @@ def CreateTest(env, name, inc, src, deps, aliasGroups=None):
     # the test automatically depends on the thing that is testing
     if deps.count(name) == 0:
         deps.append(name)
-    return componentGraph.add(UnitTestComponent(componentGraph,
+    return componentGraph.Add(UnitTestComponent(componentGraph,
                                          env,
                                          testName,
                                          env.Dir('.'),
@@ -161,7 +161,7 @@ def CreatePdfLaTeX(env, name, latexfile = '', options='', aliasGroups=None):
     docName = name + ':pdf:' + latexfile
     latexfile = env['INSTALL_DOC_DIR'] + "/" + name + ":doc/latex/" + latexfile
     env['PDFLATEX_OPTIONS'] = options
-    return componentGraph.add(PdfLaTeXComponent(componentGraph,
+    return componentGraph.Add(PdfLaTeXComponent(componentGraph,
                                     env,
                                     docName,
                                     env.Dir('.'),
@@ -171,7 +171,7 @@ def CreatePdfLaTeX(env, name, latexfile = '', options='', aliasGroups=None):
 def CreateAutoToolsProject(env, name, ext_dir, lib_targets, configurationFile, aliasGroups=None):
     if aliasGroups == None:
         aliasGroups = []
-    return componentGraph.add(AutoToolsProjectComponent(componentGraph,
+    return componentGraph.Add(AutoToolsProjectComponent(componentGraph,
                                         env,
                                         name,
                                         env.Dir('.'),
