@@ -118,7 +118,7 @@ class Dependencies(object):
         else:
             self.create_ext_lib_component = ''
 
-    def afterCheckout(self):
+    def AfterCheckout(self):
         """
             Description:
                 This method download the component/project and install it.
@@ -191,7 +191,7 @@ class HG(Dependencies):
             return cformat('[error] hg failed to checkout target %s from %s, ' + \
                            'error: %s' % (self.target, self.url, rc),
                            'red')
-        return self.afterCheckout()
+        return self.AfterCheckout()
 
     def update(self):
         cprint('[hg] updating %s => %s' % (self.url, self.target), 'purple')
@@ -220,7 +220,7 @@ class SVN(Dependencies):
         if rc != 0 :
             return cformat('[error] svn failed to checkout target %s from %s, error: %s' 
                            % (self.target, self.url, rc), 'red')
-        return self.afterCheckout()
+        return self.AfterCheckout()
 
     def update(self):
         cprint('[svn] updating %s => %s' % (self.url, self.target), 'purple')
@@ -247,7 +247,7 @@ class WGET(Dependencies):
         if rc != 0 :
            return cformat('[error] wget failed to download target %s from %s, error: %s' 
                           % (self.target, self.url, rc), 'red')
-        return self.afterCheckout()
+        return self.AfterCheckout()
     
     def update(self):
         # this is not supported, should be? should we download the version
@@ -265,7 +265,7 @@ class PACKER(Dependencies):
         if rc != 0 :
            return cprint('[error] pacman failed to installing %s, error: %s' 
                           % (self.target, rc), 'red')
-        return self.afterCheckout()
+        return self.AfterCheckout()
 
 
 class PACMAN(Dependencies):
@@ -276,7 +276,7 @@ class PACMAN(Dependencies):
         if rc != 0 :
            return cprint('[error] pacman failed to installing %s, error: %s' 
                           % (self.target, rc), 'red')
-        return self.afterCheckout()
+        return self.AfterCheckout()
 
 
 class APT_GET(Dependencies):
@@ -287,7 +287,7 @@ class APT_GET(Dependencies):
         if rc != 0 :
            return cprint('[error] apt-get failed to installing %s, error: %s' 
                           % (self.target, rc), 'red')
-        return self.afterCheckout()
+        return self.AfterCheckout()
 
 
 class APTITUDE(Dependencies):
@@ -298,7 +298,7 @@ class APTITUDE(Dependencies):
         if rc != 0 :
            return cprint('[error] aptitude failed to installing %s, error: %s' 
                           % (self.target, rc), 'red')
-        return self.afterCheckout()
+        return self.AfterCheckout()
 
 
 def _createProjectsDependenciesTargets(env):
