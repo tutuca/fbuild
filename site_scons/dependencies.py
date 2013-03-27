@@ -193,7 +193,7 @@ class HG(Dependencies):
                            'red')
         return self.AfterCheckout()
 
-    def update(self):
+    def Update(self):
         cprint('[hg] updating %s => %s' % (self.url, self.target), 'purple')
         rc = subprocess.call("cd %s; hg pull -u" % self.target, shell=True)
         if rc != 0:
@@ -222,7 +222,7 @@ class SVN(Dependencies):
                            % (self.target, self.url, rc), 'red')
         return self.AfterCheckout()
 
-    def update(self):
+    def Update(self):
         cprint('[svn] updating %s => %s' % (self.url, self.target), 'purple')
         rc = subprocess.call("cd %s; svn update" % self.target, shell=True)
         if rc != 0 :
@@ -249,7 +249,7 @@ class WGET(Dependencies):
                           % (self.target, self.url, rc), 'red')
         return self.AfterCheckout()
     
-    def update(self):
+    def Update(self):
         # this is not supported, should be? should we download the version
         # again an update? that will be time consuming and update should be
         # fast. This should be supported once we mark the version and there
@@ -344,7 +344,7 @@ def _CreateProjectsDependenciesTargets(env):
         if env.Dir(projectDir).exists():
             tgt = project + ':update'
             updateAction = env.UpdateDependency(tgt,'SConstruct')
-            env.AlwaysBuild( env.Alias(tgt, updateAction, 'update ' + project))
+            env.AlwaysBuild( env.Alias(tgt, updateAction, 'Update ' + project))
             env.Alias('all:update', tgt, 'updates all checked-out projects')
         else:
             tgt = project + ':checkout'
@@ -588,4 +588,4 @@ def UpdateDependencyMessage(env, source, target):
 
 def UpdateDependency(env, source, target):
     dep = str(target[0]).split(':')[0]
-    return projects[dep].update()
+    return projects[dep].Update()
