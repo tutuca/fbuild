@@ -142,11 +142,11 @@ class ExternalLibraryComponent(Component):
     def Process(self):
         return Component.Process(self)
 
-    def getIncludePaths(self):
-        (incs, processedComponents) = self._getIncludePaths([], 0)
+    def GetIncludePaths(self):
+        (incs, processedComponents) = self._GetIncludePaths([], 0)
         return utils.removeDuplicates(incs)
 
-    def _getIncludePaths(self, processedComponents, depth):
+    def _GetIncludePaths(self, processedComponents, depth):
         incs = []
         if depth > 0:
             for i in self.extInc:
@@ -162,7 +162,7 @@ class ExternalLibraryComponent(Component):
                 if c is None:
                     self.env.cerror('[error] %s depends on %s which could not be found' % (self.name, dep))
                     continue
-                (depIncs, depProcessedComp) = c._getIncludePaths(processedComponents,depth+1)
+                (depIncs, depProcessedComp) = c._GetIncludePaths(processedComponents,depth+1)
                 incs.extend(depIncs)
         return (incs, processedComponents)
 
@@ -213,11 +213,11 @@ class HeaderOnlyComponent(Component):
         else:
             return None
 
-    def getIncludePaths(self):
-        (incs, processedComponents) = self._getIncludePaths([], 0)
+    def GetIncludePaths(self):
+        (incs, processedComponents) = self._GetIncludePaths([], 0)
         return incs
 
-    def _getIncludePaths(self, processedComponents, depth):
+    def _GetIncludePaths(self, processedComponents, depth):
         includeModulePath = os.path.join(self.env['INSTALL_HEADERS_DIR'], self.name)
         incs = []
         if depth > 0:
@@ -241,8 +241,8 @@ class HeaderOnlyComponent(Component):
                 if c is None:
                     self.env.cerror('[error] %s depends on %s which could not be found' % (self.name, dep))
                     continue
-                if hasattr(c, '_getIncludePaths'):
-                    (depIncs, depProcessedComp) = c._getIncludePaths(processedComponents,depth+1)
+                if hasattr(c, '_GetIncludePaths'):
+                    (depIncs, depProcessedComp) = c._GetIncludePaths(processedComponents,depth+1)
                     incs.extend(depIncs)
         return (incs, processedComponents)
     
@@ -360,13 +360,13 @@ class SourcedComponent(HeaderOnlyComponent):
         self._create_cloc_target(sources)
         self._create_cppcheck_target(sources)
 
-    def getIncludePaths(self):
-        (incs, processedComponents) = self._getIncludePaths([], 0)
+    def GetIncludePaths(self):
+        (incs, processedComponents) = self._GetIncludePaths([], 0)
         return incs
 
-    def _getIncludePaths(self, processedComponents, depth):
+    def _GetIncludePaths(self, processedComponents, depth):
         incs = []
-        (extIncs, processedComponents) = HeaderOnlyComponent._getIncludePaths(self, processedComponents, depth)
+        (extIncs, processedComponents) = HeaderOnlyComponent._GetIncludePaths(self, processedComponents, depth)
         incs.extend(extIncs)
         if depth == 0:
             # local headers can be referred explicitely (they are relative to the
@@ -395,7 +395,7 @@ class StaticLibraryComponent(SourcedComponent):
 
     def Process(self):
         SourcedComponent.Process(self)
-        incpaths = self.getIncludePaths()
+        incpaths = self.GetIncludePaths()
         target = os.path.join(self.dir, self.name)
         sLib = self.env.StaticLibrary(target, self.src, CPPPATH=incpaths)
         iLib = self.env.Install(self.env['INSTALL_LIB_DIR'], sLib)
@@ -415,7 +415,7 @@ class DynamicLibraryComponent(SourcedComponent):
 
     def Process(self):
         SourcedComponent.Process(self)
-        incpaths = self.getIncludePaths()
+        incpaths = self.GetIncludePaths()
         (libs,libpaths) = self.GetLibs()
         target = os.path.join(self.dir, self.name)
         dLib = self.env.SharedLibrary(target, self.src, CPPPATH=incpaths, LIBS=libs, LIBPATH=libpaths)
@@ -437,7 +437,7 @@ class ObjectComponent(SourcedComponent):
     def Process(self):
         if not self.objs:
             SourcedComponent.Process(self)
-            incpaths = self.getIncludePaths()
+            incpaths = self.GetIncludePaths()
 
             (libs,libpaths) = self.GetLibs()
             target = os.path.join(self.dir, self.name)
@@ -455,7 +455,7 @@ class ProgramComponent(SourcedComponent):
 
     def Process(self):
         SourcedComponent.Process(self)
-        incpaths = self.getIncludePaths()
+        incpaths = self.GetIncludePaths()
         (libs,libpaths) = self.GetLibs()
         target = os.path.join(self.env['INSTALL_LIB_DIR'], self.name)
         self.prog = self.env.Program(target, self.find_sources(), CPPPATH=incpaths, LIBS=libs, LIBPATH=libpaths)
@@ -510,8 +510,8 @@ class UnitTestComponent(ProgramComponent):
         for alias in self.aliasGroups:
             self.env.Alias(alias, tTest, "Build group " + alias)
 
-    def getIncludePaths(self):
-        includes = super(UnitTestComponent, self).getIncludePaths()
+    def GetIncludePaths(self):
+        includes = super(UnitTestComponent, self).GetIncludePaths()
         project = self.componentGraph.get(self.name.split(':')[0])
         #adding current test dir
         filtered_includes = [self.dir, project.dir]
