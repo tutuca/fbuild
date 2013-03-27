@@ -26,7 +26,7 @@ import SCons
 
 env = Environment()
 
-hasQt = extension_qt.hasQt(env)
+hasQt = extension_qt.HasQt(env)
 
 if hasQt:
     env = Environment(tools=['default', 'qt4'])
