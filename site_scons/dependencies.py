@@ -131,7 +131,7 @@ class Dependencies(object):
                 False otherwise.
         """
         if len(self.executeAfter) > 0:
-            commands = _getExecutableCommands(self.env,self.executeAfter)
+            commands = _GetExecutableCommands(self.env,self.executeAfter)
             for cmd in commands:
                 cprint('[info] execute post-checkout command: %s' % cmd, 'purple')
                 rc = subprocess.call(cmd, shell=True)
@@ -156,7 +156,7 @@ class Dependencies(object):
         # If a checker was provided, we use it.
         if len(self.inatllChecker) > 0:
             result = False
-            commands = _getExecutableCommands(self.env,self.inatllChecker)
+            commands = _GetExecutableCommands(self.env,self.inatllChecker)
             for cmd in commands:
                 rc = subprocess.call(cmd, shell=True, stdout=PIPE, stderr=PIPE)
                 result = rc==0
@@ -504,7 +504,7 @@ def _CheckProgInstall(prog):
     return subprocess.call(cmd, shell=True, stdout=PIPE, stderr=PIPE) == 0
 
 
-def _getExecutableCommands(env, string_commands):
+def _GetExecutableCommands(env, string_commands):
     """
         Description:
             Parse a string with multiple shell commands and return a list of 
