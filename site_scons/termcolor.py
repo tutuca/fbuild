@@ -61,7 +61,7 @@ def init(env, args):
     env.cdebug = lambda m: Cprint(m, 'green')
     env.cwarn = lambda m: Cprint(m, 'yellow')
     env.cerror = lambda m: Cprint(m, 'red')
-    env.cformat = cformat
+    env.Cformat = Cformat
 
 
 def ask_user(message, color, alternatives):
@@ -74,10 +74,10 @@ def ask_user(message, color, alternatives):
 
 
 def Cprint(msg, color):
-    print(cformat(msg,color))
+    print(Cformat(msg,color))
 
 
-def cformat(msg, color):
+def Cformat(msg, color):
     return '%s%s%s' % (colors[color], msg, colors['end'])
 
 

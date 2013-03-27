@@ -32,7 +32,7 @@ from xml.dom import minidom
 from SCons.Script import Builder
 import SCons
 
-from termcolor import cformat
+from termcolor import Cformat
 from termcolor import Cprint
 import utils
 
@@ -136,7 +136,7 @@ class Dependencies(object):
                 Cprint('[info] execute post-checkout command: %s' % cmd, 'purple')
                 rc = subprocess.call(cmd, shell=True)
                 if rc != 0:
-                    return cformat('[error] failed to execute post-checkout ' + \
+                    return Cformat('[error] failed to execute post-checkout ' + \
                                    'command: %s, error: %s' % (cmd, rc),
                                    'red')
         return 0
@@ -188,7 +188,7 @@ class HG(Dependencies):
         Cprint('[hg] Checkout %s => %s' % (self.url, self.target), 'purple')
         rc = subprocess.call(['hg', 'clone', self.url, self.target])
         if rc != 0:
-            return cformat('[error] hg failed to Checkout target %s from %s, ' + \
+            return Cformat('[error] hg failed to Checkout target %s from %s, ' + \
                            'error: %s' % (self.target, self.url, rc),
                            'red')
         return self.AfterCheckout()
@@ -197,7 +197,7 @@ class HG(Dependencies):
         Cprint('[hg] updating %s => %s' % (self.url, self.target), 'purple')
         rc = subprocess.call("cd %s; hg pull -u" % self.target, shell=True)
         if rc != 0:
-            return cformat('[error] hg failed to update target %s from %s, ' + \
+            return Cformat('[error] hg failed to update target %s from %s, ' + \
                            'error: %s' (self.target, self.url, rc),
                            'red')
         return 0
@@ -218,7 +218,7 @@ class SVN(Dependencies):
         cmd = ['svn', 'Checkout'] + (['--username', self.username] if self.username else []) + [self.url, self.target]
         rc = subprocess.call(cmd)
         if rc != 0 :
-            return cformat('[error] svn failed to checkout target %s from %s, error: %s' 
+            return Cformat('[error] svn failed to checkout target %s from %s, error: %s' 
                            % (self.target, self.url, rc), 'red')
         return self.AfterCheckout()
 
@@ -226,7 +226,7 @@ class SVN(Dependencies):
         Cprint('[svn] updating %s => %s' % (self.url, self.target), 'purple')
         rc = subprocess.call("cd %s; svn update" % self.target, shell=True)
         if rc != 0 :
-            return cformat('[error] svn failed to update target %s from %s, error: %s' 
+            return Cformat('[error] svn failed to update target %s from %s, error: %s' 
                            % (self.target, self.url, rc), 'red')
         return 0
 
@@ -245,7 +245,7 @@ class WGET(Dependencies):
         Cprint('[wget] downloading %s => %s' % (self.url, self.target), 'purple')
         rc = subprocess.call(['wget', self.url, '-P', self.target])
         if rc != 0 :
-           return cformat('[error] wget failed to download target %s from %s, error: %s' 
+           return Cformat('[error] wget failed to download target %s from %s, error: %s' 
                           % (self.target, self.url, rc), 'red')
         return self.AfterCheckout()
     
