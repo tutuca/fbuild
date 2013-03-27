@@ -141,7 +141,7 @@ class Dependencies(object):
                                    'red')
         return 0
     
-    def checkInstall(self):
+    def CheckInstall(self):
         """
             Description:
                 This method check if the component/project is installed or not.
@@ -402,7 +402,7 @@ def _createExternalDependenciesTargets(env):
                 external_dependencies[componentName] = dep
     # Check if each component is already installed.
     for component in external_dependencies.keys():
-        if external_dependencies[component].checkInstall():
+        if external_dependencies[component].CheckInstall():
             st = external_dependencies[component].create_ext_lib_component
             env.ExternalDependenciesCreateComponentsDict[component] = st
 
