@@ -56,7 +56,7 @@ qtmoc_message = '%s[moc] $SOURCE%s' % (colors['blue'], colors['end'])
 
 def init(env, args):
     if args.get('VERBOSE') != '1':
-        prettyMessages(env)
+        PrettyMessages(env)
     env.Cprint = Cprint
     env.cdebug = lambda m: Cprint(m, 'green')
     env.cwarn = lambda m: Cprint(m, 'yellow')
@@ -81,7 +81,7 @@ def Cformat(msg, color):
     return '%s%s%s' % (colors[color], msg, colors['end'])
 
 
-def prettyMessages(env):
+def PrettyMessages(env):
     # TODO: find a way to change the "Removed" message
     env['COPYSTR'] = copy_message
     env['CCCOMSTR'] = compile_source_message
