@@ -83,7 +83,7 @@ if hasQt:
     extension_qt.init(env)
 
 import fudepan
-fudepan.setDefines(env)
+fudepan.SetDefines(env)
 
 ## Walk over the tree finding components
 dependencygraph.WalkDirsForSconscripts(env, topdir = env['WS_DIR'],

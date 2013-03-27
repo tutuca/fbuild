@@ -23,7 +23,7 @@
 """
 
 
-def setDefines(env): 
+def SetDefines(env): 
     flags = ["-D'INSTALL_LIB_DIR=\"%s\"'" % env['INSTALL_LIB_DIR'].rstrip('/')]
     env.Append(CXXFLAGS = flags, CFLAGS = flags)
     # this defines are only for playing with ANA
