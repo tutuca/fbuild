@@ -56,7 +56,7 @@ class Component(object):
     def Process(self):
         return None
     
-    def getLibs(self):
+    def GetLibs(self):
         """
             Description:
                 This method returns the libraries (and its paths) that should be 
@@ -78,7 +78,7 @@ class Component(object):
         libpaths.append(self.env['INSTALL_BIN_DIR'])
         # Look for the libs and its paths.
         try:
-            self._getLibs(libs, libpaths, [], 0)
+            self._GetLibs(libs, libpaths, [], 0)
         except CyclicDependencieError, error:
             msg = (' -> ').join(error[0])
             self.env.cerror('[error] A dependency cycle was found:\n  %s' % msg)
@@ -95,9 +95,9 @@ class Component(object):
         libs = [t[1] for t in aux]
         return (libs, libpaths)
 
-    def _getLibs(self, libs, libpaths, stack, depth):
+    def _GetLibs(self, libs, libpaths, stack, depth):
         """
-            This is a recursive internal method used by the self.getLibs() method.
+            This is a recursive internal method used by the self.GetLibs() method.
         """
         if self.name in stack:
             # If the component name is within the stack then there is a cycle.
@@ -120,7 +120,7 @@ class Component(object):
                     (self.name, dep)
                 )
             else: #if not isinstance(c, HeaderOnlyComponent):
-                c._getLibs(libs, libpaths, stack, depth+1)
+                c._GetLibs(libs, libpaths, stack, depth+1)
         # We remove the component name from the stack.
         if self.name in stack:
             stack.pop()
@@ -416,7 +416,7 @@ class DynamicLibraryComponent(SourcedComponent):
     def Process(self):
         SourcedComponent.Process(self)
         incpaths = self.getIncludePaths()
-        (libs,libpaths) = self.getLibs()
+        (libs,libpaths) = self.GetLibs()
         target = os.path.join(self.dir, self.name)
         dLib = self.env.SharedLibrary(target, self.src, CPPPATH=incpaths, LIBS=libs, LIBPATH=libpaths)
         iLib = self.env.Install(self.env['INSTALL_LIB_DIR'], dLib)
@@ -439,7 +439,7 @@ class ObjectComponent(SourcedComponent):
             SourcedComponent.Process(self)
             incpaths = self.getIncludePaths()
 
-            (libs,libpaths) = self.getLibs()
+            (libs,libpaths) = self.GetLibs()
             target = os.path.join(self.dir, self.name)
             for src in self.src:
                 target = src.split('.')[0]
@@ -456,7 +456,7 @@ class ProgramComponent(SourcedComponent):
     def Process(self):
         SourcedComponent.Process(self)
         incpaths = self.getIncludePaths()
-        (libs,libpaths) = self.getLibs()
+        (libs,libpaths) = self.GetLibs()
         target = os.path.join(self.env['INSTALL_LIB_DIR'], self.name)
         self.prog = self.env.Program(target, self.find_sources(), CPPPATH=incpaths, LIBS=libs, LIBPATH=libpaths)
         iProg = self.env.Install(self.env['INSTALL_BIN_DIR'], self.prog)
