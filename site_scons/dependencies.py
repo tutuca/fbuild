@@ -33,7 +33,7 @@ from SCons.Script import Builder
 import SCons
 
 from termcolor import cformat
-from termcolor import cprint
+from termcolor import Cprint
 import utils
 
 
@@ -68,7 +68,7 @@ def init(env):
         global DISTRO
         DISTRO = utils.get_distro()
     except utils.DistroError:
-        env.cprint('[warn] unsupported distribution.', 'yellow')
+        env.Cprint('[warn] unsupported distribution.', 'yellow')
     # Create a builder for the checkout of the dependencies.
     coDep = SCons.Action.Action(CheckoutDependency, CheckoutDependencyMessage)
     checkoutBuilder = Builder(action = coDep)
@@ -133,7 +133,7 @@ class Dependencies(object):
         if len(self.executeAfter) > 0:
             commands = _GetExecutableCommands(self.env,self.executeAfter)
             for cmd in commands:
-                cprint('[info] execute post-checkout command: %s' % cmd, 'purple')
+                Cprint('[info] execute post-checkout command: %s' % cmd, 'purple')
                 rc = subprocess.call(cmd, shell=True)
                 if rc != 0:
                     return cformat('[error] failed to execute post-checkout ' + \
@@ -185,7 +185,7 @@ class HG(Dependencies):
     def Checkout(self):
         if not os.path.exists(self.target):
             os.makedirs(self.target)
-        cprint('[hg] Checkout %s => %s' % (self.url, self.target), 'purple')
+        Cprint('[hg] Checkout %s => %s' % (self.url, self.target), 'purple')
         rc = subprocess.call(['hg', 'clone', self.url, self.target])
         if rc != 0:
             return cformat('[error] hg failed to Checkout target %s from %s, ' + \
@@ -194,7 +194,7 @@ class HG(Dependencies):
         return self.AfterCheckout()
 
     def Update(self):
-        cprint('[hg] updating %s => %s' % (self.url, self.target), 'purple')
+        Cprint('[hg] updating %s => %s' % (self.url, self.target), 'purple')
         rc = subprocess.call("cd %s; hg pull -u" % self.target, shell=True)
         if rc != 0:
             return cformat('[error] hg failed to update target %s from %s, ' + \
@@ -214,7 +214,7 @@ class SVN(Dependencies):
     def Checkout(self):
         if not os.path.exists(self.target):
             os.makedirs(self.target)
-        cprint('[svn] Checkout %s => %s' % (self.url, self.target), 'purple')
+        Cprint('[svn] Checkout %s => %s' % (self.url, self.target), 'purple')
         cmd = ['svn', 'Checkout'] + (['--username', self.username] if self.username else []) + [self.url, self.target]
         rc = subprocess.call(cmd)
         if rc != 0 :
@@ -223,7 +223,7 @@ class SVN(Dependencies):
         return self.AfterCheckout()
 
     def Update(self):
-        cprint('[svn] updating %s => %s' % (self.url, self.target), 'purple')
+        Cprint('[svn] updating %s => %s' % (self.url, self.target), 'purple')
         rc = subprocess.call("cd %s; svn update" % self.target, shell=True)
         if rc != 0 :
             return cformat('[error] svn failed to update target %s from %s, error: %s' 
@@ -242,7 +242,7 @@ class WGET(Dependencies):
     def Checkout(self):
         if not os.path.exists(self.target):
             os.makedirs(self.target)
-        cprint('[wget] downloading %s => %s' % (self.url, self.target), 'purple')
+        Cprint('[wget] downloading %s => %s' % (self.url, self.target), 'purple')
         rc = subprocess.call(['wget', self.url, '-P', self.target])
         if rc != 0 :
            return cformat('[error] wget failed to download target %s from %s, error: %s' 
@@ -260,10 +260,10 @@ class WGET(Dependencies):
 class PACKER(Dependencies):
     
     def Checkout(self):
-        cprint('[packer] installing %s ' % self.name, 'purple')
+        Cprint('[packer] installing %s ' % self.name, 'purple')
         rc = subprocess.call('sudo packer -S %s' % self.target, shell=True)
         if rc != 0 :
-           return cprint('[error] pacman failed to installing %s, error: %s' 
+           return Cprint('[error] pacman failed to installing %s, error: %s' 
                           % (self.target, rc), 'red')
         return self.AfterCheckout()
 
@@ -271,10 +271,10 @@ class PACKER(Dependencies):
 class PACMAN(Dependencies):
     
     def Checkout(self):
-        cprint('[pacman] installing %s ' % self.name, 'purple')
+        Cprint('[pacman] installing %s ' % self.name, 'purple')
         rc = subprocess.call('sudo pacman -S %s' % self.target, shell=True)
         if rc != 0 :
-           return cprint('[error] pacman failed to installing %s, error: %s' 
+           return Cprint('[error] pacman failed to installing %s, error: %s' 
                           % (self.target, rc), 'red')
         return self.AfterCheckout()
 
@@ -282,10 +282,10 @@ class PACMAN(Dependencies):
 class APT_GET(Dependencies):
     
     def Checkout(self):
-        cprint('[apt-get] installing %s ' % self.name, 'purple')
+        Cprint('[apt-get] installing %s ' % self.name, 'purple')
         rc = subprocess.call('sudo apt-get install %s' % self.target, shell=True)
         if rc != 0 :
-           return cprint('[error] apt-get failed to installing %s, error: %s' 
+           return Cprint('[error] apt-get failed to installing %s, error: %s' 
                           % (self.target, rc), 'red')
         return self.AfterCheckout()
 
@@ -293,10 +293,10 @@ class APT_GET(Dependencies):
 class APTITUDE(Dependencies):
     
     def Checkout(self):
-        cprint('[aptitude] installing %s ' % self.name, 'purple')
+        Cprint('[aptitude] installing %s ' % self.name, 'purple')
         rc = subprocess.call('sudo aptitude install %s' % self.target, shell=True)
         if rc != 0 :
-           return cprint('[error] aptitude failed to installing %s, error: %s' 
+           return Cprint('[error] aptitude failed to installing %s, error: %s' 
                           % (self.target, rc), 'red')
         return self.AfterCheckout()
 
@@ -320,7 +320,7 @@ def _CreateProjectsDependenciesTargets(env):
     for projectElement in projectElements:
         projectName = projectElement.getAttribute('name')
         if projects.has_key(projectName) > 0:
-            env.cprint (
+            env.Cprint (
                 '[warn] project '+projectName+' information is duplicated in'+\
                 ' the projects.xml file',
                 'yellow'
@@ -378,7 +378,7 @@ def _CreateExternalDependenciesTargets(env):
         # dictionary, we have duplicated information into the external_dependencies
         # xml file.
         if external_dependencies.has_key(componentName) > 0:
-            env.cprint('[warn] component ' + componentName + \
+            env.Cprint('[warn] component ' + componentName + \
                        ' information is duplicated in the ' + \
                        'external_dependencies.xml file', 'yellow')
         else:
@@ -427,7 +427,7 @@ def _CreateDependency(env, name, type, node, target=None, dep_type=DEP_PROJECT):
     elif type == 'PACKER':
         return PACKER(name, target, node, env)
     else:
-        cprint('[error] %s %s has repository %s which is not supported' 
+        Cprint('[error] %s %s has repository %s which is not supported' 
                % (dep_type, name, type), 'red')
         return None
 

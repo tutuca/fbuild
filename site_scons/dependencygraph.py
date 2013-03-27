@@ -51,14 +51,14 @@ class ComponentDictionary(dict):
     def Add(self, component, check = True):
         if check:
             if not component.name.islower():
-                component.env.cprint('[warn] modules names should be lower case: ' + component.name, 'yellow')
+                component.env.Cprint('[warn] modules names should be lower case: ' + component.name, 'yellow')
         # Its possible that a component is tried to be added twice because a new
         # dependency was downloaded and
         if component.name not in self:
             self[component.name] = component
             return component
         else:
-            component.env.cprint('[warn] component tried to be re-added %s' % component.name, 'red')
+            component.env.Cprint('[warn] component tried to be re-added %s' % component.name, 'red')
 
     def GetComponentsNames(self):
         return self.keys()
