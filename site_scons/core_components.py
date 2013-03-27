@@ -503,7 +503,7 @@ class UnitTestComponent(ProgramComponent):
             self.env.Depends(tTest, refFile)
         self.env.Alias('all:test', tTest, "Run all tests")
         # Adding a valgrind target for tests.
-        self._createValgrindTarget(tTest)
+        self._CreateValgrindTarget(tTest)
         # Adding a coverage target for tests.
         self._CreateCoverageTarget(target)
         # Create alias for aliasGroups.
@@ -528,7 +528,7 @@ class UnitTestComponent(ProgramComponent):
                 filtered_includes.append(path)
         return filtered_includes
 
-    def _createValgrindTarget(self, tTest): 
+    def _CreateValgrindTarget(self, tTest): 
         # Remove the ':test' from the name of the project.
         if self.name.endswith(':test'):
             name = self.name.split(':')[0]
