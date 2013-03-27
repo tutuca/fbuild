@@ -78,7 +78,7 @@ def init(env):
     updateBuilder = Builder(action = upDep)
     env.Append(BUILDERS={'UpdateDependency': updateBuilder})
     # Creates projects targets.
-    _createProjectsDependenciesTargets(env)
+    _CreateProjectsDependenciesTargets(env)
     # Create external dependencies targets.
     _createExternalDependenciesTargets(env)
     # Puts a public function within the environment.
@@ -301,7 +301,7 @@ class APTITUDE(Dependencies):
         return self.AfterCheckout()
 
 
-def _createProjectsDependenciesTargets(env):
+def _CreateProjectsDependenciesTargets(env):
     """
         Description:
             This function parse the projects.xml file, creates the dependencies 
