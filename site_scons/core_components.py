@@ -196,7 +196,7 @@ class HeaderOnlyComponent(Component):
             # Create the list of the 'sources' files.
             sources = []
             for d in self.extInc:
-                sources.extend(utils.findFiles(self.env, d,['*.h']))
+                sources.extend(utils.FindFiles(self.env, d,['*.h']))
             self._create_cccc_target(sources)
             self._create_cloc_target(sources)
             self._create_cppcheck_target(sources)
@@ -499,7 +499,7 @@ class UnitTestComponent(ProgramComponent):
         # Create the target for the test.
         self.env.Alias(self.name, tTest, "Run test for " + self.name)
         # Make the test depends from the files.
-        for refFile in utils.findFiles(self.env, self.compDir.Dir('ref')):
+        for refFile in utils.FindFiles(self.env, self.compDir.Dir('ref')):
             self.env.Depends(tTest, refFile)
         self.env.Alias('all:test', tTest, "Run all tests")
         # Adding a valgrind target for tests.

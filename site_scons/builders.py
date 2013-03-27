@@ -33,7 +33,7 @@ import os
 from SCons.Script import *
 import SCons.Builder
 
-from utils import findFiles
+from utils import FindFiles
 from utils import chain_calls
 import utils
 
@@ -190,7 +190,7 @@ def AStyleCheck(env, source, target):
     for f in source:
         os.system('cp %s %s' % (f.abspath,target))
     # Get the list of copied files.
-    files_lis = utils.findFiles(env,targetDir)
+    files_lis = utils.FindFiles(env,targetDir)
     files_str = ' '.join([x.abspath for x in files_lis])
     # Create the command for subprocess.call().
     cmd = 'astyle -k1 --options=none --convert-tabs -bSKpUH %s' % files_str
