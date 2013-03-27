@@ -188,33 +188,34 @@ class HeaderOnlyComponent(Component):
         sources = utils.files_flatten(self.env, self.projDir, filters)
         # Create target for jenkins.
         self._create_jenkins_target()
-        # Create target for generate the documentation.
-        self._create_doc_target()
-        # We add astyle target to all the components that can have a header.
-        self._create_astyle_target(sources)
-        # We add a traget for check if the component is astyled.
-        self._create_astyle_check_target(sources)
-        # This condition is for the cases when the method is called from a subclass.
-        if not called_from_subclass:
-            # Create the list of the 'sources' files.
-            sources = []
-            for d in self.extInc:
-                sources.extend(utils.findFiles(self.env, d,['*.h']))
-            self._create_cccc_target(sources)
-            self._create_cloc_target(sources)
-            self._create_cppcheck_target(sources)
-        # If the component doesnt have external headers, we dont process it since
-        # there is nothing to install
-        if len(self.extInc) > 0:
-            hLib = utils.RecursiveInstall(self.env, self.compDir, self.extInc, self.name, headersFilter)
-            self.env.Alias(self.name, hLib, 'Install ' + self.name + ' headers')
-            self.env.Clean(self.name, hLib)
-            self.env.Alias('all:install', hLib, "Install all targets")
-            for alias in self.aliasGroups:
-                self.env.Alias(alias, hLib, "Build group " + alias)
-            return hLib
-        else:
-            return None
+        if not self.name.endswith(':test'):
+            # Create target for generate the documentation.
+            self._create_doc_target()
+            # We add astyle target to all the components that can have a header.
+            self._create_astyle_target(sources)
+            # We add a traget for check if the component is astyled.
+            self._create_astyle_check_target(sources)
+            # This condition is for the cases when the method is called from a subclass.
+            if not called_from_subclass:
+                # Create the list of the 'sources' files.
+                sources = []
+                for d in self.extInc:
+                    sources.extend(utils.findFiles(self.env, d,['*.h']))
+                self._create_cccc_target(sources)
+                self._create_cloc_target(sources)
+                self._create_cppcheck_target(sources)
+            # If the component doesnt have external headers, we dont process it since
+            # there is nothing to install
+            if len(self.extInc) > 0:
+                hLib = utils.RecursiveInstall(self.env, self.compDir, self.extInc, self.name, headersFilter)
+                self.env.Alias(self.name, hLib, 'Install ' + self.name + ' headers')
+                self.env.Clean(self.name, hLib)
+                self.env.Alias('all:install', hLib, "Install all targets")
+                for alias in self.aliasGroups:
+                    self.env.Alias(alias, hLib, "Build group " + alias)
+                return hLib
+            else:
+                return None
 
     def getIncludePaths(self):
         (incs, processedComponents) = self._getIncludePaths([], 0)
@@ -260,6 +261,8 @@ class HeaderOnlyComponent(Component):
         self.env.AlwaysBuild(cccc)
         # Create an alias to be show when run 'fbuild targets'.
         self.env.Alias(self.name+":cccc", cccc, 'Generate software metrics for %s' % self.name)
+        # Add dependence for jenkins.
+        self.env.Depends(self.jenkins_target,cccc)
     
     def _create_cloc_target(self, sources):
         # Create the 'target', it is the directory where the result will be put.
@@ -279,6 +282,8 @@ class HeaderOnlyComponent(Component):
         self.env.AlwaysBuild(cloc)
         # Create Componentan alias to be show when run 'fbuild targets'.
         self.env.Alias(self.name+":cloc", cloc, 'Generate software metrics for %s' % self.name)
+        # Add dependence for jenkins.
+        self.env.Depends(self.jenkins_target,cloc)
     
     def _create_jenkins_target(self):
         # Create the target for jenkins.
@@ -372,11 +377,12 @@ class SourcedComponent(HeaderOnlyComponent):
 
     def Process(self):
         HeaderOnlyComponent.Process(self,True)
-        # Create the list of the 'sources' files.
-        sources = self.src_files + self.inc_files
-        self._create_cccc_target(sources)
-        self._create_cloc_target(sources)
-        self._create_cppcheck_target(sources)
+        if not self.name.endswith(':test'):
+            # Create the list of the 'sources' files.
+            sources = self.src_files + self.inc_files
+            self._create_cccc_target(sources)
+            self._create_cloc_target(sources)
+            self._create_cppcheck_target(sources)
 
     def getIncludePaths(self):
         (incs, processedComponents) = self._getIncludePaths([], 0)
@@ -563,10 +569,7 @@ class UnitTestComponent(ProgramComponent):
 
     def _createValgrindTarget(self, tTest): 
         # Remove the ':test' from the name of the project.
-        if self.name.endswith(':test'):
-            name = self.name.split(':')[0]
-        else:
-            name = self.name
+        name = self.name.split(':')[0]
         vtname = '%s:valgrind' % name
         # Check if we need to create an xml report.
         if utils.wasTargetInvoked('%s:jenkins' % self.name.split(':')[0]):
