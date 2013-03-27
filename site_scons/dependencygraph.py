@@ -60,7 +60,7 @@ class ComponentDictionary(dict):
         else:
             component.env.cprint('[warn] component tried to be re-added %s' % component.name, 'red')
 
-    def getComponentsNames(self):
+    def GetComponentsNames(self):
         return self.keys()
 
 componentGraph = ComponentDictionary()
@@ -215,7 +215,7 @@ def WalkDirsForSconscripts(env, topdir, ignore=None):
                                    duplicate=1)
                     env = env2
         # Check if there is a component that we dont know how to build
-        for component in componentGraph.getComponentsNames():
+        for component in componentGraph.GetComponentsNames():
             c = componentGraph.get(component)
             if c is None:
                 # check if we know how to download this component
@@ -242,6 +242,6 @@ def WalkDirsForSconscripts(env, topdir, ignore=None):
     # Step 2: real processing we have everything loaded in the dependency graph
     # now we process it
 
-    for componentName in componentGraph.getComponentsNames():
+    for componentName in componentGraph.GetComponentsNames():
         component = componentGraph.get(componentName)
         component.Process()
