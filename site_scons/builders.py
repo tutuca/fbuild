@@ -208,7 +208,7 @@ def AStyleCheck(env, source, target):
         # astyle.
         if os.path.exists('%s.orig' % f.abspath):
             # Print the differences between files.
-            cmd = 'diff -Nau %s %s.orig' % (f.abspath,f.abspath)
+            cmd = 'diff -Nau %s.orig %s' % (f.abspath,f.abspath)
             diff = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
             diff_stdout = diff.stdout.read()
             diff.wait()
