@@ -80,7 +80,7 @@ def init(env):
     # Creates projects targets.
     _CreateProjectsDependenciesTargets(env)
     # Create external dependencies targets.
-    _createExternalDependenciesTargets(env)
+    _CreateExternalDependenciesTargets(env)
     # Puts a public function within the environment.
     env.CheckoutDependencyNow = CheckoutDependencyNow
 
@@ -352,7 +352,7 @@ def _CreateProjectsDependenciesTargets(env):
             env.AlwaysBuild( env.Alias(tgt, checkoutAction, 'Checkout ' + project))
 
 
-def _createExternalDependenciesTargets(env):
+def _CreateExternalDependenciesTargets(env):
     """
         Description:
             This function parse the external_dependencies.xml file, creates the 
