@@ -456,7 +456,6 @@ class ObjectComponent(SourcedComponent):
         if not self.objs:
             SourcedComponent.Process(self)
             incpaths = self.getIncludePaths()
-
             (libs,libpaths) = self.getLibs()
             target = os.path.join(self.dir, self.name)
             for src in self.src:
@@ -476,7 +475,7 @@ class ProgramComponent(SourcedComponent):
         incpaths = self.getIncludePaths()
         (libs,libpaths) = self.getLibs()
         target = os.path.join(self.env['INSTALL_LIB_DIR'], self.name)
-        self.prog = self.env.Program(target, self.find_sources(), CPPPATH=incpaths, LIBS=libs, LIBPATH=libpaths)
+        self.prog = self.env.Program(target, self.findSources(), CPPPATH=incpaths, LIBS=libs, LIBPATH=libpaths)
         iProg = self.env.Install(self.env['INSTALL_BIN_DIR'], self.prog)
         self.env.Alias(self.name, iProg, "Build and install " + self.name)
         self.env.Alias('all:build', self.prog, "Build all targets")
@@ -485,7 +484,7 @@ class ProgramComponent(SourcedComponent):
             self.env.Alias(alias, iProg, "Build group " + alias)
         return self.prog
 
-    def find_sources(self):
+    def findSources(self):
         src = self.src
         for dep in self.deps:
             c = self.componentGraph.get(dep)
@@ -508,7 +507,7 @@ class UnitTestComponent(ProgramComponent):
         incpaths = self.getIncludePaths()
         (libs,libpaths) = self.getLibs()
         target = os.path.join(self.dir, self.name)
-        self.prog = self.env.Program(target, self.find_sources(), CPPPATH=incpaths, LIBS=libs, LIBPATH=libpaths)
+        self.prog = self.env.Program(target, self.findSources(), CPPPATH=incpaths, LIBS=libs, LIBPATH=libpaths)
         self.env.Alias(self.name, self.prog, "Build and install " + self.name)
         self.env.Alias('all:build', self.prog, "Build all targets")
         # Flags for gtest and gmock.
@@ -517,6 +516,10 @@ class UnitTestComponent(ProgramComponent):
         if not '-ggdb3' in CXXFLAGS:
             CXXFLAGS.append('-ggdb3')
         self.env.Replace(CXXFLAGS=CXXFLAGS, CFLAGS=CXXFLAGS)
+        # Check if it needed to generate a test report.
+        if utils.wasTargetInvoked('%s:jenkins' % self.name.split(':')[0]):
+            gtest_report = self.env.Dir(self.env['INSTALL_METRICS_DIR']).Dir('test').Dir(self.name[:-5])
+            self.env.gtest_report = 'xml:%s/test-report.xml' % gtest_report.abspath
         # File to store the test results.
         target = os.path.join(self.dir, self.name + '.passed')
         tTest = self.env.RunUnittest(target, self.prog)
@@ -562,10 +565,17 @@ class UnitTestComponent(ProgramComponent):
         # Remove the ':test' from the name of the project.
         if self.name.endswith(':test'):
             name = self.name.split(':')[0]
-            vtname = '%s:valgrind' % name
         else:
             name = self.name
-            vtname = '%s:valgrind' % name
+        vtname = '%s:valgrind' % name
+        # Check if we need to create an xml report.
+        if utils.wasTargetInvoked('%s:jenkins' % self.name.split(':')[0]):
+            metrics_dir = self.env['INSTALL_METRICS_DIR']
+            vdir = self.env.Dir(metrics_dir).Dir('valgrind').Dir(self.name)
+            if not os.path.exists(vdir.abspath):
+                os.makedirs(vdir.abspath)
+            vreport = '%s/valgrind-report.xml' % vdir.abspath
+            self.env.Append(VALGRIND_OPTIONS = ' --xml=yes --xml-file=%s ' % vreport)
         # Target for the RunValgrind() builder.
         tvalg = os.path.join(self.env['INSTALL_LIB_DIR'], self.name)
         # Call builder RunValgrind().
@@ -578,6 +588,11 @@ class UnitTestComponent(ProgramComponent):
         # Get the path directory to the project.
         project = self.componentGraph.get(self.name.split(':')[0])
         self.env['PROJECT_DIR'] = project.dir
+        # Check if the coverage is needed.
+        if (utils.wasTargetInvoked('%s:jenkins' % self.name.split(':')[0]) or 
+           utils.wasTargetInvoked('%s:coverage' % self.name.split(':')[0])) :
+            gprofFlags = ['--coverage']
+            self.env.Append(CXXFLAGS=gprofFlags, CFLAGS=gprofFlags, LINKFLAGS=gprofFlags)
         # Targets and sources for builder InitLcov.
         initLcovTarget = os.path.join(self.dir, 'coverage_data')
         initLcovSoureces = [self.prog]

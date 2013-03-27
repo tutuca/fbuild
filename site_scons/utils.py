@@ -25,6 +25,7 @@
 
 import subprocess
 import fnmatch
+import sys
 import os
 
 from SCons.Node.FS import Dir
@@ -182,6 +183,16 @@ def chain_calls(env, cmds, silent=True):
 
 
 def get_distro ():
+    """
+        Description:
+            This function tells in which distribution of linux we are.
+        Arguments:
+            None.
+        Exceptions:
+            DistroError.
+        Return:
+            A string instance with the name of the distribution.
+    """
     try:
         f = open(_DISRTO_FILE, 'r')
     except OSError:
@@ -197,3 +208,21 @@ def get_distro ():
         else:
             raise DistroError()
         return result
+
+
+def wasTargetInvoked(target):
+    """
+        Description:
+            This function tells if a specific target was invoked or not.
+        Arguments:
+            target  -  A string instance with the name of target to be check.
+        Exceptions:
+            None.
+        Return:
+            True  if the target was called.
+            False otherwise.
+    """
+    for arg in sys.argv:
+        if arg == target:
+            return True
+    return False
