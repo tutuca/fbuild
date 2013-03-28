@@ -1,11 +1,11 @@
 <external_dependencies>
     <!-- Format of a component:
-    <component name="component_name" type=["LIB" | "PRO"]
+    <component name="component_name" type=["LIB" | "HLIB" | "PRO"]
         <installer
             distro=["UBUNTU" | "ARCH" | "*"]
             target=["package_name" | "url"]
             manager=["HG" | "SVN" | "WGET" | "APT-GET" | 
-                     "APTITUDE" | "PACKER" | "PACMAN"] />
+                     "APTITUDE" | "PACKER" | "PACMAN" | "*"] />
         <install_checker> SHELL_SCRIPT </install_checker>
         <execute_after> SHELL_SCRIPT </execute_after>
         <create_ext_lib_comp> PYTHON_CALL </create_ext_lib_comp>
