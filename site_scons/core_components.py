@@ -530,7 +530,7 @@ class UnitTestComponent(ProgramComponent):
         self.env.Replace(CXXFLAGS=CXXFLAGS, CFLAGS=CXXFLAGS)
         # Check if it needed to generate a test report.
         if utils.wasTargetInvoked('%s:jenkins' % self.name.split(':')[0]):
-            gtest_report = self.env.Dir(self.env['INSTALL_METRICS_DIR']).Dir('test').Dir(self.name[:-5])
+            gtest_report = self.env.Dir(self.env['INSTALL_REPORTS_DIR']).Dir('test').Dir(self.name[:-5])
             self.env.gtest_report = 'xml:%s/test-report.xml' % gtest_report.abspath
         # File to store the test results.
         target = os.path.join(self.dir, self.name + '.passed')
@@ -579,8 +579,8 @@ class UnitTestComponent(ProgramComponent):
         vtname = '%s:valgrind' % name
         # Check if we need to create an xml report.
         if utils.wasTargetInvoked('%s:jenkins' % self.name.split(':')[0]):
-            metrics_dir = self.env['INSTALL_METRICS_DIR']
-            vdir = self.env.Dir(metrics_dir).Dir('valgrind').Dir(self.name)
+            report_dir = self.env['INSTALL_REPORTS_DIR']
+            vdir = self.env.Dir(report_dir).Dir('valgrind').Dir(self.name)
             if not os.path.exists(vdir.abspath):
                 os.makedirs(vdir.abspath)
             vreport = '%s/valgrind-report.xml' % vdir.abspath

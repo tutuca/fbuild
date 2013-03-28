@@ -64,7 +64,7 @@ def init(env):
     #-
     bldValgrind = Builder(action = SCons.Action.Action(RunValgrind, PrintDummy))
     env.Append(BUILDERS = {'RunValgrind':  bldValgrind})
-    env['VALGRIND_OPTIONS'] = ' --leak-check=full --show-reachable=yes' + \
+    env['VALGRIND_OPTIONS'] = ' --leak-check=full --show-reachable=yes ' + \
                               '--error-limit=no '
     #-
     bldCCCC = Builder(action = SCons.Action.Action(RunCCCC, PrintDummy))
@@ -89,10 +89,13 @@ def RunUnittest(env, source, target):
     rc = 0
     tindex = 0
     for s in source:
-        t = target[tindex].abspath;
+        t = target[tindex].abspath
         app = s.abspath
         (dir, appbin) = os.path.split(app)
-        if env.GetOption('jenkins'):
+        # Check if the builder was called for jenkins.
+        tmp = target[tindex].abspath.split('.')[0]
+        project = os.path.split(tmp)[1]
+        if utils.wasTargetInvoked('%s:jenkins' % project):
             os.environ['GTEST_OUTPUT'] = env.gtest_report
         cmd = "cd %s; ./%s > %s" % (dir, appbin, t)
         rc = subprocess.call(cmd, shell=True)
