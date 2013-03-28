@@ -95,7 +95,7 @@ def RunUnittest(env, source, target):
         # Check if the builder was called for jenkins.
         tmp = target[tindex].abspath.split('.')[0]
         project = os.path.split(tmp)[1]
-        if utils.wasTargetInvoked('%s:jenkins' % project):
+        if utils.wasTargetInvoked('%s:jenkins' % project[:-5]):
             os.environ['GTEST_OUTPUT'] = env.gtest_report
         cmd = "cd %s; ./%s > %s" % (dir, appbin, t)
         rc = subprocess.call(cmd, shell=True)
@@ -113,17 +113,14 @@ def InitLcov(env, source, target):
     test_executable = source[0].abspath
     indexFile = target[0].abspath
     data = {
-        'coverage_file': os.path.join(os.path.dirname(os.path.dirname(indexFile)),
-                                      'coverage_output.dat'),
+        'coverage_file': os.path.join(os.path.dirname(os.path.dirname(indexFile)), 'coverage_output.dat'),
         'output_dir'   : env.Dir('INSTALL_METRICS_DIR'),
         'project_dir'  : env['PROJECT_DIR']
     }
-    r = chain_calls(
-      env,
-      ['lcov --zerocounters --directory %(project_dir)s -b .' % data,
-       'lcov --capture --initial --directory %(project_dir)s -b . --output-file'+\
-       '%(coverage_file)s' % data]
-    )
+    r = chain_calls(env, [
+        'lcov --zerocounters --directory %(project_dir)s -b .' % data,
+        'lcov --capture --initial --directory %(project_dir)s -b . --output-file %(coverage_file)s' % data,
+    ])
     return r
 
 
@@ -131,28 +128,22 @@ def RunLcov(env, source, target):
     test_executable = source[0].abspath
     indexFile = target[0].abspath
     data = {
-        'coverage_file': os.path.join(os.path.dirname(os.path.dirname(indexFile)),
-                                      'coverage_output.dat'),
+        'coverage_file': os.path.join(os.path.dirname(os.path.dirname(indexFile)), 'coverage_output.dat'),
         'output_dir'   : os.path.dirname(indexFile),
         'project_dir'  : env['PROJECT_DIR']
     }
-    r = chain_calls(
-      env,
-      ['rm -f %(coverage_file)s' % data,
-       'lcov --no-checksum --directory %(project_dir)s -b . --capture ' + \
-       '--output-file %(coverage_file)s' % data,
-       'lcov --no-checksum --directory %(project_dir)s -b . --capture ' + \
-       '--output-file %(coverage_file)s' % data,
-       'lcov --remove %(coverage_file)s "*usr/include*" -o %(coverage_file)s' \
-       % data,
-       'lcov --remove %(coverage_file)s "*boost*" -o %(coverage_file)s' % data,
-       'lcov --remove %(coverage_file)s "*gtest*" -o %(coverage_file)s' % data,
-       'lcov --remove %(coverage_file)s "*gmock*" -o %(coverage_file)s' % data,
-       'lcov --remove %(coverage_file)s "*install/*" -o %(coverage_file)s' % data,
-       'lcov --remove %(coverage_file)s "*/tests/*" -o %(coverage_file)s' % data,
-       'genhtml --highlight --legend --output-directory %(output_dir)s ' + \
-       '%(coverage_file)s' % data]
-    )
+    r = chain_calls(env, [
+        'rm -f %(coverage_file)s' % data,
+        'lcov --no-checksum --directory %(project_dir)s -b . --capture --output-file %(coverage_file)s' % data,
+        'lcov --no-checksum --directory %(project_dir)s -b . --capture --output-file %(coverage_file)s' % data,
+        'lcov --remove %(coverage_file)s "*usr/include*" -o %(coverage_file)s' % data,
+        'lcov --remove %(coverage_file)s "*boost*" -o %(coverage_file)s' % data,
+        'lcov --remove %(coverage_file)s "*gtest*" -o %(coverage_file)s' % data,
+        'lcov --remove %(coverage_file)s "*gmock*" -o %(coverage_file)s' % data,
+        'lcov --remove %(coverage_file)s "*install/*" -o %(coverage_file)s' % data,
+        'lcov --remove %(coverage_file)s "*/tests/*" -o %(coverage_file)s' % data,
+        'genhtml --highlight --legend --output-directory %(output_dir)s %(coverage_file)s' % data,
+    ])
     if r == 0:
         env.Cprint('lcov report in: %s' % indexFile, 'green')
     return r
