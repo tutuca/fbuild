@@ -34,7 +34,7 @@ from SCons.Script import *
 import SCons.Builder
 
 from utils import FindFiles
-from utils import chain_calls
+from utils import ChainCalls
 import utils
 
 
@@ -112,7 +112,7 @@ def InitLcov(env, source, target):
             'project_dir'  : env['PROJECT_DIR']
             }
 
-    r = chain_calls(env, [
+    r = ChainCalls(env, [
         'lcov --zerocounters --directory %(project_dir)s -b .' % data,
         'lcov --capture --initial --directory %(project_dir)s -b . --output-file %(coverage_file)s' % data,
         ])
@@ -128,7 +128,7 @@ def RunLcov(env, source, target):
             'project_dir'  : env['PROJECT_DIR']
             }
 
-    r = chain_calls(env, [
+    r = ChainCalls(env, [
         'rm -f %(coverage_file)s' % data,
         'lcov --no-checksum --directory %(project_dir)s -b . --capture --output-file %(coverage_file)s' % data,
         'lcov --no-checksum --directory %(project_dir)s -b . --capture --output-file %(coverage_file)s' % data,

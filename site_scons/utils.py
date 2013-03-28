@@ -166,7 +166,7 @@ def DirsFlatten(env, path):
     return out
 
 
-def chain_calls(env, cmds, silent=True):
+def ChainCalls(env, cmds, silent=True):
     if cmds:
         cmd = cmds[0]
         with open(os.devnull, "w") as fnull:
@@ -176,7 +176,7 @@ def chain_calls(env, cmds, silent=True):
             env.cerror('error executing: %s' % cmd)
             return rc
         else:
-            return chain_calls(env, cmds[1:], silent)
+            return ChainCalls(env, cmds[1:], silent)
     else:
         return 0
 
