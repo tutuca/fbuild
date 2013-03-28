@@ -1,6 +1,7 @@
 # fudepan-build: The build system for FuDePAN projects
 #
-# Copyright (C) 2011-2012 Esteban Papp, Hugo Arregui, 2013 Gonzalo Bonigo, FuDePAN
+# Copyright (C) 2011-2012 Esteban Papp, Hugo Arregui, 
+#               2013 Gonzalo Bonigo, Gustavo Ojeda FuDePAN
 #
 # This file is part of the fudepan-build build system.
 #
@@ -252,10 +253,11 @@ class HeaderOnlyComponent(Component):
     
     def _create_cccc_target(self, sources):
         # Create the 'target', it is the directory where the result will be put.
-        target = self.env.Dir(self.env['INSTALL_METRICS_DIR']).Dir('cccc').Dir(self.name)
+        reports_dir = self.env['INSTALL_REPORTS_DIR']
+        target = self.env.Dir(reports_dir).Dir(self.env['INSTALL_METRICS_DIR']).Dir('cccc').Dir(self.name)
         # Set the name of the report file.
         outdir = target.abspath + os.sep
-        self.env.Append(CCCC_OPTIONS='--html_outfile='+outdir+'MainHTMLReport')
+        self.env.Append(CCCC_OPTIONS='--html_outfile='+outdir+'CCCCMainHTMLReport.html')
         # Call RunCCCC().
         cccc = self.env.RunCCCC(target, sources)
         self.env.AlwaysBuild(cccc)
@@ -265,8 +267,12 @@ class HeaderOnlyComponent(Component):
         self.env.Depends(self.jenkins_target,cccc)
     
     def _create_cloc_target(self, sources):
+        # Check if we need to create an xml report.
+        if utils.wasTargetInvoked('%s:jenkins' % self.name.split(':')[0]):
+            self.env.Replace(CLOC_OUTPUT_FORMAT='xml')
         # Create the 'target', it is the directory where the result will be put.
-        target = self.env.Dir(self.env['INSTALL_METRICS_DIR']).Dir('cloc').Dir(self.name)
+        reports_dir = self.env['INSTALL_REPORTS_DIR']
+        target = self.env.Dir(reports_dir).Dir(self.env['INSTALL_METRICS_DIR']).Dir('cloc').Dir(self.name)
         # Set the name of the report file.
         outdir = target.abspath
         if self.env['CLOC_OUTPUT_FORMAT'] == 'txt':
@@ -296,7 +302,7 @@ class HeaderOnlyComponent(Component):
     
     def _create_cppcheck_target(self, sources):
         # Create the 'target', it is the directory where the result will be put.
-        target = self.env.Dir(self.env['INSTALL_METRICS_DIR']).Dir('cppcheck').Dir(self.name)
+        target = self.env.Dir(self.env['INSTALL_REPORTS_DIR']).Dir('cppcheck').Dir(self.name)
         # Call RunCppCheck().
         cppcheck = self.env.RunCppCheck(target, sources)
         self.env.AlwaysBuild(cppcheck)
@@ -605,8 +611,8 @@ class UnitTestComponent(ProgramComponent):
         target = "%s.cov" % target
         covTest = self.env.RunUnittest(target, self.prog)
         # Targets and sources for RunLcov() builder.
-        metrics_dir = self.env['INSTALL_METRICS_DIR']
-        coverage_dir = self.env.Dir(metrics_dir).Dir('coverage').Dir(self.name)
+        reports_dir = self.env['INSTALL_REPORTS_DIR']
+        coverage_dir = self.env.Dir(reports_dir).Dir('coverage').Dir(self.name)
         runLcovTargets = os.path.join(coverage_dir.abspath, 'index.html')
         runLcovSources = [self.prog]
         # Call builder RunLcov().

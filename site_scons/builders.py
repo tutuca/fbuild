@@ -1,7 +1,7 @@
 # fudepan-build: The build system for FuDePAN projects
 #
 # Copyright (C) 2011 Esteban Papp, Hugo Arregui, Alejandro Kondrasky,
-# 2013 Gonzalo Bonigo, Gustavo Ojeda, FuDePAN
+#               2013 Gonzalo Bonigo, Gustavo Ojeda, FuDePAN.
 #
 # This file is part of the fudepan-build build system.
 #
@@ -64,7 +64,8 @@ def init(env):
     #-
     bldValgrind = Builder(action = SCons.Action.Action(RunValgrind, PrintDummy))
     env.Append(BUILDERS = {'RunValgrind':  bldValgrind})
-    env['VALGRIND_OPTIONS'] = ' --leak-check=full --show-reachable=yes --error-limit=no '
+    env['VALGRIND_OPTIONS'] = ' --leak-check=full --show-reachable=yes' + \
+                              '--error-limit=no '
     #-
     bldCCCC = Builder(action = SCons.Action.Action(RunCCCC, PrintDummy))
     env.Append(BUILDERS = {'RunCCCC':  bldCCCC})
@@ -109,15 +110,17 @@ def InitLcov(env, source, target):
     test_executable = source[0].abspath
     indexFile = target[0].abspath
     data = {
-            'coverage_file': os.path.join(os.path.dirname(os.path.dirname(indexFile)), 'coverage_output.dat'),
-            'output_dir'   : env.Dir('INSTALL_METRICS_DIR'),
-            'project_dir'  : env['PROJECT_DIR']
-           }
-
-    r = chain_calls(env, [
-        'lcov --zerocounters --directory %(project_dir)s -b .' % data,
-        'lcov --capture --initial --directory %(project_dir)s -b . --output-file %(coverage_file)s' % data,
-        ])
+        'coverage_file': os.path.join(os.path.dirname(os.path.dirname(indexFile)),
+                                      'coverage_output.dat'),
+        'output_dir'   : env.Dir('INSTALL_METRICS_DIR'),
+        'project_dir'  : env['PROJECT_DIR']
+    }
+    r = chain_calls(
+      env,
+      ['lcov --zerocounters --directory %(project_dir)s -b .' % data,
+       'lcov --capture --initial --directory %(project_dir)s -b . --output-file'+\
+       '%(coverage_file)s' % data]
+    )
     return r
 
 
@@ -125,23 +128,28 @@ def RunLcov(env, source, target):
     test_executable = source[0].abspath
     indexFile = target[0].abspath
     data = {
-            'coverage_file': os.path.join(os.path.dirname(os.path.dirname(indexFile)), 'coverage_output.dat'),
-            'output_dir'   : os.path.dirname(indexFile),
-            'project_dir'  : env['PROJECT_DIR']
-           }
-
-    r = chain_calls(env, [
-        'rm -f %(coverage_file)s' % data,
-        'lcov --no-checksum --directory %(project_dir)s -b . --capture --output-file %(coverage_file)s' % data,
-        'lcov --no-checksum --directory %(project_dir)s -b . --capture --output-file %(coverage_file)s' % data,
-        'lcov --remove %(coverage_file)s "*usr/include*" -o %(coverage_file)s' % data,
-        'lcov --remove %(coverage_file)s "*boost*" -o %(coverage_file)s' % data,
-        'lcov --remove %(coverage_file)s "*gtest*" -o %(coverage_file)s' % data,
-        'lcov --remove %(coverage_file)s "*gmock*" -o %(coverage_file)s' % data,
-        'lcov --remove %(coverage_file)s "*install/*" -o %(coverage_file)s' % data,
-        'lcov --remove %(coverage_file)s "*/tests/*" -o %(coverage_file)s' % data,
-        'genhtml --highlight --legend --output-directory %(output_dir)s %(coverage_file)s' % data,
-        ])
+        'coverage_file': os.path.join(os.path.dirname(os.path.dirname(indexFile)),
+                                      'coverage_output.dat'),
+        'output_dir'   : os.path.dirname(indexFile),
+        'project_dir'  : env['PROJECT_DIR']
+    }
+    r = chain_calls(
+      env,
+      ['rm -f %(coverage_file)s' % data,
+       'lcov --no-checksum --directory %(project_dir)s -b . --capture ' + \
+       '--output-file %(coverage_file)s' % data,
+       'lcov --no-checksum --directory %(project_dir)s -b . --capture ' + \
+       '--output-file %(coverage_file)s' % data,
+       'lcov --remove %(coverage_file)s "*usr/include*" -o %(coverage_file)s' \
+       % data,
+       'lcov --remove %(coverage_file)s "*boost*" -o %(coverage_file)s' % data,
+       'lcov --remove %(coverage_file)s "*gtest*" -o %(coverage_file)s' % data,
+       'lcov --remove %(coverage_file)s "*gmock*" -o %(coverage_file)s' % data,
+       'lcov --remove %(coverage_file)s "*install/*" -o %(coverage_file)s' % data,
+       'lcov --remove %(coverage_file)s "*/tests/*" -o %(coverage_file)s' % data,
+       'genhtml --highlight --legend --output-directory %(output_dir)s ' + \
+       '%(coverage_file)s' % data]
+    )
     if r == 0:
         env.Cprint('lcov report in: %s' % indexFile, 'green')
     return r
@@ -218,12 +226,45 @@ def AStyleCheck(env, source, target):
             need_astyle = True
     # Remove the '*.orig' files.
     os.system('rm -rf %s/*.orig' % target)
-    # Print info.
+    # If some file needs astyle we print info.
     if need_astyle:
-        env.Cprint('[ERROR] The following files need astyle:', 'red')
+        # Get the name of the project.
+        project = os.path.split(target)[1]
+        # Check if the builder was called for jenkins.
+        if utils.wasTargetInvoked('%s:jenkins' % project):
+            # Create the report directory.
+            report_dir = os.path.join(
+                env['INSTALL_REPORTS_DIR'],
+                'astyle-check',
+                project
+            )
+            if not os.path.exists(report_dir):
+                os.makedirs(report_dir)
+            # Report file name.
+            report_file = 'astyle-check-report.diff'
+            # Path to the report file.
+            report_path = os.path.join(report_dir, report_file)
+            # Open the report file.
+            try:
+                report = open(report_path, 'w')
+            except IOError:
+                env.Cprint('No such file or directory:', report_path)
+                return 1
+            else:
+                # If we can open it we truncate it.
+                report.truncate(0)
+        # Print a warning message.
+        env.Cprint('[WARNING] The following files need astyle:', 'red')
+        # Print what need to be astyled.
         for f,info in need_astyle_list:
+            # If it was called for jenkins we write the diff into the report file.
+            if utils.wasTargetInvoked('%s:jenkins' % project):
+                report.write(info+'\n\n')
             env.Cprint('====> %s' % f, 'red')
             env.Cprint(info,'yellow')
+        # Check if we have to close the report file.
+        if utils.wasTargetInvoked('%s:jenkins' % project):
+            report.close()
     else:
         env.Cprint('[OK] No file needs astyle.', 'green')
 
@@ -286,9 +327,6 @@ def RunCCCC(env, source, target):
     # Create the command to be pass to subprocess.call()
     cmd = 'cccc %s %s' % (options, files)
     ret_val = subprocess.call(cmd, shell=True)
-    # Remove unnecessary files.
-    rm = "cd %s; mv MainHTMLReport CCCCMainHTMLReport.html" % target
-    subprocess.call(rm, shell=True)
     return ret_val
 
 
@@ -320,5 +358,5 @@ def RunCppCheck(env, source, target):
     # Set the name of the report file.
     outfile = "%s/CppCheckReport.txt" % target
     # Create the command to be pass to subprocess.call()
-    cmd = 'cppcheck %s %s > %s' % (options, files, outfile)
+    cmd = "cppcheck %s %s | sed '/files checked /d' > %s" % (options, files, outfile)
     return subprocess.call(cmd, shell=True)
