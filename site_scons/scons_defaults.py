@@ -79,9 +79,17 @@ def init(env,vars,args):
             PathVariable.PathIsDirCreate))
     vars.AddVariables(
         PathVariable(
+            'INSTALL_REPORTS_DIR',
+            'software reports directory',
+            os.path.join(INSTALL_DIR, "reports"),
+            PathVariable.PathIsDirCreate))
+    vars.Update(env)
+    REPORT_DIR = env.Dir(env['INSTALL_REPORTS_DIR']).abspath
+    vars.AddVariables(
+        PathVariable(
             'INSTALL_METRICS_DIR',
             'software metrics directory',
-            os.path.join(INSTALL_DIR, "metrics"),
+            os.path.join(REPORT_DIR, "metrics"),
             PathVariable.PathIsDirCreate))
     vars.Update(env)
     if args.get('VERBOSE') == '1':
