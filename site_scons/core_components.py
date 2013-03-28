@@ -266,6 +266,9 @@ class HeaderOnlyComponent(Component):
         self.env.Depends(self.jenkins_target,cccc)
     
     def _create_cloc_target(self, sources):
+        # Check if we need to create an xml report.
+        if utils.wasTargetInvoked('%s:jenkins' % self.name.split(':')[0]):
+            self.env.Replace(CLOC_OUTPUT_FORMAT='xml')
         # Create the 'target', it is the directory where the result will be put.
         target = self.env.Dir(self.env['INSTALL_METRICS_DIR']).Dir('cloc').Dir(self.name)
         # Set the name of the report file.
