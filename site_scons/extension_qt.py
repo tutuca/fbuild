@@ -28,7 +28,7 @@ import sys
 import os
 
 
-def hasQt(env):
+def HasQt(env):
     hasQt = False
     moc4 = env.WhereIs('moc-qt4') or env.WhereIs('moc4')
     if moc4:

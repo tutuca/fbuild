@@ -19,14 +19,14 @@
 
 #import os
 #import platform
-#import sys
 #import os
+import sys
 import extension_qt
 import SCons
 
 env = Environment()
 
-hasQt = extension_qt.hasQt(env)
+hasQt = extension_qt.HasQt(env)
 
 if hasQt:
     env = Environment(tools=['default', 'qt4'])
@@ -38,15 +38,19 @@ Export('env')
 vars = Variables('SConfig')
 Export('vars')
 
+# Set command line arguments.
+import options
+options.init(env)
+
 # Color pretty printing
 import termcolor
 termcolor.init(env, ARGUMENTS)
 
-# default configuration options
+# Default configuration options
 import scons_defaults
 scons_defaults.init(env, vars, ARGUMENTS)
 
-# things to debug the environment
+# Things to debug the environment
 import debug
 debug.init(env)
 
@@ -83,7 +87,7 @@ if hasQt:
     extension_qt.init(env)
 
 import fudepan
-fudepan.setDefines(env)
+fudepan.SetDefines(env)
 
 ## Walk over the tree finding components
 dependencygraph.WalkDirsForSconscripts(env, topdir = env['WS_DIR'],
