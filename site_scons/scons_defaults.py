@@ -83,6 +83,13 @@ def init(env,vars,args):
             'software metrics directory',
             os.path.join(INSTALL_DIR, "metrics"),
             PathVariable.PathIsDirCreate))
+    vars.AddVariables(
+        PathVariable(
+            'INSTALL_REPORT_DIR',
+            'software reports directory',
+            os.path.join(INSTALL_DIR, "reports"),
+            PathVariable.PathIsDirCreate))
+            
     vars.Update(env)
     if args.get('VERBOSE') == '1':
         env.cdebug('Install information:')
