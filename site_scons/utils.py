@@ -159,7 +159,7 @@ def FilesFlatten(env, path, fileFilter):
     return out
 
 
-def dirs_flatten(env, path):
+def DirsFlatten(env, path):
     out = []
     for root, dirnames, filenames in os.walk(path):
         out.append(env.Dir(os.path.join(root, dirnames)))
