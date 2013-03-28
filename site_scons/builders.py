@@ -1,7 +1,7 @@
 # fudepan-build: The build system for FuDePAN projects
 #
 # Copyright (C) 2011 Esteban Papp, Hugo Arregui, Alejandro Kondrasky,
-# 2013 Gonzalo Bonigo, Gustavo Ojeda, FuDePAN
+#               2013 Gonzalo Bonigo, Gustavo Ojeda, FuDePAN
 #
 # This file is part of the fudepan-build build system.
 #
@@ -284,9 +284,6 @@ def RunCCCC(env, source, target):
     # Create the command to be pass to subprocess.call()
     cmd = 'cccc %s %s' % (options, files)
     ret_val = subprocess.call(cmd, shell=True)
-    # Remove unnecessary files.
-    rm = "cd %s; mv MainHTMLReport CCCCMainHTMLReport.html" % target
-    subprocess.call(rm, shell=True)
     return ret_val
 
 

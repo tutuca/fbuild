@@ -1,6 +1,7 @@
 # fudepan-build: The build system for FuDePAN projects
 #
-# Copyright (C) 2011-2012 Esteban Papp, Hugo Arregui, 2013 Gonzalo Bonigo, FuDePAN
+# Copyright (C) 2011-2012 Esteban Papp, Hugo Arregui, 
+#               2013 Gonzalo Bonigo, Gustavo Ojeda FuDePAN
 #
 # This file is part of the fudepan-build build system.
 #
@@ -251,7 +252,7 @@ class HeaderOnlyComponent(Component):
         target = self.env.Dir(self.env['INSTALL_METRICS_DIR']).Dir('cccc').Dir(self.name)
         # Set the name of the report file.
         outdir = target.abspath + os.sep
-        self.env.Append(CCCC_OPTIONS='--html_outfile='+outdir+'MainHTMLReport')
+        self.env.Append(CCCC_OPTIONS='--html_outfile='+outdir+'CCCCMainHTMLReport.html')
         # Call RunCCCC().
         cccc = self.env.RunCCCC(target, sources)
         self.env.AlwaysBuild(cccc)
