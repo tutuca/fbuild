@@ -222,6 +222,7 @@ def AStyleCheck(env, source, target):
     if need_astyle:
         env.Cprint('[ERROR] The following files need astyle:', 'red')
         for f,info in need_astyle_list:
+            
             env.Cprint('====> %s' % f, 'red')
             env.Cprint(info,'yellow')
     else:
