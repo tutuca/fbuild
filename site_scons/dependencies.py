@@ -42,6 +42,8 @@ DEP_PROJECT = 'project'
 DEP_EXTERNAL = 'external dependency'
 # Stores the distribution name. It's set within the init() function.
 DISTRO = None
+# Default package manager.
+MANAGER = None
 # Dictionary with the projects from 'conf/projects.xml'
 projects = {}
 # Dictionary with the components from 'conf/external_dependencies.xml'
@@ -66,7 +68,12 @@ def init(env):
     # We try to get in which distro we are.
     try:
         global DISTRO
+        global MANAGER
         DISTRO = utils.get_distro()
+        if DISTRO == utils.DISRTO_ARCH:
+            MANAGER = 'APTITUDE'
+        else:
+            MANAGER = 'PACMAN'
     except utils.DistroError:
         env.Cprint('[warn] unsupported distribution.', 'yellow')
     # Create a builder for the checkout of the dependencies.
