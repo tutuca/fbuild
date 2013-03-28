@@ -144,7 +144,7 @@ class ExternalLibraryComponent(Component):
 
     def GetIncludePaths(self):
         (incs, processedComponents) = self._GetIncludePaths([], 0)
-        return utils.removeDuplicates(incs)
+        return utils.RemoveDuplicates(incs)
 
     def _GetIncludePaths(self, processedComponents, depth):
         incs = []

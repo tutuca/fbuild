@@ -79,7 +79,7 @@ def RecursiveInstall(env, sourceDir, sourcesRel, targetName, fileFilter=None):
 
 
 ## {{{ http://code.activestate.com/recipes/52560/ (r1)
-def removeDuplicates(s):
+def RemoveDuplicates(s):
     """Return a list of the elements in s, but without duplicates.
 
     For example, unique([1,2,3,1,2,3]) is some permutation of [1,2,3],
