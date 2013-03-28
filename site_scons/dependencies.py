@@ -66,7 +66,7 @@ def init(env):
     # We try to get in which distro we are.
     try:
         global DISTRO
-        DISTRO = utils.get_distro()
+        DISTRO = utils.GetDistro()
     except utils.DistroError:
         env.Cprint('[warn] unsupported distribution.', 'yellow')
     # Create a builder for the checkout of the dependencies.

@@ -39,7 +39,7 @@ _DISRTO_FILE = '/etc/issue'
 
 class DistroError (Exception):
     """
-        This class exception is used by the function get_distro().
+        This class exception is used by the function GetDistro().
     """
     pass
 
@@ -181,7 +181,7 @@ def ChainCalls(env, cmds, silent=True):
         return 0
 
 
-def get_distro ():
+def GetDistro():
     try:
         f = open(_DISRTO_FILE, 'r')
     except OSError:
