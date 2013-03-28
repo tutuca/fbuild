@@ -25,6 +25,7 @@
 
 import subprocess
 import fnmatch
+import sys
 import os
 
 from SCons.Node.FS import Dir
@@ -44,14 +45,14 @@ class DistroError (Exception):
     pass
 
 
-def findFiles(env, fromDir, filters=None):
+def FindFiles(env, fromDir, filters=None):
     if filters == None:
         filters = ['*']
     path = fromDir.abspath
     files = []
     for s in env.Glob(path + '/*'):
         if isinstance(s, Dir): #s.isdir doesn't work as expected in variant dir (when the dir is not created)
-            files.extend(findFiles(env, s, filters))
+            files.extend(FindFiles(env, s, filters))
         else:
             if any([fnmatch.fnmatch(s.abspath, filter) for filter in filters]):
                 files.append(s)
@@ -63,7 +64,7 @@ def RecursiveInstall(env, sourceDir, sourcesRel, targetName, fileFilter=None):
         fileFilter = ['*.*']
     nodes = []
     for s in sourcesRel:
-        nodes.extend(findFiles(env, s, fileFilter))
+        nodes.extend(FindFiles(env, s, fileFilter))
     l = len(sourceDir.abspath) + 1
     relnodes = [ n.abspath[l:] for n in nodes ]
     targetHeaderDir = env.Dir(env['INSTALL_HEADERS_DIR']).Dir(targetName).abspath
@@ -182,6 +183,16 @@ def chain_calls(env, cmds, silent=True):
 
 
 def get_distro ():
+    """
+        Description:
+            This function tells in which distribution of linux we are.
+        Arguments:
+            None.
+        Exceptions:
+            DistroError.
+        Return:
+            A string instance with the name of the distribution.
+    """
     try:
         f = open(_DISRTO_FILE, 'r')
     except OSError:
@@ -197,3 +208,21 @@ def get_distro ():
         else:
             raise DistroError()
         return result
+
+
+def wasTargetInvoked(target):
+    """
+        Description:
+            This function tells if a specific target was invoked or not.
+        Arguments:
+            target  -  A string instance with the name of target to be check.
+        Exceptions:
+            None.
+        Return:
+            True  if the target was called.
+            False otherwise.
+    """
+    for arg in sys.argv:
+        if arg == target:
+            return True
+    return False

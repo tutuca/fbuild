@@ -1,6 +1,6 @@
 # fudepan-build: The build system for FuDePAN projects 
 #
-# Copyright (C) 2011 Esteban Papp, 2013 Gonzalo Bonigo, FuDePAN
+# Copyright (C) 2013 Gonzalo Bonigo, FuDePAN
 # 
 # This file is part of the fudepan-build build system.
 # 
@@ -17,15 +17,17 @@
 # You should have received a copy of the GNU General Public License
 # along with fudepan-build.  If not, see <http://www.gnu.org/licenses/>.
 
-
 """
-    This file has specific FuDePAN stuff.
+    This file allows to add command line flag for fbuild.
 """
 
+from SCons.Script import AddOption
 
-def SetDefines(env): 
-    flags = ["-D'INSTALL_LIB_DIR=\"%s\"'" % env['INSTALL_LIB_DIR'].rstrip('/')]
-    env.Append(CXXFLAGS = flags, CFLAGS = flags)
-    # this defines are only for playing with ANA
-    #env.AppendUnique(CPPFLAGS = ['-Dmiddleware=ana'])
-    #env.AppendUnique(CPPFLAGS = ['-Dapps=ON'])
+def init(env):
+    AddOption(
+        '--jenkins',
+        dest='jenkins',
+        action='store_true',
+        help='Switch the run mode to jenkins.',
+        default=False
+    )

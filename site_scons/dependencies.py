@@ -32,12 +32,12 @@ from xml.dom import minidom
 from SCons.Script import Builder
 import SCons
 
-from termcolor import cformat
-from termcolor import cprint
+from termcolor import Cformat
+from termcolor import Cprint
 import utils
 
 
-# Constants for the _createDependency() function.
+# Constants for the _CreateDependency() function.
 DEP_PROJECT = 'project'
 DEP_EXTERNAL = 'external dependency'
 # Stores the distribution name. It's set within the init() function.
@@ -68,7 +68,7 @@ def init(env):
         global DISTRO
         DISTRO = utils.get_distro()
     except utils.DistroError:
-        env.cprint('[warn] unsupported distribution.', 'yellow')
+        env.Cprint('[warn] unsupported distribution.', 'yellow')
     # Create a builder for the checkout of the dependencies.
     coDep = SCons.Action.Action(CheckoutDependency, CheckoutDependencyMessage)
     checkoutBuilder = Builder(action = coDep)
@@ -78,9 +78,9 @@ def init(env):
     updateBuilder = Builder(action = upDep)
     env.Append(BUILDERS={'UpdateDependency': updateBuilder})
     # Creates projects targets.
-    _createProjectsDependenciesTargets(env)
+    _CreateProjectsDependenciesTargets(env)
     # Create external dependencies targets.
-    _createExternalDependenciesTargets(env)
+    _CreateExternalDependenciesTargets(env)
     # Puts a public function within the environment.
     env.CheckoutDependencyNow = CheckoutDependencyNow
 
@@ -118,7 +118,7 @@ class Dependencies(object):
         else:
             self.create_ext_lib_component = ''
 
-    def afterCheckout(self):
+    def AfterCheckout(self):
         """
             Description:
                 This method download the component/project and install it.
@@ -131,17 +131,17 @@ class Dependencies(object):
                 False otherwise.
         """
         if len(self.executeAfter) > 0:
-            commands = _getExecutableCommands(self.env,self.executeAfter)
+            commands = _GetExecutableCommands(self.env,self.executeAfter)
             for cmd in commands:
-                cprint('[info] execute post-checkout command: %s' % cmd, 'purple')
+                Cprint('[info] execute post-checkout command: %s' % cmd, 'purple')
                 rc = subprocess.call(cmd, shell=True)
                 if rc != 0:
-                    return cformat('[error] failed to execute post-checkout ' + \
+                    return Cformat('[error] failed to execute post-checkout ' + \
                                    'command: %s, error: %s' % (cmd, rc),
                                    'red')
         return 0
     
-    def checkInstall(self):
+    def CheckInstall(self):
         """
             Description:
                 This method check if the component/project is installed or not.
@@ -156,7 +156,7 @@ class Dependencies(object):
         # If a checker was provided, we use it.
         if len(self.inatllChecker) > 0:
             result = False
-            commands = _getExecutableCommands(self.env,self.inatllChecker)
+            commands = _GetExecutableCommands(self.env,self.inatllChecker)
             for cmd in commands:
                 rc = subprocess.call(cmd, shell=True, stdout=PIPE, stderr=PIPE)
                 result = rc==0
@@ -170,7 +170,7 @@ class Dependencies(object):
             result = False
         return result
 
-    def checkout(self):
+    def Checkout(self):
         pass
 
 
@@ -182,22 +182,22 @@ class HG(Dependencies):
             self.url = target
             self.target = self.env.Dir(os.path.join(TMP_DIR, name)).abspath
     
-    def checkout(self):
+    def Checkout(self):
         if not os.path.exists(self.target):
             os.makedirs(self.target)
-        cprint('[hg] checkout %s => %s' % (self.url, self.target), 'purple')
+        Cprint('[hg] Checkout %s => %s' % (self.url, self.target), 'purple')
         rc = subprocess.call(['hg', 'clone', self.url, self.target])
         if rc != 0:
-            return cformat('[error] hg failed to checkout target %s from %s, ' + \
+            return Cformat('[error] hg failed to Checkout target %s from %s, ' + \
                            'error: %s' % (self.target, self.url, rc),
                            'red')
-        return self.afterCheckout()
+        return self.AfterCheckout()
 
-    def update(self):
-        cprint('[hg] updating %s => %s' % (self.url, self.target), 'purple')
+    def Update(self):
+        Cprint('[hg] updating %s => %s' % (self.url, self.target), 'purple')
         rc = subprocess.call("cd %s; hg pull -u" % self.target, shell=True)
         if rc != 0:
-            return cformat('[error] hg failed to update target %s from %s, ' + \
+            return Cformat('[error] hg failed to update target %s from %s, ' + \
                            'error: %s' (self.target, self.url, rc),
                            'red')
         return 0
@@ -211,22 +211,22 @@ class SVN(Dependencies):
             self.url = target
             self.target = self.env.Dir(os.path.join(TMP_DIR, name)).abspath
     
-    def checkout(self):
+    def Checkout(self):
         if not os.path.exists(self.target):
             os.makedirs(self.target)
-        cprint('[svn] checkout %s => %s' % (self.url, self.target), 'purple')
-        cmd = ['svn', 'checkout'] + (['--username', self.username] if self.username else []) + [self.url, self.target]
+        Cprint('[svn] Checkout %s => %s' % (self.url, self.target), 'purple')
+        cmd = ['svn', 'Checkout'] + (['--username', self.username] if self.username else []) + [self.url, self.target]
         rc = subprocess.call(cmd)
         if rc != 0 :
-            return cformat('[error] svn failed to checkout target %s from %s, error: %s' 
+            return Cformat('[error] svn failed to checkout target %s from %s, error: %s' 
                            % (self.target, self.url, rc), 'red')
-        return self.afterCheckout()
+        return self.AfterCheckout()
 
-    def update(self):
-        cprint('[svn] updating %s => %s' % (self.url, self.target), 'purple')
+    def Update(self):
+        Cprint('[svn] updating %s => %s' % (self.url, self.target), 'purple')
         rc = subprocess.call("cd %s; svn update" % self.target, shell=True)
         if rc != 0 :
-            return cformat('[error] svn failed to update target %s from %s, error: %s' 
+            return Cformat('[error] svn failed to update target %s from %s, error: %s' 
                            % (self.target, self.url, rc), 'red')
         return 0
 
@@ -239,17 +239,17 @@ class WGET(Dependencies):
             self.url = target
             self.target = self.env.Dir(os.path.join(TMP_DIR, name)).abspath
     
-    def checkout(self):
+    def Checkout(self):
         if not os.path.exists(self.target):
             os.makedirs(self.target)
-        cprint('[wget] downloading %s => %s' % (self.url, self.target), 'purple')
+        Cprint('[wget] downloading %s => %s' % (self.url, self.target), 'purple')
         rc = subprocess.call(['wget', self.url, '-P', self.target])
         if rc != 0 :
-           return cformat('[error] wget failed to download target %s from %s, error: %s' 
+           return Cformat('[error] wget failed to download target %s from %s, error: %s' 
                           % (self.target, self.url, rc), 'red')
-        return self.afterCheckout()
+        return self.AfterCheckout()
     
-    def update(self):
+    def Update(self):
         # this is not supported, should be? should we download the version
         # again an update? that will be time consuming and update should be
         # fast. This should be supported once we mark the version and there
@@ -259,49 +259,49 @@ class WGET(Dependencies):
 
 class PACKER(Dependencies):
     
-    def checkout(self):
-        cprint('[packer] installing %s ' % self.name, 'purple')
+    def Checkout(self):
+        Cprint('[packer] installing %s ' % self.name, 'purple')
         rc = subprocess.call('sudo packer -S %s' % self.target, shell=True)
         if rc != 0 :
-           return cprint('[error] pacman failed to installing %s, error: %s' 
+           return Cprint('[error] pacman failed to installing %s, error: %s' 
                           % (self.target, rc), 'red')
-        return self.afterCheckout()
+        return self.AfterCheckout()
 
 
 class PACMAN(Dependencies):
     
-    def checkout(self):
-        cprint('[pacman] installing %s ' % self.name, 'purple')
+    def Checkout(self):
+        Cprint('[pacman] installing %s ' % self.name, 'purple')
         rc = subprocess.call('sudo pacman -S %s' % self.target, shell=True)
         if rc != 0 :
-           return cprint('[error] pacman failed to installing %s, error: %s' 
+           return Cprint('[error] pacman failed to installing %s, error: %s' 
                           % (self.target, rc), 'red')
-        return self.afterCheckout()
+        return self.AfterCheckout()
 
 
 class APT_GET(Dependencies):
     
-    def checkout(self):
-        cprint('[apt-get] installing %s ' % self.name, 'purple')
+    def Checkout(self):
+        Cprint('[apt-get] installing %s ' % self.name, 'purple')
         rc = subprocess.call('sudo apt-get install %s' % self.target, shell=True)
         if rc != 0 :
-           return cprint('[error] apt-get failed to installing %s, error: %s' 
+           return Cprint('[error] apt-get failed to installing %s, error: %s' 
                           % (self.target, rc), 'red')
-        return self.afterCheckout()
+        return self.AfterCheckout()
 
 
 class APTITUDE(Dependencies):
     
-    def checkout(self):
-        cprint('[aptitude] installing %s ' % self.name, 'purple')
+    def Checkout(self):
+        Cprint('[aptitude] installing %s ' % self.name, 'purple')
         rc = subprocess.call('sudo aptitude install %s' % self.target, shell=True)
         if rc != 0 :
-           return cprint('[error] aptitude failed to installing %s, error: %s' 
+           return Cprint('[error] aptitude failed to installing %s, error: %s' 
                           % (self.target, rc), 'red')
-        return self.afterCheckout()
+        return self.AfterCheckout()
 
 
-def _createProjectsDependenciesTargets(env):
+def _CreateProjectsDependenciesTargets(env):
     """
         Description:
             This function parse the projects.xml file, creates the dependencies 
@@ -320,14 +320,14 @@ def _createProjectsDependenciesTargets(env):
     for projectElement in projectElements:
         projectName = projectElement.getAttribute('name')
         if projects.has_key(projectName) > 0:
-            env.cprint (
+            env.Cprint (
                 '[warn] project '+projectName+' information is duplicated in'+\
                 ' the projects.xml file',
                 'yellow'
             )
         else:
             projectType = projectElement.getAttribute('repository_type')
-            project = _createDependency(env,projectName,projectType,projectElement)
+            project = _CreateDependency(env,projectName,projectType,projectElement)
             if project:
                 projects[projectName] = project
     localProjectsFile = os.path.join(confDir, 'projects_local.xml') 
@@ -335,7 +335,7 @@ def _createProjectsDependenciesTargets(env):
         localProjectElements = projectsDom.getElementsByTagName('project')
         for localProjectElment in localProjectElements:
             projectType = projectElement.getAttribute('repository_type')
-            project = _createDependency(env,projectName,projectType,projectElement)
+            project = _CreateDependency(env,projectName,projectType,projectElement)
             if project:
                 projects[projectName] = project    
     for project in projects.keys():
@@ -344,15 +344,15 @@ def _createProjectsDependenciesTargets(env):
         if env.Dir(projectDir).exists():
             tgt = project + ':update'
             updateAction = env.UpdateDependency(tgt,'SConstruct')
-            env.AlwaysBuild( env.Alias(tgt, updateAction, 'update ' + project))
+            env.AlwaysBuild( env.Alias(tgt, updateAction, 'Update ' + project))
             env.Alias('all:update', tgt, 'updates all checked-out projects')
         else:
             tgt = project + ':checkout'
             checkoutAction = env.CheckoutDependency(tgt,'SConstruct')
-            env.AlwaysBuild( env.Alias(tgt, checkoutAction, 'checkout ' + project))
+            env.AlwaysBuild( env.Alias(tgt, checkoutAction, 'Checkout ' + project))
 
 
-def _createExternalDependenciesTargets(env):
+def _CreateExternalDependenciesTargets(env):
     """
         Description:
             This function parse the external_dependencies.xml file, creates the 
@@ -378,7 +378,7 @@ def _createExternalDependenciesTargets(env):
         # dictionary, we have duplicated information into the external_dependencies
         # xml file.
         if external_dependencies.has_key(componentName) > 0:
-            env.cprint('[warn] component ' + componentName + \
+            env.Cprint('[warn] component ' + componentName + \
                        ' information is duplicated in the ' + \
                        'external_dependencies.xml file', 'yellow')
         else:
@@ -392,7 +392,7 @@ def _createExternalDependenciesTargets(env):
                     componentTarget = installer.getAttribute('target')
                     componentType = installer.getAttribute('manager')
                     break
-            dep = _createDependency(env,
+            dep = _CreateDependency(env,
                                     componentName,
                                     componentType,
                                     componentElement,
@@ -402,12 +402,12 @@ def _createExternalDependenciesTargets(env):
                 external_dependencies[componentName] = dep
     # Check if each component is already installed.
     for component in external_dependencies.keys():
-        if external_dependencies[component].checkInstall():
+        if external_dependencies[component].CheckInstall():
             st = external_dependencies[component].create_ext_lib_component
             env.ExternalDependenciesCreateComponentsDict[component] = st
 
 
-def _createDependency(env, name, type, node, target=None, dep_type=DEP_PROJECT):
+def _CreateDependency(env, name, type, node, target=None, dep_type=DEP_PROJECT):
     if target is None:
         target = os.path.join(env['WS_DIR'], name)
     if type == 'DEP':
@@ -427,7 +427,7 @@ def _createDependency(env, name, type, node, target=None, dep_type=DEP_PROJECT):
     elif type == 'PACKER':
         return PACKER(name, target, node, env)
     else:
-        cprint('[error] %s %s has repository %s which is not supported' 
+        Cprint('[error] %s %s has repository %s which is not supported' 
                % (dep_type, name, type), 'red')
         return None
 
@@ -504,7 +504,7 @@ def _CheckProgInstall(prog):
     return subprocess.call(cmd, shell=True, stdout=PIPE, stderr=PIPE) == 0
 
 
-def _getExecutableCommands(env, string_commands):
+def _GetExecutableCommands(env, string_commands):
     """
         Description:
             Parse a string with multiple shell commands and return a list of 
@@ -553,7 +553,7 @@ def CheckoutDependency(env, source, target):
         dep = external_dependencies[depname]
     else:
         dep = projects[depname]
-    result = dep.checkout()
+    result = dep.Checkout()
     if dep.create_ext_lib_component:
         st = dep.create_ext_lib_component
         env.ExternalDependenciesCreateComponentsDict[depname] = st
@@ -571,7 +571,7 @@ def CheckoutDependencyNow(depname, env):
     else:
         dep = projects.get(depname)
     if dep:
-        result = dep.checkout()==0
+        result = dep.Checkout()==0
         if dep.create_ext_lib_component:
             st = dep.create_ext_lib_component
             env.ExternalDependenciesCreateComponentsDict[depname] = st
@@ -588,4 +588,4 @@ def UpdateDependencyMessage(env, source, target):
 
 def UpdateDependency(env, source, target):
     dep = str(target[0]).split(':')[0]
-    return projects[dep].update()
+    return projects[dep].Update()
