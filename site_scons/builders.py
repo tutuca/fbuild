@@ -220,33 +220,29 @@ def AStyleCheck(env, source, target):
             need_astyle = True
     # Remove the '*.orig' files.
     os.system('rm -rf %s/*.orig' % target)
+    # Get the name of the project.
+    project = os.path.split(target)[1]
+    # Create the report directory.
+    report_dir = os.path.join(env['INSTALL_REPORTS_DIR'], 'astyle-check', project)
+    if not os.path.exists(report_dir):
+        os.makedirs(report_dir)
+    # Report file name.
+    report_file = 'astyle-check-report.diff'
+    # Path to the report file.
+    report_path = os.path.join(report_dir, report_file)
+    # Check if the builder was called for jenkins.
+    if utils.wasTargetInvoked('%s:jenkins' % project):
+        # Open the report file.
+        try:
+            report = open(report_path, 'w')
+        except IOError:
+            env.Cprint('No such file or directory:', report_path)
+            return 1
+        else:
+            # If we can open it we truncate it.
+            report.truncate(0)
     # If some file needs astyle we print info.
     if need_astyle:
-        # Get the name of the project.
-        project = os.path.split(target)[1]
-        # Check if the builder was called for jenkins.
-        if utils.wasTargetInvoked('%s:jenkins' % project):
-            # Create the report directory.
-            report_dir = os.path.join(
-                env['INSTALL_REPORTS_DIR'],
-                'astyle-check',
-                project
-            )
-            if not os.path.exists(report_dir):
-                os.makedirs(report_dir)
-            # Report file name.
-            report_file = 'astyle-check-report.diff'
-            # Path to the report file.
-            report_path = os.path.join(report_dir, report_file)
-            # Open the report file.
-            try:
-                report = open(report_path, 'w')
-            except IOError:
-                env.Cprint('No such file or directory:', report_path)
-                return 1
-            else:
-                # If we can open it we truncate it.
-                report.truncate(0)
         # Print a warning message.
         env.Cprint('[WARNING] The following files need astyle:', 'red')
         # Print what need to be astyled.
@@ -256,11 +252,11 @@ def AStyleCheck(env, source, target):
                 report.write(info+'\n\n')
             env.Cprint('====> %s' % f, 'red')
             env.Cprint(info,'yellow')
-        # Check if we have to close the report file.
-        if utils.wasTargetInvoked('%s:jenkins' % project):
-            report.close()
     else:
         env.Cprint('[OK] No file needs astyle.', 'green')
+    # Close the report file.
+    if utils.wasTargetInvoked('%s:jenkins' % project):
+        report.close()
 
 
 def AStyle(env, source, target):
