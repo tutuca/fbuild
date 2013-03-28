@@ -145,7 +145,7 @@ def RemoveDuplicates(s):
 ## end of http://code.activestate.com/recipes/52560/ }}}
 
 
-def files_flatten(env, path, fileFilter):
+def FilesFlatten(env, path, fileFilter):
     out = []
     if isinstance(fileFilter, list or tuple):
         for ff in fileFilter:

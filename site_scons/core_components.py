@@ -184,7 +184,7 @@ class HeaderOnlyComponent(Component):
         filters = []
         filters.extend(headersFilter)
         filters.extend(sourceFilters)
-        sources = utils.files_flatten(self.env, self.projDir, filters)
+        sources = utils.FilesFlatten(self.env, self.projDir, filters)
         # Create target for generate the documentation.
         self._create_doc_target()
         # We add astyle target to all the components that can have a header.
