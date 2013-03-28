@@ -260,6 +260,9 @@ class HeaderOnlyComponent(Component):
         self.env.Alias(self.name+":cccc", cccc, 'Generate software metrics for %s' % self.name)
     
     def _create_cloc_target(self, sources):
+        
+        #env['CLOC_OUTPUT_FORMAT']
+        
         # Create the 'target', it is the directory where the result will be put.
         target = self.env.Dir(self.env['INSTALL_METRICS_DIR']).Dir('cloc').Dir(self.name)
         # Set the name of the report file.
