@@ -1,7 +1,7 @@
 # fudepan-build: The build system for FuDePAN projects
 #
 # Copyright (C) 2011 Esteban Papp, Hugo Arregui, Alejandro Kondrasky,
-# 2013 Gonzalo Bonigo, FuDePAN
+# 2013 Gonzalo Bonigo, Gustavo Ojeda, FuDePAN
 #
 # This file is part of the fudepan-build build system.
 #
@@ -33,7 +33,7 @@ import os
 from SCons.Script import *
 import SCons.Builder
 
-from utils import findFiles
+from utils import FindFiles
 from utils import chain_calls
 import utils
 
@@ -100,7 +100,7 @@ def RunUnittest(env, source, target):
         if rc:
             env.cerror('[failed] %s, error: %s' % (t, rc))
         else:
-            env.cprint('[passed] %s' % t, 'green')
+            env.Cprint('[passed] %s' % t, 'green')
         tindex = tindex + 1
     return rc
 
@@ -110,7 +110,7 @@ def InitLcov(env, source, target):
     indexFile = target[0].abspath
     data = {
             'coverage_file': os.path.join(os.path.dirname(os.path.dirname(indexFile)), 'coverage_output.dat'),
-            'output_dir'   : os.path.dirname(indexFile),
+            'output_dir'   : env.Dir('INSTALL_METRICS_DIR'),
             'project_dir'  : env['PROJECT_DIR']
            }
 
@@ -143,7 +143,7 @@ def RunLcov(env, source, target):
         'genhtml --highlight --legend --output-directory %(output_dir)s %(coverage_file)s' % data,
         ])
     if r == 0:
-        env.cprint('lcov report in: %s' % indexFile, 'green')
+        env.Cprint('lcov report in: %s' % indexFile, 'green')
     return r
 
 
@@ -178,7 +178,7 @@ def RunDoxygen(env, source, target):
     if rc:
         env.cerror('[failed] %s, error: %s' % (target, rc))
     else:
-        env.cprint('[generated] %s' % target, 'green')
+        env.Cprint('[generated] %s' % target, 'green')
     return rc
 
 
@@ -192,7 +192,7 @@ def AStyleCheck(env, source, target):
     for f in source:
         os.system('cp %s %s' % (f.abspath,target))
     # Get the list of copied files.
-    files_lis = utils.findFiles(env,targetDir)
+    files_lis = utils.FindFiles(env,targetDir)
     files_str = ' '.join([x.abspath for x in files_lis])
     # Create the command for subprocess.call().
     cmd = 'astyle -k1 --options=none --convert-tabs -bSKpUH %s' % files_str
@@ -210,7 +210,7 @@ def AStyleCheck(env, source, target):
         # astyle.
         if os.path.exists('%s.orig' % f.abspath):
             # Print the differences between files.
-            cmd = 'diff -Nau %s %s.orig' % (f.abspath,f.abspath)
+            cmd = 'diff -Nau %s.orig %s' % (f.abspath,f.abspath)
             diff = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
             diff_stdout = diff.stdout.read()
             diff.wait()
@@ -220,12 +220,12 @@ def AStyleCheck(env, source, target):
     os.system('rm -rf %s/*.orig' % target)
     # Print info.
     if need_astyle:
-        env.cprint('[ERROR] The following files need astyle:', 'red')
+        env.Cprint('[ERROR] The following files need astyle:', 'red')
         for f,info in need_astyle_list:
-            env.cprint('====> %s' % f, 'red')
-            env.cprint(info,'yellow')
+            env.Cprint('====> %s' % f, 'red')
+            env.Cprint(info,'yellow')
     else:
-        env.cprint('[OK] No file needs astyle.', 'green')
+        env.Cprint('[OK] No file needs astyle.', 'green')
 
 
 def AStyle(env, source, target):
@@ -237,7 +237,7 @@ def AStyle(env, source, target):
     if rc:
         env.cerror('[error] %s, error: %s' % (t, rc))
     else:
-        env.cprint('[astyle] %s' % t, 'green')
+        env.Cprint('[astyle] %s' % t, 'green')
     return rc
 
 
@@ -272,7 +272,7 @@ def RunValgrind(env, source, target):
 
 
 def RunCCCC(env, source, target):
-    env.cprint('Running cccc...', 'green')
+    env.Cprint('Running cccc...', 'green')
     target = target[0].abspath
     # It tells to cccc the name of the directory that will contain the result.
     env.Append(CCCC_OPTIONS = '--outdir=%s' % target)
@@ -293,7 +293,7 @@ def RunCCCC(env, source, target):
 
 
 def RunCLOC(env, source, target):
-    env.cprint('Running cloc...', 'green')
+    env.Cprint('Running cloc...', 'green')
     target = target[0].abspath
     # Check if the install directory for the cloc results already exists.
     if not os.path.exists(target):
@@ -308,7 +308,7 @@ def RunCLOC(env, source, target):
 
 
 def RunCppCheck(env, source, target):
-    env.cprint('Running cppcheck...', 'green')
+    env.Cprint('Running cppcheck...', 'green')
     target = target[0].abspath
     # Check if the install directory for the cppcheck results already exists.
     if not os.path.exists(target):

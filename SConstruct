@@ -26,9 +26,11 @@ import SCons
 
 env = Environment()
 
-hasQt = extension_qt.hasQt(env)
+hasQt = extension_qt.HasQt(env)
+
 if hasQt:
     env = Environment(tools=['default', 'qt4'])
+
 env['QT_PRESENT'] = hasQt
 
 Export('env')
@@ -85,7 +87,7 @@ if hasQt:
     extension_qt.init(env)
 
 import fudepan
-fudepan.setDefines(env)
+fudepan.SetDefines(env)
 
 ## Walk over the tree finding components
 dependencygraph.WalkDirsForSconscripts(env, topdir = env['WS_DIR'],

@@ -57,7 +57,7 @@ class Component(object):
     def Process(self):
         return None
     
-    def getLibs(self):
+    def GetLibs(self):
         """
             Description:
                 This method returns the libraries (and its paths) that should be 
@@ -79,7 +79,7 @@ class Component(object):
         libpaths.append(self.env['INSTALL_BIN_DIR'])
         # Look for the libs and its paths.
         try:
-            self._getLibs(libs, libpaths, [], 0)
+            self._GetLibs(libs, libpaths, [], 0)
         except CyclicDependencieError, error:
             msg = (' -> ').join(error[0])
             self.env.cerror('[error] A dependency cycle was found:\n  %s' % msg)
@@ -96,7 +96,7 @@ class Component(object):
         libs = [t[1] for t in aux]
         return (libs, libpaths)
 
-    def _getLibs(self, libs, libpaths, stack, depth):
+    def _GetLibs(self, libs, libpaths, stack, depth):
         """
             This is a recursive internal method used by the self.getLibs() method.
         """
@@ -121,7 +121,7 @@ class Component(object):
                     (self.name, dep)
                 )
             else: #if not isinstance(c, HeaderOnlyComponent):
-                c._getLibs(libs, libpaths, stack, depth+1)
+                c._GetLibs(libs, libpaths, stack, depth+1)
         # We remove the component name from the stack.
         if self.name in stack:
             stack.pop()
@@ -143,11 +143,11 @@ class ExternalLibraryComponent(Component):
     def Process(self):
         return Component.Process(self)
 
-    def getIncludePaths(self):
-        (incs, processedComponents) = self._getIncludePaths([], 0)
+    def GetIncludePaths(self):
+        (incs, processedComponents) = self._GetIncludePaths([], 0)
         return utils.removeDuplicates(incs)
 
-    def _getIncludePaths(self, processedComponents, depth):
+    def _GetIncludePaths(self, processedComponents, depth):
         incs = []
         if depth > 0:
             for i in self.extInc:
@@ -163,7 +163,7 @@ class ExternalLibraryComponent(Component):
                 if c is None:
                     self.env.cerror('[error] %s depends on %s which could not be found' % (self.name, dep))
                     continue
-                (depIncs, depProcessedComp) = c._getIncludePaths(processedComponents,depth+1)
+                (depIncs, depProcessedComp) = c._GetIncludePaths(processedComponents,depth+1)
                 incs.extend(depIncs)
         return (incs, processedComponents)
 
@@ -200,7 +200,7 @@ class HeaderOnlyComponent(Component):
                 # Create the list of the 'sources' files.
                 sources = []
                 for d in self.extInc:
-                    sources.extend(utils.findFiles(self.env, d,['*.h']))
+                    sources.extend(utils.FindFiles(self.env, d,['*.h']))
                 self._create_cccc_target(sources)
                 self._create_cloc_target(sources)
                 self._create_cppcheck_target(sources)
@@ -217,11 +217,11 @@ class HeaderOnlyComponent(Component):
             else:
                 return None
 
-    def getIncludePaths(self):
-        (incs, processedComponents) = self._getIncludePaths([], 0)
+    def GetIncludePaths(self):
+        (incs, processedComponents) = self._GetIncludePaths([], 0)
         return incs
 
-    def _getIncludePaths(self, processedComponents, depth):
+    def _GetIncludePaths(self, processedComponents, depth):
         includeModulePath = os.path.join(self.env['INSTALL_HEADERS_DIR'], self.name)
         incs = []
         if depth > 0:
@@ -245,8 +245,8 @@ class HeaderOnlyComponent(Component):
                 if c is None:
                     self.env.cerror('[error] %s depends on %s which could not be found' % (self.name, dep))
                     continue
-                if hasattr(c, '_getIncludePaths'):
-                    (depIncs, depProcessedComp) = c._getIncludePaths(processedComponents,depth+1)
+                if hasattr(c, '_GetIncludePaths'):
+                    (depIncs, depProcessedComp) = c._GetIncludePaths(processedComponents,depth+1)
                     incs.extend(depIncs)
         return (incs, processedComponents)
     
@@ -384,13 +384,13 @@ class SourcedComponent(HeaderOnlyComponent):
             self._create_cloc_target(sources)
             self._create_cppcheck_target(sources)
 
-    def getIncludePaths(self):
-        (incs, processedComponents) = self._getIncludePaths([], 0)
+    def GetIncludePaths(self):
+        (incs, processedComponents) = self._GetIncludePaths([], 0)
         return incs
 
-    def _getIncludePaths(self, processedComponents, depth):
+    def _GetIncludePaths(self, processedComponents, depth):
         incs = []
-        (extIncs, processedComponents) = HeaderOnlyComponent._getIncludePaths(self, processedComponents, depth)
+        (extIncs, processedComponents) = HeaderOnlyComponent._GetIncludePaths(self, processedComponents, depth)
         incs.extend(extIncs)
         if depth == 0:
             # local headers can be referred explicitely (they are relative to the
@@ -419,7 +419,7 @@ class StaticLibraryComponent(SourcedComponent):
 
     def Process(self):
         SourcedComponent.Process(self)
-        incpaths = self.getIncludePaths()
+        incpaths = self.GetIncludePaths()
         target = os.path.join(self.dir, self.name)
         sLib = self.env.StaticLibrary(target, self.src, CPPPATH=incpaths)
         iLib = self.env.Install(self.env['INSTALL_LIB_DIR'], sLib)
@@ -439,8 +439,8 @@ class DynamicLibraryComponent(SourcedComponent):
 
     def Process(self):
         SourcedComponent.Process(self)
-        incpaths = self.getIncludePaths()
-        (libs,libpaths) = self.getLibs()
+        incpaths = self.GetIncludePaths()
+        (libs,libpaths) = self.GetLibs()
         target = os.path.join(self.dir, self.name)
         dLib = self.env.SharedLibrary(target, self.src, CPPPATH=incpaths, LIBS=libs, LIBPATH=libpaths)
         iLib = self.env.Install(self.env['INSTALL_LIB_DIR'], dLib)
@@ -461,8 +461,8 @@ class ObjectComponent(SourcedComponent):
     def Process(self):
         if not self.objs:
             SourcedComponent.Process(self)
-            incpaths = self.getIncludePaths()
-            (libs,libpaths) = self.getLibs()
+            incpaths = self.GetIncludePaths()
+            (libs,libpaths) = self.GetLibs()
             target = os.path.join(self.dir, self.name)
             for src in self.src:
                 target = src.split('.')[0]
@@ -478,8 +478,8 @@ class ProgramComponent(SourcedComponent):
 
     def Process(self):
         SourcedComponent.Process(self)
-        incpaths = self.getIncludePaths()
-        (libs,libpaths) = self.getLibs()
+        incpaths = self.GetIncludePaths()
+        (libs,libpaths) = self.GetLibs()
         target = os.path.join(self.env['INSTALL_LIB_DIR'], self.name)
         self.prog = self.env.Program(target, self.findSources(), CPPPATH=incpaths, LIBS=libs, LIBPATH=libpaths)
         iProg = self.env.Install(self.env['INSTALL_BIN_DIR'], self.prog)
@@ -510,8 +510,8 @@ class UnitTestComponent(ProgramComponent):
         # since it generates a problem when running the test executable.
         SourcedComponent.Process(self)
         # So, we have to call the Program() builder.
-        incpaths = self.getIncludePaths()
-        (libs,libpaths) = self.getLibs()
+        incpaths = self.GetIncludePaths()
+        (libs,libpaths) = self.GetLibs()
         target = os.path.join(self.dir, self.name)
         self.prog = self.env.Program(target, self.findSources(), CPPPATH=incpaths, LIBS=libs, LIBPATH=libpaths)
         self.env.Alias(self.name, self.prog, "Build and install " + self.name)
@@ -535,22 +535,22 @@ class UnitTestComponent(ProgramComponent):
         # Create the target for the test.
         self.env.Alias(self.name, tTest, "Run test for " + self.name)
         # Make the test depends from coverage generated files.
-        for refFile in utils.findFiles(self.env, self.compDir.Dir('ref')):
+        for refFile in utils.FindFiles(self.env, self.compDir.Dir('ref')):
             self.env.Depends(tTest, refFile)
         # Alias target for 'all'.
         self.env.Alias('all:test', tTest, "Run all tests")
         # Adding a valgrind target for tests.
-        tvalg = self._createValgrindTarget(self.prog)
+        tvalg = self._CreateValgrindTarget(tTest)
         # Adding a coverage target for tests.
-        tcov = self._createCoverageTarget(target)
+        tcov = self._CreateCoverageTarget(target)
         # Add dependence for jenkins.
         self.env.Depends(self.jenkins_target,[tvalg, tcov])
         # Create alias for aliasGroups.
         for alias in self.aliasGroups:
             self.env.Alias(alias, tTest, "Build group " + alias)
 
-    def getIncludePaths(self):
-        includes = super(UnitTestComponent, self).getIncludePaths()
+    def GetIncludePaths(self):
+        includes = super(UnitTestComponent, self).GetIncludePaths()
         project = self.componentGraph.get(self.name.split(':')[0])
         #adding current test dir
         filtered_includes = [self.dir, project.dir]
@@ -567,7 +567,7 @@ class UnitTestComponent(ProgramComponent):
                 filtered_includes.append(path)
         return filtered_includes
 
-    def _createValgrindTarget(self, tTest): 
+    def _CreateValgrindTarget(self, tTest): 
         # Remove the ':test' from the name of the project.
         name = self.name.split(':')[0]
         vtname = '%s:valgrind' % name
@@ -587,7 +587,7 @@ class UnitTestComponent(ProgramComponent):
         avalg = self.env.Alias(vtname, [tTest,rvalg], 'Run valgrind for %s test' % name)
         return avalg
         
-    def _createCoverageTarget(self, target):
+    def _CreateCoverageTarget(self, target):
         # Get the path directory to the project.
         project = self.componentGraph.get(self.name.split(':')[0])
         self.env['PROJECT_DIR'] = project.dir

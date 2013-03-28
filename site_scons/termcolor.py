@@ -56,32 +56,32 @@ qtmoc_message = '%s[moc] $SOURCE%s' % (colors['blue'], colors['end'])
 
 def init(env, args):
     if args.get('VERBOSE') != '1':
-        prettyMessages(env)
-    env.cprint = cprint
-    env.cdebug = lambda m: cprint(m, 'green')
-    env.cwarn = lambda m: cprint(m, 'yellow')
-    env.cerror = lambda m: cprint(m, 'red')
-    env.cformat = cformat
+        PrettyMessages(env)
+    env.Cprint = Cprint
+    env.cdebug = lambda m: Cprint(m, 'green')
+    env.cwarn = lambda m: Cprint(m, 'yellow')
+    env.cerror = lambda m: Cprint(m, 'red')
+    env.Cformat = Cformat
 
 
 def ask_user(message, color, alternatives):
     message += ' (' + '/'.join(alternatives) + ')'
     userResponse = None
     while userResponse not in alternatives:
-        cprint(message, color)
+        Cprint(message, color)
         userResponse = raw_input().lower()
     return userResponse
 
 
-def cprint(msg, color):
-    print(cformat(msg,color))
+def Cprint(msg, color):
+    print(Cformat(msg,color))
 
 
-def cformat(msg, color):
+def Cformat(msg, color):
     return '%s%s%s' % (colors[color], msg, colors['end'])
 
 
-def prettyMessages(env):
+def PrettyMessages(env):
     # TODO: find a way to change the "Removed" message
     env['COPYSTR'] = copy_message
     env['CCCOMSTR'] = compile_source_message
