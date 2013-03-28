@@ -76,7 +76,7 @@ def LinuxOptions(env):
         #env.Append(CXXFLAGS='-Weffc++', CFLAGS='-Weffc++')
     #if env.GetOption('gprofile'):
         #env.Append(CXXFLAGS='-pg', CFLAGS='-pg')
-    if _is_coverage():
+    if _IsCoverage():
         gprofFlags = ['--coverage']
         env.Append(CXXFLAGS=gprofFlags, CFLAGS=gprofFlags, LINKFLAGS=gprofFlags)
 
@@ -84,7 +84,7 @@ def LinuxOptions(env):
 # This is not a very good idea, but is the way out i found for not using a flag 
 # ('--gcoverage') when running the ':coverage' target.
 #
-def _is_coverage():
+def _IsCoverage():
     for arg in sys.argv:
         if 'coverage' in arg:
             return True

@@ -307,7 +307,7 @@ def _CreateProjectsDependenciesTargets(env):
             This function parse the projects.xml file, creates the dependencies 
             between projects and the targets for those not being checked-out.
         Arguments:
-            evn  -  An SCons environment.
+            env  -  An SCons environment.
         Exceptions:
             None.
         Return:

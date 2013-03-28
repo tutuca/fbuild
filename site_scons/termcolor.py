@@ -64,7 +64,7 @@ def init(env, args):
     env.Cformat = Cformat
 
 
-def ask_user(message, color, alternatives):
+def AskUser(message, color, alternatives):
     message += ' (' + '/'.join(alternatives) + ')'
     userResponse = None
     while userResponse not in alternatives:
