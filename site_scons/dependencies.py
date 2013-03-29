@@ -71,9 +71,9 @@ def init(env):
         global MANAGER
         DISTRO = utils.get_distro()
         if DISTRO == utils.DISRTO_ARCH:
-            MANAGER = 'APTITUDE'
-        else:
             MANAGER = 'PACMAN'
+        else:
+            MANAGER = 'APTITUDE'
     except utils.DistroError:
         env.Cprint('[warn] unsupported distribution.', 'yellow')
     # Create a builder for the checkout of the dependencies.
@@ -398,12 +398,8 @@ def _CreateExternalDependenciesTargets(env):
                 if distro==DISTRO or distro=='*':
                     componentTarget = installer.getAttribute('target')
                     componentType = installer.getAttribute('manager')
-                    if componentType=="*" and componentType=="LIB":
+                    if componentType == "*":
                         componentType = MANAGER
-                    else:
-                        env.Cprint('[ERROR] external_dependencies.xml => 
-                        component %s has default manager but is not of type LIB' % 
-                        componentName)
                     break
             dep = _CreateDependency(env,
                                     componentName,
