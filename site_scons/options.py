@@ -31,3 +31,10 @@ def init(env):
         help='Switch the run mode to jenkins.',
         default=False
     )
+    AddOption(
+        '--verbose',
+        dest='verbose',
+        action='store_true',
+        help='Display a more detailed output.',
+        default=False
+    )
