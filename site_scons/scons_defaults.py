@@ -92,7 +92,7 @@ def init(env,vars):
             os.path.join(REPORT_DIR, "metrics"),
             PathVariable.PathIsDirCreate))
     vars.Update(env)
-    if env.GetOption('verbose'):
+    if not env.GetOption('verbose'):
         env.cdebug('Install information:')
         env.cdebug('    bin dir    : ' + env['INSTALL_BIN_DIR'])
         env.cdebug('    lib dir    : ' + env['INSTALL_LIB_DIR'])

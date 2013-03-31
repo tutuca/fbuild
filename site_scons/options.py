@@ -34,7 +34,7 @@ def init(env):
     AddOption(
         '--verbose',
         dest='verbose',
-        action='store_true',
+        action='store_false',
         help='Display a more detailed output.',
-        default=False
+        default=True
     )
