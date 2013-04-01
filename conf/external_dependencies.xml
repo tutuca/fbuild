@@ -27,8 +27,8 @@
               > "HLIB" for header only libraries.
               > "PRO" for programs.
                                                                          (Required)
-    check  -  It's the name fbuild will use to check if the component exists or
-              not. It has different meaning depending on the component type.
+    check  -  It's the name fbuild will use to check if the component exists.
+              It has different meaning depending on the component type.
               > If type="LIB", it is the name of library used when it is link,
                 i.e. the name that goes in the -l option (-lcheck).
               > If type="HLIB", it is the include name of the main component of
@@ -39,16 +39,38 @@
               If this value is not supplied fbuild assumes check=name.
                                                                          (Optional)
     deps   -  The list of the components from which this component depends.
-              It's a comma separate string without empty paces.
+              It's a comma separate string, without empty paces.
                                                                          (Optional)
-    <installer>
-    distro  - 
-    target  - 
-    manager -
 
+    <installer>
+        The installer specify how to install the component.
+    distro  -  Specify under which distribution this installer must be run. fbuild
+               supports tow distributions: "UBUNTU" and "ARCH".
+               If the installer can be executed in both distributions you can use 
+               "*" as value.
+    target  -  This is the name of what needs to be download/install. Depending on
+               the manager type, it can be a package's name or an url.
+    manager -  This is the program that will download/install the component. The
+               managers fbuild supports are the following:
+               * For web download:
+                   > "WGET"
+               * For repository checkout:
+                   > "SVN"
+                   > "HG"
+               * For packages:
+                   > "APTITUDE"
+                   > "APT-GET"
+                   > "PACMAN"
+                   > "PACKER"
+               If the target is a package and you don't know what package manager
+               to use, you can let fbuild chose one for you by using the value "*".
+               Be aware that if the target is an url it will cause a problem.
+    
     IMPORTANT:
         Please maintain alphabetical order based on name to ease maintenance -->
 
+    
+    
     <component name="bison" type="PRO">
         <installer distro="*" target="bison" manager="*"/>
     </component>
