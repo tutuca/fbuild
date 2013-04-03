@@ -117,7 +117,7 @@ def InitLcov(env, source, target):
         'output_dir'   : env.Dir('INSTALL_METRICS_DIR'),
         'project_dir'  : env['PROJECT_DIR']
     }
-    r = chain_calls(env, [
+    r = ChainCalls(env, [
         'lcov --zerocounters --directory %(project_dir)s -b .' % data,
         'lcov --capture --initial --directory %(project_dir)s -b . --output-file %(coverage_file)s' % data,
     ])
@@ -132,7 +132,7 @@ def RunLcov(env, source, target):
         'output_dir'   : os.path.dirname(indexFile),
         'project_dir'  : env['PROJECT_DIR']
     }
-    r = chain_calls(env, [
+    r = ChainCalls(env, [
         'rm -f %(coverage_file)s' % data,
         'lcov --no-checksum --directory %(project_dir)s -b . --capture --output-file %(coverage_file)s' % data,
         'lcov --no-checksum --directory %(project_dir)s -b . --capture --output-file %(coverage_file)s' % data,
