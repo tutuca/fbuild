@@ -2,7 +2,7 @@
 
 # fudepan-build: The build system for FuDePAN projects 
 #
-# Copyright (C) 2013 Gonzalo Bonigo, FuDePAN
+# Copyright (C) 2013 Gonzalo Bonigo, Gustavo Ojeda FuDePAN
 # 
 # This file is part of the fudepan-build build system.
 # 
@@ -42,5 +42,7 @@ if [[ "$(which hg)" && -z $FBUILD_NO_UPDATE ]]; then
         echo -e "\e[0;33m[warn] FuDePan environment not updated since there is no internet connection\e[0m"
     fi
 fi
+
+export FBUILD_ENV_STARTED=true
 
 source env.sh

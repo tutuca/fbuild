@@ -76,16 +76,10 @@ def LinuxOptions(env):
         #env.Append(CXXFLAGS='-Weffc++', CFLAGS='-Weffc++')
     #if env.GetOption('gprofile'):
         #env.Append(CXXFLAGS='-pg', CFLAGS='-pg')
-    if _IsCoverage():
-        gprofFlags = ['--coverage']
-        env.Append(CXXFLAGS=gprofFlags, CFLAGS=gprofFlags, LINKFLAGS=gprofFlags)
-
-#
-# This is not a very good idea, but is the way out i found for not using a flag 
-# ('--gcoverage') when running the ':coverage' target.
-#
-def _IsCoverage():
-    for arg in sys.argv:
-        if 'coverage' in arg:
-            return True
-    return False
+    #if _is_coverage():
+        #gprofFlags = ['--coverage']
+        #env.Append(CXXFLAGS=gprofFlags, CFLAGS=gprofFlags, LINKFLAGS=gprofFlags)
+        #metrics_dir = self.env['INSTALL_METRICS_DIR']
+        #coverage_dir = self.env.Dir(metrics_dir).Dir('coverage').Dir(self.name)
+        #valgrind_report = '%s/valgrind-report.xml' % 
+        #env['VALGRIND_OPTIONS'] = '--xml=yes --xml-file=%s'

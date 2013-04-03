@@ -17,10 +17,6 @@
 # You should have received a copy of the GNU General Public License
 # along with fudepan-build.  If not, see <http://www.gnu.org/licenses/>.
 
-#import os
-#import platform
-#import sys
-#import os
 import extension_qt
 import SCons
 
@@ -38,15 +34,19 @@ Export('env')
 vars = Variables('SConfig')
 Export('vars')
 
+# Set command line arguments.
+import options
+options.init(env)
+
 # Color pretty printing
 import termcolor
-termcolor.init(env, ARGUMENTS)
+termcolor.init(env)
 
-# default configuration options
+# Default configuration options
 import scons_defaults
-scons_defaults.init(env, vars, ARGUMENTS)
+scons_defaults.init(env, vars)
 
-# things to debug the environment
+# Things to debug the environment
 import debug
 debug.init(env)
 

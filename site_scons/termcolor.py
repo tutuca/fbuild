@@ -54,8 +54,8 @@ qtuic_message = '%s[uic] $SOURCE%s' % (colors['blue'], colors['end'])
 qtmoc_message = '%s[moc] $SOURCE%s' % (colors['blue'], colors['end'])
 
 
-def init(env, args):
-    if args.get('VERBOSE') != '1':
+def init(env):
+    if env.GetOption('verbose'):
         PrettyMessages(env)
     env.Cprint = Cprint
     env.cdebug = lambda m: Cprint(m, 'green')

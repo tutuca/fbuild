@@ -29,7 +29,7 @@ from multiprocessing import cpu_count
 from SCons.Variables import PathVariable
 
 
-def init(env,vars,args):
+def init(env,vars):
     # Add parallelism to the build system
     if not env.GetOption('num_jobs'):
         env.SetOption('num_jobs', cpu_count() + 1)
@@ -79,12 +79,20 @@ def init(env,vars,args):
             PathVariable.PathIsDirCreate))
     vars.AddVariables(
         PathVariable(
-            'INSTALL_METRICS_DIR',
-            'software metrics directory',
-            os.path.join(INSTALL_DIR, "metrics"),
+            'INSTALL_REPORTS_DIR',
+            'software reports directory',
+            os.path.join(INSTALL_DIR, "reports"),
             PathVariable.PathIsDirCreate))
     vars.Update(env)
-    if args.get('VERBOSE') == '1':
+    REPORT_DIR = env.Dir(env['INSTALL_REPORTS_DIR']).abspath
+    vars.AddVariables(
+        PathVariable(
+            'INSTALL_METRICS_DIR',
+            'software metrics directory',
+            os.path.join(REPORT_DIR, "metrics"),
+            PathVariable.PathIsDirCreate))
+    vars.Update(env)
+    if not env.GetOption('verbose'):
         env.cdebug('Install information:')
         env.cdebug('    bin dir    : ' + env['INSTALL_BIN_DIR'])
         env.cdebug('    lib dir    : ' + env['INSTALL_LIB_DIR'])
