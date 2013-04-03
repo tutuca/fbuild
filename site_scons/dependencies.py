@@ -93,6 +93,21 @@ def init(env):
 
 
 class Dependencies(object):
+    """
+    <component
+        name="ComponentName"
+        type=["LIB" | "HLIB" | "PRO"]
+        check="ComponentNameInTheSystem"
+        deps="A,B,C"
+        <installer
+            distro=["UBUNTU" | "ARCH" | "*"]
+            target=["PackageName" | "Url"]
+            manager=["HG" | "SVN" | "WGET"] | 
+                    ["APT-GET" | "APTITUDE" | "PACKER" | "PACMAN" | "*"] />
+        <install_checker> ShellScript </install_checker>
+        <execute_after> ShellScript </execute_after>
+    </component>
+    """
     
     def __init__(self, name, target, node, env):
         self.env = env
@@ -103,6 +118,9 @@ class Dependencies(object):
         self.target = target
         self.component_type = node.getAttribute('type')
         self.component_check = node.getAttribute('check')
+        if not self.component_check:
+            self.component_check = self.name
+        self.component_deps = node.getAttribute('deps').split(',')
         # Here we are assuming that the contents of the execute_after node
         # would be of type TEXT_NODE, otherwise, it would cause an error.
         elems = node.getElementsByTagName('execute_after')
@@ -117,13 +135,6 @@ class Dependencies(object):
            self.inatllChecker = ((elems[0]).childNodes[0]).data
         else:
             self.inatllChecker = ''
-        # Here we are assuming that the contents of the create_ext_lib_comp node
-        # would be of type TEXT_NODE, otherwise, it would cause an error.
-        elems = node.getElementsByTagName('create_ext_lib_comp')
-        if elems != []:
-           self.create_ext_lib_component = ((elems[0]).childNodes[0]).data
-        else:
-            self.create_ext_lib_component = ''
 
     def AfterCheckout(self):
         """
@@ -412,8 +423,30 @@ def _CreateExternalDependenciesTargets(env):
     # Check if each component is already installed.
     for component in external_dependencies.keys():
         if external_dependencies[component].CheckInstall():
-            st = external_dependencies[component].create_ext_lib_component
-            env.ExternalDependenciesCreateComponentsDict[component] = st
+            # If it's installed we have to add the component to the graph by adding
+            # a call to 'CreateExternalLibraryComponent()'.
+            pcall = "env.CreateExternalLibraryComponent('%s',%s,%s,%s,%s)"
+            # Get the component's name.
+            name = external_dependencies[component].name
+            # External components no need external includes.
+            ext = '[]'
+            # External components no need a directory since now they are install
+            # in the system.
+            path = "env.Dir('.')"
+            # Get the dependencies of the component.
+            deps = external_dependencies[component].component_deps
+            # Remove empty strings from the dependency list.
+            while '' in deps:
+                deps.remove('')
+            # Check if the component is linkable library.
+            if external_dependencies[component].component_type in ['LIB']:
+                link = 'True'
+            else:
+                link = 'False'
+            # Create the string that with the python call.
+            pcall = pcall % (name, ext, path, deps, link)
+            # Add it to the list of calls.
+            env.ExternalDependenciesCreateComponentsDict[component] = pcall
 
 
 def _CreateDependency(env, name, type, node, target=None, dep_type=DEP_PROJECT):
