@@ -210,7 +210,7 @@ def GetDistro():
         return result
 
 
-def wasTargetInvoked(target):
+def WasTargetInvoked(target):
     """
         Description:
             This function tells if a specific target was invoked or not.

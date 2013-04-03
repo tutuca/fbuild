@@ -69,7 +69,7 @@ def init(env):
     try:
         global DISTRO
         global MANAGER
-        DISTRO = utils.get_distro()
+        DISTRO = utils.GetDistro()
         if DISTRO == utils.DISRTO_ARCH:
             MANAGER = 'PACMAN'
         else:

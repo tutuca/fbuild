@@ -184,25 +184,25 @@ class HeaderOnlyComponent(Component):
         filters = []
         filters.extend(headersFilter)
         filters.extend(sourceFilters)
-        sources = utils.files_flatten(self.env, self.projDir, filters)
+        sources = utils.FilesFlatten(self.env, self.projDir, filters)
         # Create target for jenkins.
-        self._create_jenkins_target()
+        self._CreateJenkinsTarget()
         if not self.name.endswith(':test'):
             # Create target for generate the documentation.
-            self._create_doc_target()
+            self._CreateDocTarget()
             # We add astyle target to all the components that can have a header.
-            self._create_astyle_target(sources)
+            self._CreateAstyleTarget(sources)
             # We add a traget for check if the component is astyled.
-            self._create_astyle_check_target(sources)
+            self._CreateAstyleCheckTarget(sources)
             # This condition is for the cases when the method is called from a subclass.
             if not called_from_subclass:
                 # Create the list of the 'sources' files.
                 sources = []
                 for d in self.extInc:
                     sources.extend(utils.FindFiles(self.env, d,['*.h']))
-                self._create_cccc_target(sources)
-                self._create_cloc_target(sources)
-                self._create_cppcheck_target(sources)
+                self._CreateCCCCTarget(sources)
+                self._CreateClocTarget(sources)
+                self._CreateCppcheckTarget(sources)
             # If the component doesnt have external headers, we dont process it since
             # there is nothing to install
             if len(self.extInc) > 0:
@@ -249,7 +249,7 @@ class HeaderOnlyComponent(Component):
                     incs.extend(depIncs)
         return (incs, processedComponents)
     
-    def _create_cccc_target(self, sources):
+    def _CreateCCCCTarget(self, sources):
         # Create the 'target', it is the directory where the result will be put.
         reports_dir = self.env['INSTALL_REPORTS_DIR']
         target = self.env.Dir(reports_dir).Dir(self.env['INSTALL_METRICS_DIR']).Dir('cccc').Dir(self.name)
@@ -264,9 +264,9 @@ class HeaderOnlyComponent(Component):
         # Add dependence for jenkins.
         self.env.Depends(self.jenkins_target,cccc)
     
-    def _create_cloc_target(self, sources):
+    def _CreateClocTarget(self, sources):
         # Check if we need to create an xml report.
-        if utils.wasTargetInvoked('%s:jenkins' % self.name.split(':')[0]):
+        if utils.WasTargetInvoked('%s:jenkins' % self.name.split(':')[0]):
             self.env.Replace(CLOC_OUTPUT_FORMAT='xml')
         # Create the 'target', it is the directory where the result will be put.
         reports_dir = self.env['INSTALL_REPORTS_DIR']
@@ -289,7 +289,7 @@ class HeaderOnlyComponent(Component):
         # Add dependence for jenkins.
         self.env.Depends(self.jenkins_target,cloc)
     
-    def _create_jenkins_target(self):
+    def _CreateJenkinsTarget(self):
         # Create the target for jenkins.
         if self.name.endswith(':test'):
             name = self.name.split(':')[0]
@@ -298,7 +298,7 @@ class HeaderOnlyComponent(Component):
         self.jenkins_target = self.env.Alias('%s:jenkins' % name, None, '')
         self.env.AlwaysBuild(self.jenkins_target)
     
-    def _create_cppcheck_target(self, sources):
+    def _CreateCppcheckTarget(self, sources):
         # Create the 'target', it is the directory where the result will be put.
         target = self.env.Dir(self.env['INSTALL_REPORTS_DIR']).Dir('cppcheck').Dir(self.name)
         # Call RunCppCheck().
@@ -309,7 +309,7 @@ class HeaderOnlyComponent(Component):
         # Add dependence for jenkins.
         self.env.Depends(self.jenkins_target,cppcheck)
     
-    def _create_doc_target(self):
+    def _CreateDocTarget(self):
         targetDocDir = self.env.Dir(self.env['INSTALL_DOC_DIR']).Dir(self.name)
         doxyfile = self.env.File(self.env.Dir('#').abspath+'/conf/doxygenTemplate')
         sconscript = ('%s/SConscript' % self.dir).replace('/build/','/projects/')
@@ -321,7 +321,7 @@ class HeaderOnlyComponent(Component):
         # Add dependence for jenkins.
         self.env.Depends(self.jenkins_target,doc)
     
-    def _create_astyle_check_target(self, sources):
+    def _CreateAstyleCheckTarget(self, sources):
         # Create the target.
         target = self.env.Dir(self.env['BUILD_DIR']).Dir('astyle-check').Dir(self.name)
         # Call RunAStyleCheck().
@@ -334,7 +334,7 @@ class HeaderOnlyComponent(Component):
         # Add dependence for jenkins.
         self.env.Depends(self.jenkins_target,astyle_check)
     
-    def _create_astyle_target(self, sources):
+    def _CreateAstyleTarget(self, sources):
         # Create the target.
         target = self.env.Dir(self.env['BUILD_DIR']).Dir('astyle').Dir(self.name)
         # Call RunAStyle().
@@ -375,7 +375,7 @@ class SourcedComponent(HeaderOnlyComponent):
                     self.src.append(os.path.abspath(compDir.rel_path(src)))
         # Create list sources and headers files
         self.src_files = []
-        self.inc_files = self._get_include_files()
+        self.inc_files = self._GetIncludeFiles()
         for x in self.src:
             self.src_files.append(self.env.File(x))
 
@@ -384,9 +384,9 @@ class SourcedComponent(HeaderOnlyComponent):
         if not self.name.endswith(':test'):
             # Create the list of the 'sources' files.
             sources = self.src_files + self.inc_files
-            self._create_cccc_target(sources)
-            self._create_cloc_target(sources)
-            self._create_cppcheck_target(sources)
+            self._CreateCCCCTarget(sources)
+            self._CreateClocTarget(sources)
+            self._CreateCppcheckTarget(sources)
 
     def GetIncludePaths(self):
         (incs, processedComponents) = self._GetIncludePaths([], 0)
@@ -404,7 +404,7 @@ class SourcedComponent(HeaderOnlyComponent):
                 incs.append(hDir)
         return (incs, processedComponents)
 
-    def _get_include_files (self):
+    def _GetIncludeFiles (self):
         include_files = []
         for i in self.inc:
             hDir = os.path.join(self.projDir, i)
@@ -527,7 +527,7 @@ class UnitTestComponent(ProgramComponent):
             CXXFLAGS.append('-ggdb3')
         self.env.Replace(CXXFLAGS=CXXFLAGS, CFLAGS=CXXFLAGS)
         # Check if it needed to generate a test report.
-        if utils.wasTargetInvoked('%s:jenkins' % self.name.split(':')[0]):
+        if utils.WasTargetInvoked('%s:jenkins' % self.name.split(':')[0]):
             gtest_report = self.env.Dir(self.env['INSTALL_REPORTS_DIR']).Dir('test').Dir(self.name[:-5])
             self.env.gtest_report = 'xml:%s/test-report.xml' % gtest_report.abspath
         # File to store the test results.
@@ -576,7 +576,7 @@ class UnitTestComponent(ProgramComponent):
         name = self.name.split(':')[0]
         vtname = '%s:valgrind' % name
         # Check if we need to create an xml report.
-        if utils.wasTargetInvoked('%s:jenkins' % self.name.split(':')[0]):
+        if utils.WasTargetInvoked('%s:jenkins' % self.name.split(':')[0]):
             report_dir = self.env['INSTALL_REPORTS_DIR']
             vdir = self.env.Dir(report_dir).Dir('valgrind').Dir(self.name)
             if not os.path.exists(vdir.abspath):
@@ -596,8 +596,8 @@ class UnitTestComponent(ProgramComponent):
         project = self.componentGraph.get(self.name.split(':')[0])
         self.env['PROJECT_DIR'] = project.dir
         # Check if the coverage is needed.
-        if (utils.wasTargetInvoked('%s:jenkins' % self.name.split(':')[0]) or 
-           utils.wasTargetInvoked('%s:coverage' % self.name.split(':')[0])) :
+        if (utils.WasTargetInvoked('%s:jenkins' % self.name.split(':')[0]) or 
+           utils.WasTargetInvoked('%s:coverage' % self.name.split(':')[0])) :
             gprofFlags = ['--coverage']
             self.env.Append(CXXFLAGS=gprofFlags, CFLAGS=gprofFlags, LINKFLAGS=gprofFlags)
         # Targets and sources for builder InitLcov.
