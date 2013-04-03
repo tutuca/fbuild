@@ -92,10 +92,10 @@ def RunUnittest(env, source, target):
         t = target[tindex].abspath
         app = s.abspath
         (dir, appbin) = os.path.split(app)
-        # Check if the builder was called for jenkins.
+        # Check if the builder was called for jenkins or ready to commit.
         tmp = target[tindex].abspath.split('.')[0]
         project = os.path.split(tmp)[1]
-        if utils.wasTargetInvoked('%s:jenkins' % project[:-5]):
+        if utils.wasTargetInvoked('%s:jenkins' % project[:-5]) or utils.wasTargetInvoked('%s:ready-to-commit' % project[:-5]):
             os.environ['GTEST_OUTPUT'] = env.gtest_report
         cmd = "cd %s; ./%s > %s" % (dir, appbin, t)
         rc = subprocess.call(cmd, shell=True)
@@ -230,8 +230,10 @@ def AStyleCheck(env, source, target):
     report_file = 'astyle-check-report.diff'
     # Path to the report file.
     report_path = os.path.join(report_dir, report_file)
-    # Check if the builder was called for jenkins.
-    if utils.wasTargetInvoked('%s:jenkins' % project):
+    special_invoke = (utils.wasTargetInvoked('%s:jenkins' % project) or
+                     utils.wasTargetInvoked('%s:ready-to-commit' % project))
+    # Check if the builder was called for jenkins or ready to commit.
+    if special_invoke:
         # Open the report file.
         try:
             report = open(report_path, 'w')
@@ -247,15 +249,15 @@ def AStyleCheck(env, source, target):
         env.Cprint('[WARNING] The following files need astyle:', 'red')
         # Print what need to be astyled.
         for f,info in need_astyle_list:
-            # If it was called for jenkins we write the diff into the report file.
-            if utils.wasTargetInvoked('%s:jenkins' % project):
+            # If it was called for jenkins or ready to commit we write the diff into the report file.
+            if special_invoke:
                 report.write(info+'\n\n')
             env.Cprint('====> %s' % f, 'red')
             env.Cprint(info,'yellow')
     else:
         env.Cprint('[OK] No file needs astyle.', 'green')
     # Close the report file.
-    if utils.wasTargetInvoked('%s:jenkins' % project):
+    if special_invoke:
         report.close()
 
 

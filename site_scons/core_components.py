@@ -189,6 +189,8 @@ class HeaderOnlyComponent(Component):
         sources = utils.files_flatten(self.env, self.projDir, filters)
         # Create target for jenkins.
         self._create_jenkins_target()
+        # Create target for ready to commit.
+        self._create_ready_to_commit_target()
         if not self.name.endswith(':test'):
             # Create target for generate the documentation.
             self._create_doc_target()
@@ -310,6 +312,8 @@ class HeaderOnlyComponent(Component):
         self.env.Alias(self.name+":cppcheck", cppcheck, 'C/C++ code analyse for %s' % self.name)
         # Add dependence for jenkins.
         self.env.Depends(self.jenkins_target,cppcheck)
+        # Add dependence for ready-to-commit.
+        self.env.Depends(self.ready_to_commit_target,cppcheck)
     
     def _create_doc_target(self):
         targetDocDir = self.env.Dir(self.env['INSTALL_DOC_DIR']).Dir(self.name)
@@ -335,6 +339,8 @@ class HeaderOnlyComponent(Component):
         self.env.Alias('%s:astyle-check' % self.name, astyle_check, msg)
         # Add dependence for jenkins.
         self.env.Depends(self.jenkins_target,astyle_check)
+        # Add dependence for ready-to-commit.
+        self.env.Depends(self.ready_to_commit_target,astyle_check)
     
     def _create_astyle_target(self, sources):
         # Create the target.
@@ -343,6 +349,16 @@ class HeaderOnlyComponent(Component):
         astyleOut = self.env.RunAStyle(target, sources)
         # Create an alias for astyle.
         self.env.Alias('%s:astyle' % self.name, astyleOut, "Runs astyle on " + self.name)
+        
+    def _create_ready_to_commit_target(self):
+            # Create the target for ready.
+            if self.name.endswith(':test'):
+                name = self.name.split(':')[0]
+            else:
+                name = self.name
+            self.ready_to_commit_target = self.env.Alias('%s:ready-to-commit' % name, None,
+                                               'Check if %s is ready to commit building it and running Astyle, CppCheck and Valgrind' % name)
+            self.env.AlwaysBuild(self.ready_to_commit_target)
 
 
 class SourcedComponent(HeaderOnlyComponent):
@@ -529,7 +545,8 @@ class UnitTestComponent(ProgramComponent):
             CXXFLAGS.append('-ggdb3')
         self.env.Replace(CXXFLAGS=CXXFLAGS, CFLAGS=CXXFLAGS)
         # Check if it needed to generate a test report.
-        if utils.wasTargetInvoked('%s:jenkins' % self.name.split(':')[0]):
+        if (utils.wasTargetInvoked('%s:jenkins' % self.name.split(':')[0]) or 
+           utils.wasTargetInvoked('%s:ready-to-commit' % self.name.split(':')[0])):
             gtest_report = self.env.Dir(self.env['INSTALL_REPORTS_DIR']).Dir('test').Dir(self.name[:-5])
             self.env.gtest_report = 'xml:%s/test-report.xml' % gtest_report.abspath
         # File to store the test results.
@@ -551,6 +568,8 @@ class UnitTestComponent(ProgramComponent):
         tcov = self._CreateCoverageTarget(target)
         # Add dependence for jenkins.
         self.env.Depends(self.jenkins_target,[tvalg, tcov])
+        # Add dependence for ready to commit.
+        self.env.Depends(self.ready_to_commit_target,tvalg)
         # Create alias for aliasGroups.
         for alias in self.aliasGroups:
             self.env.Alias(alias, tTest, "Build group " + alias)
@@ -578,7 +597,8 @@ class UnitTestComponent(ProgramComponent):
         name = self.name.split(':')[0]
         vtname = '%s:valgrind' % name
         # Check if we need to create an xml report.
-        if utils.wasTargetInvoked('%s:jenkins' % self.name.split(':')[0]):
+        if (utils.wasTargetInvoked('%s:jenkins' % self.name.split(':')[0]) or
+           utils.wasTargetInvoked('%s:ready-to-commit' % self.name.split(':')[0])):
             report_dir = self.env['INSTALL_REPORTS_DIR']
             vdir = self.env.Dir(report_dir).Dir('valgrind').Dir(self.name)
             if not os.path.exists(vdir.abspath):
