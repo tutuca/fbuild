@@ -34,7 +34,7 @@ from SCons.Script import *
 import SCons.Builder
 
 from utils import FindFiles
-from utils import chain_calls
+from utils import ChainCalls
 import utils
 
 
@@ -95,7 +95,7 @@ def RunUnittest(env, source, target):
         # Check if the builder was called for jenkins.
         tmp = target[tindex].abspath.split('.')[0]
         project = os.path.split(tmp)[1]
-        if utils.wasTargetInvoked('%s:jenkins' % project[:-5]):
+        if utils.WasTargetInvoked('%s:jenkins' % project[:-5]):
             os.environ['GTEST_OUTPUT'] = env.gtest_report
         cmd = "cd %s; ./%s > %s" % (dir, appbin, t)
         rc = subprocess.call(cmd, shell=True)
@@ -231,7 +231,7 @@ def AStyleCheck(env, source, target):
     # Path to the report file.
     report_path = os.path.join(report_dir, report_file)
     # Check if the builder was called for jenkins.
-    if utils.wasTargetInvoked('%s:jenkins' % project):
+    if utils.WasTargetInvoked('%s:jenkins' % project):
         # Open the report file.
         try:
             report = open(report_path, 'w')
@@ -248,14 +248,14 @@ def AStyleCheck(env, source, target):
         # Print what need to be astyled.
         for f,info in need_astyle_list:
             # If it was called for jenkins we write the diff into the report file.
-            if utils.wasTargetInvoked('%s:jenkins' % project):
+            if utils.WasTargetInvoked('%s:jenkins' % project):
                 report.write(info+'\n\n')
             env.Cprint('====> %s' % f, 'red')
             env.Cprint(info,'yellow')
     else:
         env.Cprint('[OK] No file needs astyle.', 'green')
     # Close the report file.
-    if utils.wasTargetInvoked('%s:jenkins' % project):
+    if utils.WasTargetInvoked('%s:jenkins' % project):
         report.close()
 
 

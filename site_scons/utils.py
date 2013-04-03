@@ -40,7 +40,7 @@ _DISRTO_FILE = '/etc/issue'
 
 class DistroError (Exception):
     """
-        This class exception is used by the function get_distro().
+        This class exception is used by the function GetDistro().
     """
     pass
 
@@ -80,7 +80,7 @@ def RecursiveInstall(env, sourceDir, sourcesRel, targetName, fileFilter=None):
 
 
 ## {{{ http://code.activestate.com/recipes/52560/ (r1)
-def removeDuplicates(s):
+def RemoveDuplicates(s):
     """Return a list of the elements in s, but without duplicates.
 
     For example, unique([1,2,3,1,2,3]) is some permutation of [1,2,3],
@@ -146,7 +146,7 @@ def removeDuplicates(s):
 ## end of http://code.activestate.com/recipes/52560/ }}}
 
 
-def files_flatten(env, path, fileFilter):
+def FilesFlatten(env, path, fileFilter):
     out = []
     if isinstance(fileFilter, list or tuple):
         for ff in fileFilter:
@@ -160,14 +160,14 @@ def files_flatten(env, path, fileFilter):
     return out
 
 
-def dirs_flatten(env, path):
+def DirsFlatten(env, path):
     out = []
     for root, dirnames, filenames in os.walk(path):
         out.append(env.Dir(os.path.join(root, dirnames)))
     return out
 
 
-def chain_calls(env, cmds, silent=True):
+def ChainCalls(env, cmds, silent=True):
     if cmds:
         cmd = cmds[0]
         with open(os.devnull, "w") as fnull:
@@ -177,12 +177,12 @@ def chain_calls(env, cmds, silent=True):
             env.cerror('error executing: %s' % cmd)
             return rc
         else:
-            return chain_calls(env, cmds[1:], silent)
+            return ChainCalls(env, cmds[1:], silent)
     else:
         return 0
 
 
-def get_distro ():
+def GetDistro():
     """
         Description:
             This function tells in which distribution of linux we are.
@@ -210,7 +210,7 @@ def get_distro ():
         return result
 
 
-def wasTargetInvoked(target):
+def WasTargetInvoked(target):
     """
         Description:
             This function tells if a specific target was invoked or not.

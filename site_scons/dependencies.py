@@ -69,7 +69,7 @@ def init(env):
     try:
         global DISTRO
         global MANAGER
-        DISTRO = utils.get_distro()
+        DISTRO = utils.GetDistro()
         if DISTRO == utils.DISRTO_ARCH:
             MANAGER = 'PACMAN'
         else:
@@ -325,7 +325,7 @@ def _CreateProjectsDependenciesTargets(env):
             This function parse the projects.xml file, creates the dependencies 
             between projects and the targets for those not being checked-out.
         Arguments:
-            evn  -  An SCons environment.
+            env  -  An SCons environment.
         Exceptions:
             None.
         Return:

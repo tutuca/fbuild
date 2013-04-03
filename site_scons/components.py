@@ -43,6 +43,5 @@ class PdfLaTeXComponent(Component):
         self.env.Alias(self.name, pdf, 'Generate pdf from ' +
             os.path.split(self.latexfile)[-1] +
             ' for ' + self.name.split(':')[0])
-
         for alias in self.aliasGroups:
             self.env.Alias(alias, pdf, "Build group " + alias)
