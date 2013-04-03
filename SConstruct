@@ -40,11 +40,11 @@ options.init(env)
 
 # Color pretty printing
 import termcolor
-termcolor.init(env, ARGUMENTS)
+termcolor.init(env)
 
 # Default configuration options
 import scons_defaults
-scons_defaults.init(env, vars, ARGUMENTS)
+scons_defaults.init(env, vars)
 
 # Things to debug the environment
 import debug
