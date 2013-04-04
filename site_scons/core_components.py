@@ -538,7 +538,7 @@ class UnitTestComponent(ProgramComponent):
             self.env.AlwaysBuild(tTest)
         # Create the target for the test.
         self.env.Alias(self.name, tTest, "Run test for " + self.name)
-        # Make the test depends from coverage generated files.
+        # Make the test depends from files in 'ref' dir.
         for refFile in utils.FindFiles(self.env, self.compDir.Dir('ref')):
             self.env.Depends(tTest, refFile)
         # Alias target for 'all'.
@@ -608,6 +608,9 @@ class UnitTestComponent(ProgramComponent):
         # Call builder RunLcov().
         target = "%s.cov" % target
         covTest = self.env.RunUnittest(target, self.prog)
+        # Make the test depends from files in 'ref' dir.
+        for refFile in utils.FindFiles(self.env, self.compDir.Dir('ref')):
+            self.env.Depends(covTest, refFile)
         # Targets and sources for RunLcov() builder.
         reports_dir = self.env['INSTALL_REPORTS_DIR']
         coverage_dir = self.env.Dir(reports_dir).Dir('coverage').Dir(self.name)
