@@ -369,13 +369,14 @@ def RunReadyToCommit(env, source, target):
         }
     # Check for each file if there is any error
     for f in OutputFiles:
-        cmd = "cat %s | grep -E '(error|formatted)'" % (OutputFiles[f])
-        cmd_result = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
-        cmd_stdout = cmd_result.stdout.read()
-        cmd_result.wait()
-        
-        if cmd_stdout:
-            env.Cprint('[%s] ERROR FOUND - please see: %s' % (f, OutputFiles[f]), 'yellow')
-        else:
-            env.Cprint('[%s] OK' % f, 'green')
+            cmd = "cat %s | grep -E '(error|.orig)'" % (OutputFiles[f])
+            cmd_result = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
+            cmd_stdout = cmd_result.stdout.read()
+            cmd_result.wait()
+            if cmd_stdout:
+                env.Cprint('[%s] ERROR FOUND - please see: %s' % (f, OutputFiles[f]), 'red')
+            elif not os.path.exists(OutputFiles[f]):
+                env.Cprint('[%s] ERROR FOUND - Cant Find file %s' % (f, OutputFiles[f]), 'yellow')
+            else:
+                env.Cprint('[%s] OK' % f, 'green')
     return subprocess.call('echo', shell=True)
