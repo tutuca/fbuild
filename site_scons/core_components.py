@@ -578,7 +578,7 @@ class UnitTestComponent(ProgramComponent):
         # Check if we need to create an xml report.
         if utils.WasTargetInvoked('%s:jenkins' % self.name.split(':')[0]):
             report_dir = self.env['INSTALL_REPORTS_DIR']
-            vdir = self.env.Dir(report_dir).Dir('valgrind').Dir(self.name)
+            vdir = self.env.Dir(report_dir).Dir('valgrind').Dir(self.name[:-5])
             if not os.path.exists(vdir.abspath):
                 os.makedirs(vdir.abspath)
             vreport = '%s/valgrind-report.xml' % vdir.abspath
@@ -613,7 +613,7 @@ class UnitTestComponent(ProgramComponent):
             self.env.Depends(covTest, refFile)
         # Targets and sources for RunLcov() builder.
         reports_dir = self.env['INSTALL_REPORTS_DIR']
-        coverage_dir = self.env.Dir(reports_dir).Dir('coverage').Dir(self.name)
+        coverage_dir = self.env.Dir(reports_dir).Dir('coverage').Dir(self.name[:-5])
         runLcovTargets = os.path.join(coverage_dir.abspath, 'index.html')
         runLcovSources = [self.prog]
         # Call builder RunLcov().
