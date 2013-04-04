@@ -362,28 +362,21 @@ def RunReadyToCommit(env, source, target):
     if project.endswith(':test'):
         project = project.split(':')[0]
     # Create path to files generated
-    CppCheckFile = os.path.join(targetDir, 'cppcheck', project, 'CppCheckReport.txt')
-    AstyleFile = os.path.join(targetDir, 'astyle-check', project, 'astyle-check-report.diff')
-    ValgrindFile = os.path.join(targetDir, 'valgrind', project + ':test', 'valgrind-report.xml')
-    
-    cmd = "cat %s | grep error" % (CppCheckFile)
-    cmd_result = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
-    cmd_stdout = cmd_result.stdout.read()
-    cmd_result.wait()
-    
-    if cmd_stdout:
-        env.Cprint('[CPPCHECK] ERROR FOUND - please see: %s' % CppCheckFile, 'yellow')
-    
-    cmd = "cat %s" % (AstyleFile)
-    cmd_result = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
-    cmd_stdout = cmd_result.stdout.read()
-    cmd_result.wait()
-    
-    if cmd_stdout:
-        env.Cprint('[ASTYLE] ERROR FOUND - please see: %s' % AstyleFile, 'yellow')
+    OutputFiles = {
+        'CPPCHECK': os.path.join(targetDir, 'cppcheck', project, 'CppCheckReport.txt'),
+        'ASTYLE': os.path.join(targetDir, 'astyle-check', project, 'astyle-check-report.diff'),
+        'VALGRIND': os.path.join(targetDir, 'valgrind', project + ':test', 'valgrind-report.xml'),
+        }
         
-    cmd = "echo 'TARGET= %s'" % project
-    print "CPPCHECK= %s" % CppCheckFile
-    print "ASTYLE= %s" % AstyleFile
-    print "VALGRIND= %s" % ValgrindFile
+    for f in OutputFiles:
+        cmd = "cat %s | grep error" % (OutputFiles[f])
+        cmd_result = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
+        cmd_stdout = cmd_result.stdout.read()
+        cmd_result.wait()
+        
+        if cmd_stdout:
+            env.Cprint('[%s] ERROR FOUND - please see: %s' % (f, OutputFiles[f]), 'yellow')
+        else:
+            env.Cprint('[%s] OK' % f, 'green')
+    cmd = 'echo'
     return subprocess.call(cmd, shell=True)
