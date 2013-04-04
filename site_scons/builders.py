@@ -79,6 +79,9 @@ def init(env):
     bldCppCheck = Builder(action = SCons.Action.Action(RunCppCheck, PrintDummy))
     env.Append(BUILDERS = {'RunCppCheck':bldCppCheck})
     env['CPPCHECK_OPTIONS'] = []
+    #-
+    bldReadyToCommit = Builder(action = SCons.Action.Action(RunReadyToCommit, PrintDummy))
+    env.Append(BUILDERS = {'RunReadyToCommit':bldReadyToCommit})
 
 
 def PrintDummy(env, source, target):
@@ -119,7 +122,7 @@ def InitLcov(env, source, target):
     }
     r = chain_calls(env, [
         'lcov --zerocounters --directory %(project_dir)s -b .' % data,
-        'lcov --capture --initial --directory %(project_dir)s -b . --output-file %(coverage_file)s' % data,
+        'lcov --cproject = os.path.split(target)[1]apture --initial --directory %(project_dir)s -b . --output-file %(coverage_file)s' % data,
     ])
     return r
 
@@ -351,4 +354,36 @@ def RunCppCheck(env, source, target):
     outfile = "%s/CppCheckReport.txt" % target
     # Create the command to be pass to subprocess.call()
     cmd = "cppcheck %s %s | sed '/files checked /d' > %s" % (options, files, outfile)
+    return subprocess.call(cmd, shell=True)
+
+def RunReadyToCommit(env, source, target):
+    targetDir = os.path.join(env['INSTALL_REPORTS_DIR'])
+    project = target[0].abspath.split('/')[-1]
+    if project.endswith(':test'):
+        project = project.split(':')[0]
+    # Create path to files generated
+    CppCheckFile = os.path.join(targetDir, 'cppcheck', project, 'CppCheckReport.txt')
+    AstyleFile = os.path.join(targetDir, 'astyle-check', project, 'astyle-check-report.diff')
+    ValgrindFile = os.path.join(targetDir, 'valgrind', project + ':test', 'valgrind-report.xml')
+    
+    cmd = "cat %s | grep error" % (CppCheckFile)
+    cmd_result = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
+    cmd_stdout = cmd_result.stdout.read()
+    cmd_result.wait()
+    
+    if cmd_stdout:
+        env.Cprint('[CPPCHECK] ERROR FOUND - please see: %s' % CppCheckFile, 'yellow')
+    
+    cmd = "cat %s" % (AstyleFile)
+    cmd_result = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
+    cmd_stdout = cmd_result.stdout.read()
+    cmd_result.wait()
+    
+    if cmd_stdout:
+        env.Cprint('[ASTYLE] ERROR FOUND - please see: %s' % AstyleFile, 'yellow')
+        
+    cmd = "echo 'TARGET= %s'" % project
+    print "CPPCHECK= %s" % CppCheckFile
+    print "ASTYLE= %s" % AstyleFile
+    print "VALGRIND= %s" % ValgrindFile
     return subprocess.call(cmd, shell=True)

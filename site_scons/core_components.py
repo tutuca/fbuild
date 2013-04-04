@@ -356,8 +356,10 @@ class HeaderOnlyComponent(Component):
                 name = self.name.split(':')[0]
             else:
                 name = self.name
-            self.ready_to_commit_target = self.env.Alias('%s:ready-to-commit' % name, None,
-                                               'Check if %s is ready to commit building it and running Astyle, CppCheck and Valgrind' % name)
+            target = self.env.Dir(self.name)
+            ready_to_commit = self.env.RunReadyToCommit(target, None)
+            self.ready_to_commit_target = self.env.Alias('%s:ready-to-commit' % name, ready_to_commit,
+                                               'Build and check Astyle, CppCheck and Valgrind on ' + name)
             self.env.AlwaysBuild(self.ready_to_commit_target)
 
 
