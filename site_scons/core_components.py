@@ -351,15 +351,11 @@ class HeaderOnlyComponent(Component):
         self.env.Alias('%s:astyle' % self.name, astyleOut, "Runs astyle on " + self.name)
         
     def _create_ready_to_commit_target(self):
-            # Create the target for ready.
-            if self.name.endswith(':test'):
-                name = self.name.split(':')[0]
-            else:
-                name = self.name
+            # Create the target for ready-to-commit.
             target = self.env.Dir(self.name)
             ready_to_commit = self.env.RunReadyToCommit(target, None)
-            self.ready_to_commit_target = self.env.Alias('%s:ready-to-commit' % name, ready_to_commit,
-                                               'Build and check Astyle, CppCheck and Valgrind on ' + name)
+            self.ready_to_commit_target = self.env.Alias('%s:ready-to-commit' % self.name, ready_to_commit,
+                                               'Build and check Astyle, CppCheck and Valgrind on ' + self.name)
             self.env.AlwaysBuild(self.ready_to_commit_target)
 
 

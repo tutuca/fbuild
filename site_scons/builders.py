@@ -374,9 +374,9 @@ def RunReadyToCommit(env, source, target):
             cmd_stdout = cmd_result.stdout.read()
             cmd_result.wait()
             if cmd_stdout:
-                env.Cprint('[%s] ERROR FOUND - please see: %s' % (f, OutputFiles[f]), 'red')
+                env.Cprint('[%s] ERROR FOUND - please see: %s' % (f, OutputFiles[f]), 'yellow')
             elif not os.path.exists(OutputFiles[f]):
-                env.Cprint('[%s] ERROR FOUND - Cant Find file %s' % (f, OutputFiles[f]), 'yellow')
+                env.Cprint('[%s] ERROR FOUND - Cant Find file %s' % (f, OutputFiles[f]), 'red')
             else:
                 env.Cprint('[%s] OK' % f, 'green')
     return subprocess.call('echo', shell=True)
