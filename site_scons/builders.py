@@ -367,9 +367,9 @@ def RunReadyToCommit(env, source, target):
         'ASTYLE': os.path.join(targetDir, 'astyle-check', project, 'astyle-check-report.diff'),
         'VALGRIND': os.path.join(targetDir, 'valgrind', project + ':test', 'valgrind-report.xml'),
         }
-        
+    # Check for each file if there is any error
     for f in OutputFiles:
-        cmd = "cat %s | grep error" % (OutputFiles[f])
+        cmd = "cat %s | grep -E '(error|formatted)'" % (OutputFiles[f])
         cmd_result = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
         cmd_stdout = cmd_result.stdout.read()
         cmd_result.wait()
@@ -378,5 +378,4 @@ def RunReadyToCommit(env, source, target):
             env.Cprint('[%s] ERROR FOUND - please see: %s' % (f, OutputFiles[f]), 'yellow')
         else:
             env.Cprint('[%s] OK' % f, 'green')
-    cmd = 'echo'
-    return subprocess.call(cmd, shell=True)
+    return subprocess.call('echo', shell=True)
