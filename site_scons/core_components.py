@@ -301,6 +301,16 @@ class HeaderOnlyComponent(Component):
             name = self.name
         self.jenkins_target = self.env.Alias('%s:jenkins' % name, None, '')
         self.env.AlwaysBuild(self.jenkins_target)
+        
+    def _create_ready_to_commit_target(self):
+        # Create the target for jenkins.
+        if self.name.endswith(':test'):
+            name = self.name.split(':')[0]
+        else:
+            name = self.name
+        # Create an alias for ready-to-commit..
+        self.ready_to_commit_target = self.env.Alias('%s:ready-to-commit' % name, None, '')
+        self.env.AlwaysBuild(self.ready_to_commit_target)
     
     def _create_cppcheck_target(self, sources):
         # Create the 'target', it is the directory where the result will be put.
@@ -349,14 +359,6 @@ class HeaderOnlyComponent(Component):
         astyleOut = self.env.RunAStyle(target, sources)
         # Create an alias for astyle.
         self.env.Alias('%s:astyle' % self.name, astyleOut, "Runs astyle on " + self.name)
-        
-    def _create_ready_to_commit_target(self):
-            # Create the target for ready-to-commit.
-            target = self.env.Dir(self.name)
-            ready_to_commit = self.env.RunReadyToCommit(target, None)
-            self.ready_to_commit_target = self.env.Alias('%s:ready-to-commit' % self.name, ready_to_commit,
-                                               'Build and check Astyle, CppCheck and Valgrind on ' + self.name)
-            self.env.AlwaysBuild(self.ready_to_commit_target)
 
 
 class SourcedComponent(HeaderOnlyComponent):
@@ -568,6 +570,9 @@ class UnitTestComponent(ProgramComponent):
         self.env.Depends(self.jenkins_target,[tvalg, tcov])
         # Add dependence for ready to commit.
         self.env.Depends(self.ready_to_commit_target,tvalg)
+        # Check if it was invoked by ready-to-commit to run the builder.
+        if utils.wasTargetInvoked('%s:ready-to-commit' % self.name.split(':')[0]):
+            end_ready_to_commit = self._EndReadyToCommit()
         # Create alias for aliasGroups.
         for alias in self.aliasGroups:
             self.env.Alias(alias, tTest, "Build group " + alias)
@@ -644,3 +649,10 @@ class UnitTestComponent(ProgramComponent):
         self.env.AlwaysBuild(cov)
         self.env.AlwaysBuild(covTest)
         return cov
+
+    def _EndReadyToCommit(self):
+        # Create the target for ready-to-commit.
+        target = self.env.Dir(self.name)
+        ready_to_commit = self.env.RunReadyToCommit(target, None)
+        self.env.AlwaysBuild(ready_to_commit)
+        self.env.Depends(self.ready_to_commit_target, ready_to_commit)

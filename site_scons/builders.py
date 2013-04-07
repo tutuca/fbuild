@@ -369,7 +369,7 @@ def RunReadyToCommit(env, source, target):
         }
     # Check for each file if there is any error
     for f in OutputFiles:
-            cmd = "cat %s | grep -E '(error|.orig)'" % (OutputFiles[f])
+            cmd = "cat %s | grep -E '(<error>|.orig|error:)'" % (OutputFiles[f])
             cmd_result = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
             cmd_stdout = cmd_result.stdout.read()
             cmd_result.wait()
