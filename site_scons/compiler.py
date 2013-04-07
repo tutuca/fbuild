@@ -73,7 +73,6 @@ def LinuxOptions(env):
         env.Append(CXXFLAGS=dbgFlags, CFLAGS=dbgFlags)
         env.Append(CPPDEFINES=['DEBUG'])
     if is_coverage():
-        print "Parece que funka"
         gprofFlags = ['--coverage']
         env.Append(CXXFLAGS=gprofFlags, CFLAGS=gprofFlags, LINKFLAGS=gprofFlags)
 
