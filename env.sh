@@ -34,7 +34,7 @@
 # environment. If other installers are supported they should maintain the
 # function interface
 
-if [ $FBUILD_ENV_STARTED != true ]; then
+if [ "$FBUILD_ENV_STARTED" != "true" ]; then
     echo -e "\e[0;31m[error] Use 'source start.sh' instead 'source env.sh'\e[0m";
     return 1
 else
