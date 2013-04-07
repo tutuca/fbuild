@@ -72,6 +72,17 @@ def LinuxOptions(env):
         dbgFlags = ['-ggdb3']
         env.Append(CXXFLAGS=dbgFlags, CFLAGS=dbgFlags)
         env.Append(CPPDEFINES=['DEBUG'])
+    if is_coverage():
+        print "Parece que funka"
+        gprofFlags = ['--coverage']
+        env.Append(CXXFLAGS=gprofFlags, CFLAGS=gprofFlags, LINKFLAGS=gprofFlags)
+
+def is_coverage():
+    for arg in sys.argv:
+        if ':coverage' in arg:
+            return True
+    return False
+    
     #if env.GetOption('effective'):
         #env.Append(CXXFLAGS='-Weffc++', CFLAGS='-Weffc++')
     #if env.GetOption('gprofile'):
