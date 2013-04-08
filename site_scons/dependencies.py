@@ -591,6 +591,11 @@ def CheckoutDependency(env, source, target):
     os.system('rm -rf %s' % TMP_DIR)
     return result
 
+#
+# In this both functions we have to check if the component dependencies are
+# installed or not. Also we have to see if we can let only one function instead 
+# CheckoutDependency() and CheckoutDependencyNow().
+#
 
 def CheckoutDependencyNow(depname, env):
     # Crate a temporary directory for download external components.
