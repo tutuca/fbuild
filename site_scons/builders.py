@@ -263,8 +263,8 @@ def AStyleCheck(env, source, target):
     if special_invoke:
         report.close()
 
-
 def AStyle(env, source, target):
+    env.Cprint('Running astyle...', 'green')
     rc = 0
     t = target[0].abspath
     cmd = "astyle -k1 --options=none --convert-tabs -bSKpUH %s"
@@ -346,7 +346,7 @@ def RunCppCheck(env, source, target):
     # Check if the install directory for the cppcheck results already exists.
     if not os.path.exists(target):
         os.makedirs(target)
-    # We create a string with the options for cppcheck.
+    # We create a string with the options for cilder should be in the SConscript of the legacy_script, and it's src is in the obj directory cppcheck.
     options = ' '.join([opt for opt in env['CPPCHECK_OPTIONS']])
     # We create a string with the files for cppcheck.
     files = ' '.join([f.abspath for f in source])
@@ -354,9 +354,10 @@ def RunCppCheck(env, source, target):
     outfile = "%s/CppCheckReport.txt" % target
     # Create the command to be pass to subprocess.call()
     cmd = "cppcheck %s %s | sed '/files checked /d' > %s" % (options, files, outfile)
-    return subprocess.call(cmd, shell=True)
+    return (subprocess.call(cmd, shell=True), outfile)
 
 def RunReadyToCommit(env, source, target):
+    env.Cprint('\nRunning ready-to-commit...\n', 'green')
     targetDir = os.path.join(env['INSTALL_REPORTS_DIR'])
     project = target[0].abspath.split('/')[-1]
     if project.endswith(':test'):
@@ -364,19 +365,20 @@ def RunReadyToCommit(env, source, target):
     # Create path to files generated
     OutputFiles = {
         'CPPCHECK': os.path.join(targetDir, 'cppcheck', project, 'CppCheckReport.txt'),
-        'ASTYLE': os.path.join(targetDir, 'astyle-check', project, 'astyle-check-report.diff'),
+        '-ASTYLE-': os.path.join(targetDir, 'astyle-check', project, 'astyle-check-report.diff'),
         'VALGRIND': os.path.join(targetDir, 'valgrind', project + ':test', 'valgrind-report.xml'),
         }
     # Check for each file if there is any error
     for f in OutputFiles:
+        if os.path.exists(OutputFiles[f]):
             cmd = "cat %s | grep -E '(<error>|.orig|error:)'" % (OutputFiles[f])
             cmd_result = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
             cmd_stdout = cmd_result.stdout.read()
             cmd_result.wait()
             if cmd_stdout:
                 env.Cprint('[%s] ERROR FOUND - please see: %s' % (f, OutputFiles[f]), 'yellow')
-            elif not os.path.exists(OutputFiles[f]):
-                env.Cprint('[%s] ERROR FOUND - Cant Find file %s' % (f, OutputFiles[f]), 'red')
             else:
                 env.Cprint('[%s] OK' % f, 'green')
+        else:
+            env.Cprint('[%s] ERROR FOUND - Cant Find file %s' % (f, OutputFiles[f]), 'red')
     return subprocess.call('echo', shell=True)

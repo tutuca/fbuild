@@ -303,7 +303,7 @@ class HeaderOnlyComponent(Component):
         self.env.AlwaysBuild(self.jenkins_target)
         
     def _create_ready_to_commit_target(self):
-        # Create the target for jenkins.
+        # Create the target for ready-to-commit.
         if self.name.endswith(':test'):
             name = self.name.split(':')[0]
         else:
@@ -319,11 +319,12 @@ class HeaderOnlyComponent(Component):
         cppcheck = self.env.RunCppCheck(target, sources)
         self.env.AlwaysBuild(cppcheck)
         # Create an alias to be show when run 'fbuild targets'.
-        self.env.Alias(self.name+":cppcheck", cppcheck, 'C/C++ code analyse for %s' % self.name)
+        output = self.env.Alias(self.name+":cppcheck", cppcheck, 'C/C++ code analyse for %s' % self.name)
         # Add dependence for jenkins.
         self.env.Depends(self.jenkins_target,cppcheck)
         # Add dependence for ready-to-commit.
-        self.env.Depends(self.ready_to_commit_target,cppcheck)
+        self.env.Depends(self.ready_to_commit_target,output)
+        #self.env.Requires(self.ready_to_commit_target,output_cppcheck)
     
     def _create_doc_target(self):
         targetDocDir = self.env.Dir(self.env['INSTALL_DOC_DIR']).Dir(self.name)
@@ -654,5 +655,5 @@ class UnitTestComponent(ProgramComponent):
         # Create the target for ready-to-commit.
         target = self.env.Dir(self.name)
         ready_to_commit = self.env.RunReadyToCommit(target, None)
-        self.env.AlwaysBuild(ready_to_commit)
         self.env.Depends(self.ready_to_commit_target, ready_to_commit)
+        self.env.AlwaysBuild(ready_to_commit)
