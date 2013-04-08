@@ -145,10 +145,9 @@
             target="http://github.com/headmyshoulder/odeint-v2/tarball/master"
             manager="WGET"/>
         <execute_after>
-            cd ./{TMP_DIR}/odeint; tar zxvf master
-            sudo cp -r ./{TMP_DIR}/odeint/headmyshoulder-odeint-v2-da114de/boost/numeric/* /usr/include/boost/numeric/
+            cd ./{TMP_DIR}/odeint; tar zxvf master; mv *odeint*/* .
+            sudo cp -r ./{TMP_DIR}/odeint/boost/numeric/* /usr/include/boost/numeric/
         </execute_after>
-        <install_checker>echo ""</install_checker>
     </component>
     
     <component name="xdrfile" type="LIB">
