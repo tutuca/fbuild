@@ -346,7 +346,8 @@ def RunCppCheck(env, source, target):
     # Check if the install directory for the cppcheck results already exists.
     if not os.path.exists(target):
         os.makedirs(target)
-    # We create a string with the options for cilder should be in the SConscript of the legacy_script, and it's src is in the obj directory cppcheck.
+    # We create a string with the options for cilder should be in the SConscript
+    # of the legacy_script, and it's src is in the obj directory cppcheck.
     options = ' '.join([opt for opt in env['CPPCHECK_OPTIONS']])
     # We create a string with the files for cppcheck.
     files = ' '.join([f.abspath for f in source])
@@ -358,13 +359,7 @@ def RunCppCheck(env, source, target):
 
 def RunReadyToCommit(env, source, target):
     targetDir = os.path.join(env['INSTALL_REPORTS_DIR'])
-    project = target[0].abspath.split('/')[-1]
-    # Unless targets are test, dont check output files.
-    if not project.endswith(':test'):
-        return subprocess.call('echo ', shell=True)
-    else:
-        project = project.split(':')[0]
-        
+    project = target[0].abspath.split('/')[-1].split(':')[0]
     env.Cprint('\nRunning ready-to-commit...\n', 'green')
     # Create path to files generated
     OutputFiles = {
