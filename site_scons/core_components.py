@@ -304,13 +304,11 @@ class HeaderOnlyComponent(Component):
         
     def _create_ready_to_commit_target(self):
         # Create the target for ready-to-commit.
-        if self.name.endswith(':test'):
-            name = self.name.split(':')[0]
-        else:
-            name = self.name
-        # Create an alias for ready-to-commit..
-        self.ready_to_commit_target = self.env.Alias('%s:ready-to-commit' % name, None, '')
-        self.env.AlwaysBuild(self.ready_to_commit_target)
+        #name = self.name.split(':')[0]
+        # Create an alias for ready-to-commit.
+        self.ready_to_commit = self.env.RunReadyToCommit(self.name, None)
+        self.env.Alias('%s:ready-to-commit' % self.name.split(':')[0], self.ready_to_commit, '')
+        self.env.AlwaysBuild(self.ready_to_commit)
     
     def _create_cppcheck_target(self, sources):
         # Create the 'target', it is the directory where the result will be put.
@@ -319,12 +317,11 @@ class HeaderOnlyComponent(Component):
         cppcheck = self.env.RunCppCheck(target, sources)
         self.env.AlwaysBuild(cppcheck)
         # Create an alias to be show when run 'fbuild targets'.
-        output = self.env.Alias(self.name+":cppcheck", cppcheck, 'C/C++ code analyse for %s' % self.name)
+        self.env.Alias(self.name+":cppcheck", cppcheck, 'C/C++ code analyse for %s' % self.name)
         # Add dependence for jenkins.
         self.env.Depends(self.jenkins_target,cppcheck)
         # Add dependence for ready-to-commit.
-        self.env.Depends(self.ready_to_commit_target,output)
-        #self.env.Requires(self.ready_to_commit_target,output_cppcheck)
+        self.env.Depends(self.ready_to_commit, cppcheck)
     
     def _create_doc_target(self):
         targetDocDir = self.env.Dir(self.env['INSTALL_DOC_DIR']).Dir(self.name)
@@ -349,9 +346,9 @@ class HeaderOnlyComponent(Component):
         # Create an alias for the astyle checker.
         self.env.Alias('%s:astyle-check' % self.name, astyle_check, msg)
         # Add dependence for jenkins.
-        self.env.Depends(self.jenkins_target,astyle_check)
+        self.env.Depends(self.jenkins_target, astyle_check)
         # Add dependence for ready-to-commit.
-        self.env.Depends(self.ready_to_commit_target,astyle_check)
+        self.env.Depends(self.ready_to_commit, astyle_check)
     
     def _create_astyle_target(self, sources):
         # Create the target.
@@ -570,10 +567,7 @@ class UnitTestComponent(ProgramComponent):
         # Add dependence for jenkins.
         self.env.Depends(self.jenkins_target,[tvalg, tcov])
         # Add dependence for ready to commit.
-        self.env.Depends(self.ready_to_commit_target,tvalg)
-        # Check if it was invoked by ready-to-commit to run the builder.
-        if utils.wasTargetInvoked('%s:ready-to-commit' % self.name.split(':')[0]):
-            end_ready_to_commit = self._EndReadyToCommit()
+        self.env.Depends(self.ready_to_commit, tvalg)
         # Create alias for aliasGroups.
         for alias in self.aliasGroups:
             self.env.Alias(alias, tTest, "Build group " + alias)
@@ -650,10 +644,3 @@ class UnitTestComponent(ProgramComponent):
         self.env.AlwaysBuild(cov)
         self.env.AlwaysBuild(covTest)
         return cov
-
-    def _EndReadyToCommit(self):
-        # Create the target for ready-to-commit.
-        target = self.env.Dir(self.name)
-        ready_to_commit = self.env.RunReadyToCommit(target, None)
-        self.env.Depends(self.ready_to_commit_target, ready_to_commit)
-        self.env.AlwaysBuild(ready_to_commit)

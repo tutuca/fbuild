@@ -354,14 +354,18 @@ def RunCppCheck(env, source, target):
     outfile = "%s/CppCheckReport.txt" % target
     # Create the command to be pass to subprocess.call()
     cmd = "cppcheck %s %s | sed '/files checked /d' > %s" % (options, files, outfile)
-    return (subprocess.call(cmd, shell=True), outfile)
+    return subprocess.call(cmd, shell=True)
 
 def RunReadyToCommit(env, source, target):
-    env.Cprint('\nRunning ready-to-commit...\n', 'green')
     targetDir = os.path.join(env['INSTALL_REPORTS_DIR'])
     project = target[0].abspath.split('/')[-1]
-    if project.endswith(':test'):
+    # Unless targets are test, dont check output files.
+    if not project.endswith(':test'):
+        return subprocess.call('echo ', shell=True)
+    else:
         project = project.split(':')[0]
+        
+    env.Cprint('\nRunning ready-to-commit...\n', 'green')
     # Create path to files generated
     OutputFiles = {
         'CPPCHECK': os.path.join(targetDir, 'cppcheck', project, 'CppCheckReport.txt'),
@@ -381,4 +385,5 @@ def RunReadyToCommit(env, source, target):
                 env.Cprint('[%s] OK' % f, 'green')
         else:
             env.Cprint('[%s] ERROR FOUND - Cant Find file %s' % (f, OutputFiles[f]), 'red')
+            
     return subprocess.call('echo', shell=True)
