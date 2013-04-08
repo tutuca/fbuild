@@ -148,6 +148,7 @@
             cd ./{TMP_DIR}/odeint; tar zxvf master; mv *odeint*/* .
             sudo cp -r ./{TMP_DIR}/odeint/boost/numeric/* /usr/include/boost/numeric/
         </execute_after>
+        <install_checker>stat -f /usr/include/boost/numeric/odeint.hpp</install_checker>
     </component>
     
     <component name="xdrfile" type="LIB">
