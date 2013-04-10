@@ -357,7 +357,16 @@ def RunCppCheck(env, source, target):
     cmd = "cppcheck %s %s | sed '/files checked /d' > %s" % (options, files, outfile)
     return subprocess.call(cmd, shell=True)
 
+first_call = False
 def RunReadyToCommit(env, source, target):
+    global first_call
+    dummy_cmd = subprocess.call('echo ', shell=True)
+    
+    if not first_call:
+        first_call = True
+        return dummy_cmd
+        
+    dummy_process= subprocess.call('echo', shell=True)
     targetDir = os.path.join(env['INSTALL_REPORTS_DIR'])
     project = target[0].abspath.split('/')[-1].split(':')[0]
     env.Cprint('\nRunning ready-to-commit...\n', 'green')
@@ -381,4 +390,6 @@ def RunReadyToCommit(env, source, target):
         else:
             env.Cprint('[%s] ERROR FOUND - Cant Find file %s' % (f, OutputFiles[f]), 'red')
             
-    return subprocess.call('echo', shell=True)
+    first_call = False
+    
+    return dummy_cmd
