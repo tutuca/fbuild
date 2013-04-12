@@ -189,24 +189,25 @@ class HeaderOnlyComponent(Component):
         sources = utils.files_flatten(self.env, self.projDir, filters)
         # Create target for jenkins.
         self._create_jenkins_target()
-        # Create target for ready to commit.
-        self._create_ready_to_commit_target()
+        if self.name.endswith(':test'):
+            # Create target for ready to commit.
+            self._create_ready_to_commit_target()
+        # Create target for generate the documentation.
+        self._create_doc_target()
+        # We add astyle target to all the components that can have a header.
+        self._create_astyle_target(sources)
+        # We add a traget for check if the component is astyled.
+        self._create_astyle_check_target(sources)
+        # This condition is for the cases when the method is called from a subclass.
+        if not called_from_subclass:
+            # Create the list of the 'sources' files.
+            sources = []
+            for d in self.extInc:
+                sources.extend(utils.FindFiles(self.env, d,['*.h']))
+            self._create_cccc_target(sources)
+            self._create_cloc_target(sources)
+            self._create_cppcheck_target(sources)
         if not self.name.endswith(':test'):
-            # Create target for generate the documentation.
-            self._create_doc_target()
-            # We add astyle target to all the components that can have a header.
-            self._create_astyle_target(sources)
-            # We add a traget for check if the component is astyled.
-            self._create_astyle_check_target(sources)
-            # This condition is for the cases when the method is called from a subclass.
-            if not called_from_subclass:
-                # Create the list of the 'sources' files.
-                sources = []
-                for d in self.extInc:
-                    sources.extend(utils.FindFiles(self.env, d,['*.h']))
-                self._create_cccc_target(sources)
-                self._create_cloc_target(sources)
-                self._create_cppcheck_target(sources)
             # If the component doesnt have external headers, we dont process it since
             # there is nothing to install
             if len(self.extInc) > 0:
@@ -254,109 +255,122 @@ class HeaderOnlyComponent(Component):
         return (incs, processedComponents)
     
     def _create_cccc_target(self, sources):
-        # Create the 'target', it is the directory where the result will be put.
-        reports_dir = self.env['INSTALL_REPORTS_DIR']
-        target = self.env.Dir(reports_dir).Dir(self.env['INSTALL_METRICS_DIR']).Dir('cccc').Dir(self.name)
-        # Set the name of the report file.
-        outdir = target.abspath + os.sep
-        self.env.Append(CCCC_OPTIONS='--html_outfile='+outdir+'CCCCMainHTMLReport.html')
-        # Call RunCCCC().
-        cccc = self.env.RunCCCC(target, sources)
-        self.env.AlwaysBuild(cccc)
-        # Create an alias to be show when run 'fbuild targets'.
-        self.env.Alias(self.name+":cccc", cccc, 'Generate software metrics for %s' % self.name)
-        # Add dependence for jenkins.
-        self.env.Depends(self.jenkins_target,cccc)
+        if not self.name.endswith(':test'):
+            # Create the 'target', it is the directory where the result will be put.
+            reports_dir = self.env['INSTALL_REPORTS_DIR']
+            target = self.env.Dir(reports_dir).Dir(self.env['INSTALL_METRICS_DIR']).Dir('cccc').Dir(self.name)
+            # Set the name of the report file.
+            outdir = target.abspath + os.sep
+            self.env.Append(CCCC_OPTIONS='--html_outfile='+outdir+'CCCCMainHTMLReport.html')
+            # Call RunCCCC().
+            cccc = self.env.RunCCCC(target, sources)
+            self.env.AlwaysBuild(cccc)
+            # Create an alias to be show when run 'fbuild targets'.
+            self.env.Alias(self.name+":cccc", cccc, 'Generate software metrics for %s' % self.name)
+            # Add dependence for jenkins.
+            self.env.Depends(self.jenkins_target,cccc)
     
     def _create_cloc_target(self, sources):
-        # Check if we need to create an xml report.
-        if utils.wasTargetInvoked('%s:jenkins' % self.name.split(':')[0]):
-            self.env.Replace(CLOC_OUTPUT_FORMAT='xml')
-        # Create the 'target', it is the directory where the result will be put.
-        reports_dir = self.env['INSTALL_REPORTS_DIR']
-        target = self.env.Dir(reports_dir).Dir(self.env['INSTALL_METRICS_DIR']).Dir('cloc').Dir(self.name)
-        # Set the name of the report file.
-        outdir = target.abspath
-        if self.env['CLOC_OUTPUT_FORMAT'] == 'txt':
-            self.env.Append(CLOC_OPTIONS = '--out=%s/CLOCMainTXTReport' % outdir)
-        elif self.env['CLOC_OUTPUT_FORMAT'] == 'sql':
-            self.env.Append(CLOC_OPTIONS = '--sql=%s/CLOCMainSQLReport' % outdir)
-        elif self.env['CLOC_OUTPUT_FORMAT'] == 'xml':
-            self.env.Append(CLOC_OPTIONS = '--xml --out=%s/CLOCMainXMLReport' % outdir)
-        else:
-            raise ValueError("Not valid value for CLOC_OUTPUT_FORMAT",self.env['CLOC_OUTPUT_FORMAT'])
-        # Call RunCLOC().
-        cloc = self.env.RunCLOC(target, sources)
-        self.env.AlwaysBuild(cloc)
-        # Create Componentan alias to be show when run 'fbuild targets'.
-        self.env.Alias(self.name+":cloc", cloc, 'Generate software metrics for %s' % self.name)
-        # Add dependence for jenkins.
-        self.env.Depends(self.jenkins_target,cloc)
+        if not self.name.endswith(':test'):
+            # Check if we need to create an xml report.
+            if utils.wasTargetInvoked('%s:jenkins' % self.name.split(':')[0]):
+                self.env.Replace(CLOC_OUTPUT_FORMAT='xml')
+            # Create the 'target', it is the directory where the result will be put.
+            reports_dir = self.env['INSTALL_REPORTS_DIR']
+            target = self.env.Dir(reports_dir).Dir(self.env['INSTALL_METRICS_DIR']).Dir('cloc').Dir(self.name)
+            # Set the name of the report file.
+            outdir = target.abspath
+            if self.env['CLOC_OUTPUT_FORMAT'] == 'txt':
+                self.env.Append(CLOC_OPTIONS = '--out=%s/CLOCMainTXTReport' % outdir)
+            elif self.env['CLOC_OUTPUT_FORMAT'] == 'sql':
+                self.env.Append(CLOC_OPTIONS = '--sql=%s/CLOCMainSQLReport' % outdir)
+            elif self.env['CLOC_OUTPUT_FORMAT'] == 'xml':
+                self.env.Append(CLOC_OPTIONS = '--xml --out=%s/CLOCMainXMLReport' % outdir)
+            else:
+                raise ValueError("Not valid value for CLOC_OUTPUT_FORMAT",self.env['CLOC_OUTPUT_FORMAT'])
+            # Call RunCLOC().
+            cloc = self.env.RunCLOC(target, sources)
+            self.env.AlwaysBuild(cloc)
+            # Create Componentan alias to be show when run 'fbuild targets'.
+            self.env.Alias(self.name+":cloc", cloc, 'Generate software metrics for %s' % self.name)
+            # Add dependence for jenkins.
+            self.env.Depends(self.jenkins_target,cloc)
     
     def _create_jenkins_target(self):
         # Create the target for jenkins.
-        if self.name.endswith(':test'):
-            name = self.name.split(':')[0]
-        else:
-            name = self.name
+        name = self.name.split(':')[0]
         self.jenkins_target = self.env.Alias('%s:jenkins' % name, None, '')
         self.env.AlwaysBuild(self.jenkins_target)
         
     def _create_ready_to_commit_target(self):
-        # Create the target for ready-to-commit.
-        #name = self.name.split(':')[0]
-        # Create an alias for ready-to-commit.
         self.ready_to_commit = self.env.RunReadyToCommit(self.name, None)
+        # Create an alias for ready-to-commit.
         self.env.Alias('%s:ready-to-commit' % self.name.split(':')[0], self.ready_to_commit, '')
         self.env.AlwaysBuild(self.ready_to_commit)
     
     def _create_cppcheck_target(self, sources):
         # Create the 'target', it is the directory where the result will be put.
-        target = self.env.Dir(self.env['INSTALL_REPORTS_DIR']).Dir('cppcheck').Dir(self.name)
+        target = self.env.Dir(self.env['INSTALL_REPORTS_DIR']).Dir('cppcheck').Dir(self.name[:-5])
         # Call RunCppCheck().
         cppcheck = self.env.RunCppCheck(target, sources)
         self.env.AlwaysBuild(cppcheck)
-        # Create an alias to be show when run 'fbuild targets'.
-        self.env.Alias(self.name+":cppcheck", cppcheck, 'C/C++ code analyse for %s' % self.name)
-        # Add dependence for jenkins.
-        self.env.Depends(self.jenkins_target,cppcheck)
-        # Add dependence for ready-to-commit.
-        self.env.Depends(self.ready_to_commit, cppcheck)
+        if self.name.endswith(':test'):
+            # Add dependence for ready-to-commit.
+            self.env.Depends(self.ready_to_commit, cppcheck)
+        else:
+            # Create an alias to be show when run 'fbuild targets'.
+            self.env.Alias(self.name+":cppcheck", cppcheck, 'C/C++ code analyse for %s' % self.name)
+            # Add dependence for jenkins.
+            self.env.Depends(self.jenkins_target,cppcheck)
     
     def _create_doc_target(self):
-        targetDocDir = self.env.Dir(self.env['INSTALL_DOC_DIR']).Dir(self.name)
-        doxyfile = self.env.File(self.env.Dir('#').abspath+'/conf/doxygenTemplate')
-        sconscript = ('%s/SConscript' % self.dir).replace('/build/','/projects/')
-        # We pass it the path to the SConscript file because we need the path to 
-        # the project directory but we only can put 'env.File' objects as sources.
-        doc = self.env.RunDoxygen(targetDocDir, [doxyfile,sconscript])
-        self.env.Clean(doc, targetDocDir)
-        self.env.Alias(self.name+':doc', doc, 'Generate documentation for ' + self.name)
-        # Add dependence for jenkins.
-        self.env.Depends(self.jenkins_target,doc)
+        if not self.name.endswith(':test'):
+            targetDocDir = self.env.Dir(self.env['INSTALL_DOC_DIR']).Dir(self.name)
+            doxyfile = self.env.File(self.env.Dir('#').abspath+'/conf/doxygenTemplate')
+            sconscript = ('%s/SConscript' % self.dir).replace('/build/','/projects/')
+            # We pass it the path to the SConscript file because we need the path to 
+            # the project directory but we only can put 'env.File' objects as sources.
+            doc = self.env.RunDoxygen(targetDocDir, [doxyfile,sconscript])
+            self.env.Clean(doc, targetDocDir)
+            self.env.Alias(self.name+':doc', doc, 'Generate documentation for ' + self.name)
+            # Add dependence for jenkins.
+            self.env.Depends(self.jenkins_target,doc)
     
     def _create_astyle_check_target(self, sources):
         # Create the target.
-        target = self.env.Dir(self.env['BUILD_DIR']).Dir('astyle-check').Dir(self.name)
+        if self.name.endswith(':test'):
+            name = self.name[:-5]
+        else:
+            name = self.name
+        target = self.env.Dir(self.env['BUILD_DIR']).Dir('astyle-check').Dir(name)
+        
+        print '==========================', self.name
+        print '>>>>>>>>>>>>>>>>>>>>>>>>>>', target.abspath
+        print '>>>>>>>>>>>>>>>>>>sources:', [x.abspath for x in sources]
+        print ''
+        
         # Call RunAStyleCheck().
         astyle_check = self.env.RunAStyleCheck(target, sources)
         self.env.AlwaysBuild(astyle_check)
-        # Create info message.
-        msg = "Checks if the project %s has been astyled." % self.name
-        # Create an alias for the astyle checker.
-        self.env.Alias('%s:astyle-check' % self.name, astyle_check, msg)
-        # Add dependence for jenkins.
-        self.env.Depends(self.jenkins_target, astyle_check)
-        # Add dependence for ready-to-commit.
-        self.env.Depends(self.ready_to_commit, astyle_check)
+        if self.name.endswith(':test'):
+            # Add dependence for ready-to-commit.
+            self.env.Depends(self.ready_to_commit, astyle_check)
+        else:
+            # Create info message.
+            msg = "Checks if the project %s has been astyled." % self.name
+            # Create an alias for the astyle checker.
+            self.env.Alias('%s:astyle-check' % self.name, astyle_check, msg)
+            # Add dependence for jenkins.
+            self.env.Depends(self.jenkins_target, astyle_check)
     
     def _create_astyle_target(self, sources):
-        # Create the target.
-        target = self.env.Dir(self.env['BUILD_DIR']).Dir('astyle').Dir(self.name)
-        # Call RunAStyle().
-        astyleOut = self.env.RunAStyle(target, sources)
-        # Create an alias for astyle.
-        self.env.Alias('%s:astyle' % self.name, astyleOut, "Runs astyle on " + self.name)
+        if not self.name.endswith(':test'):
+            # Create the target.
+            target = self.env.Dir(self.env['BUILD_DIR']).Dir('astyle').Dir(self.name)
+            # Call RunAStyle().
+            astyleOut = self.env.RunAStyle(target, sources)
+            # Create an alias for astyle.
+            self.env.Alias('%s:astyle' % self.name, astyleOut, "Runs astyle on " + self.name)
 
 
 class SourcedComponent(HeaderOnlyComponent):
@@ -397,12 +411,11 @@ class SourcedComponent(HeaderOnlyComponent):
 
     def Process(self):
         HeaderOnlyComponent.Process(self,True)
-        if not self.name.endswith(':test'):
-            # Create the list of the 'sources' files.
-            sources = self.src_files + self.inc_files
-            self._create_cccc_target(sources)
-            self._create_cloc_target(sources)
-            self._create_cppcheck_target(sources)
+        # Create the list of the 'sources' files.
+        sources = self.src_files + self.inc_files
+        self._create_cccc_target(sources)
+        self._create_cloc_target(sources)
+        self._create_cppcheck_target(sources)
 
     def GetIncludePaths(self):
         (incs, processedComponents) = self._GetIncludePaths([], 0)
@@ -596,7 +609,7 @@ class UnitTestComponent(ProgramComponent):
         vtname = '%s:valgrind' % name
         # Check if we need to create an xml report.
         if (utils.wasTargetInvoked('%s:jenkins' % self.name.split(':')[0]) or
-           utils.wasTargetInvoked('%s:ready-to-commit' % self.name.split(':')[0])):
+            utils.wasTargetInvoked('%s:ready-to-commit' % self.name.split(':')[0])):
             report_dir = self.env['INSTALL_REPORTS_DIR']
             vdir = self.env.Dir(report_dir).Dir('valgrind').Dir(self.name)
             if not os.path.exists(vdir.abspath):
