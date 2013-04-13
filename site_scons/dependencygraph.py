@@ -43,8 +43,8 @@ def init(env):
     SConsEnvironment.CreateSharedLibrary = CreateSharedLibrary
     SConsEnvironment.CreateHeaderOnlyLibrary = CreateHeaderOnlyLibrary
     SConsEnvironment.CreateTest = CreateTest
-    SConsEnvironment.CreateAutoToolsProject = CreateAutoToolsProject
     SConsEnvironment.CreatePdfLaTeX = CreatePdfLaTeX
+    #SConsEnvironment.CreateAutoToolsProject = CreateAutoToolsProject
 
 class ComponentDictionary(dict):
 
@@ -168,17 +168,17 @@ def CreatePdfLaTeX(env, name, latexfile = '', options='', aliasGroups=None):
                                     latexfile,
                                     aliasGroups))
 
-def CreateAutoToolsProject(env, name, ext_dir, lib_targets, configurationFile, aliasGroups=None):
-    if aliasGroups == None:
-        aliasGroups = []
-    return componentGraph.Add(AutoToolsProjectComponent(componentGraph,
-                                        env,
-                                        name,
-                                        env.Dir('.'),
-                                        ext_dir,
-                                        lib_targets,
-                                        configurationFile,
-                                        aliasGroups))
+#def CreateAutoToolsProject(env, name, ext_dir, lib_targets, configurationFile, aliasGroups=None):
+    #if aliasGroups == None:
+        #aliasGroups = []
+    #return componentGraph.Add(AutoToolsProjectComponent(componentGraph,
+                                        #env,
+                                        #name,
+                                        #env.Dir('.'),
+                                        #ext_dir,
+                                        #lib_targets,
+                                        #configurationFile,
+                                        #aliasGroups))
 
 def WalkDirsForSconscripts(env, topdir, ignore=None):
     global componentGraph

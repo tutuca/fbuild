@@ -1,80 +1,114 @@
 <external_dependencies>
     <!-- Format of a component:
-    <component name="component_name" type=["LIB" | "PRO"]
+    
+    <component
+        name="ComponentName"
+        type=["LIB" | "HLIB" | "PRO"]
+        check="ComponentNameInTheSystem"
+        deps="A,B,C"
         <installer
             distro=["UBUNTU" | "ARCH" | "*"]
-            target=["package_name" | "url"]
-            manager=["HG" | "SVN" | "WGET" | "APT-GET" | 
-                     "APTITUDE" | "PACKER" | "PACMAN"] />
-        <install_checker> SHELL_SCRIPT </install_checker>
-        <execute_after> SHELL_SCRIPT </execute_after>
-        <create_ext_lib_comp> PYTHON_CALL </create_ext_lib_comp>
+            target=["PackageName" | "Url"]
+            manager=["HG" | "SVN" | "WGET"] | 
+                    ["APT-GET" | "APTITUDE" | "PACKER" | "PACMAN" | "*"] />
+        <install_checker> ShellScript </install_checker>
+        <execute_after> ShellScript </execute_after>
     </component>
+
+    Explanation:
+    ============
+    
+    <component>
+    name   -  It's the name the component will have in fbuild, i.e., the name you
+              will use in the SConscripts when you specify the component as a
+              dependency.
+                                                                         (Required)
+    type   -  It's the type of the component. Three types of component are allow:
+              > "LIB" for statics and dynamics libraries.
+              > "HLIB" for header only libraries.
+              > "PRO" for programs.
+                                                                         (Required)
+    check  -  It's the name fbuild will use to check if the component exists.
+              It has different meaning depending on the component type.
+              > If type="LIB", it is the name of library used when it is link,
+                i.e. the name that goes in the -l option (-lcheck).
+              > If type="HLIB", it is the include name of the main component of
+                the library, i.e. the name used in the #include macro
+                (#include<check>).
+              > If type="PRO", it is the name of the executable file, i.e. the
+                name you use when you call the program from the shell.
+              If this value is not supplied fbuild assumes check=name.
+                                                                         (Optional)
+    deps   -  The list of the components from which this component depends.
+              It's a comma separate string, without empty paces.
+                                                                         (Optional)
+    <installer>
+        The installer specifies how to install the component.
+    distro  -  Specify under which distribution this installer must be run. fbuild
+               supports tow distributions: "UBUNTU" and "ARCH".
+               If the installer can be executed in both distributions you can use 
+               "*" as value.
+    target  -  This is the name of what needs to be download/install. Depending on
+               the manager type, it can be a package's name or an url.
+    manager -  This is the program that will download/install the component. The
+               managers fbuild supports are the following:
+               * For web download:
+                   > "WGET"
+               * For repository checkout:
+                   > "SVN"
+                   > "HG"
+               * For packages:
+                   > "APTITUDE"
+                   > "APT-GET"
+                   > "PACMAN"
+                   > "PACKER"
+               If the target is a package and you don't know what package manager
+               to use, you can let fbuild chose one for you by using the value "*".
+               Be aware that if the target is not a package name it will cause 
+               problems.
+    
+    <install_checker>
+        If you don't want let fbuild to check whether a component is installed, you
+        can specify your own way to do it. In this tag you can write a shell script
+        to check if the component is installed or not. fbuild use the result of the
+        last executed command to decide if the component is in the system, 0 means 
+        TRUE (installed), anything else means FALSE (not installed).
+                                                                         (Optional)
+    
+    <execute_after>
+        In this tag you can put shell script that will be executed immediately 
+        after the component is download/checkout. This was specially design for 
+        those components that after being download need to be unpack or compile.
+                                                                         (Optional)
     
     IMPORTANT:
         Please maintain alphabetical order based on name to ease maintenance -->
-
-    <component name="bison" type="PRO" check="bison">
-        <installer
-            distro="UBUNTU"
-            target="bison"
-            manager="APT-GET"/>
-        <installer
-            distro="ARCH"
-            target="bison"
-            manager="PACKER"/>
-        <create_ext_lib_comp>env.CreateExternalLibraryComponent("bison",[],env.Dir('/usr/bin'),[],False)</create_ext_lib_comp>
+        
+    
+    <component name="bison" type="PRO">
+        <installer distro="*" target="bison" manager="*"/>
     </component>
-
-    <component name="boost_thread" type="LIB" check="boost_thread">
-        <installer
-            distro="UBUNTU"
-            target="libboost-thread-dev"
-            manager="APT-GET"/>
-        <installer
-            distro="ARCH"
-            target="boost"
-            manager="PACKER"/>
-        <create_ext_lib_comp>env.CreateExternalLibraryComponent("boost_thread",[],env.Dir('/usr/lib'),[],True)</create_ext_lib_comp>
+    
+    <component name="boost_thread" type="LIB">
+        <installer distro="UBUNTU" target="libboost-thread-dev" manager="APT-GET"/>
+        <installer distro="ARCH" target="boost" manager="PACKER"/>
     </component>
-
-    <component name="boost_system" type="LIB" check="boost_system">
-        <installer
-            distro="UBUNTU"
-            target="libboost-system-dev"
-            manager="APT-GET"/>
-        <installer
-            distro="ARCH"
-            target="boost"
-            manager="PACKER"/>
-        <create_ext_lib_comp>env.CreateExternalLibraryComponent("boost_system",[],env.Dir('/usr/lib'),[],True)</create_ext_lib_comp>
+    
+    <component name="boost_system" type="LIB">
+        <installer distro="UBUNTU" target="libboost-system-dev" manager="APT-GET"/>
+        <installer distro="ARCH" target="boost" manager="PACKER"/>
     </component>
-
-    <component name="expat" type="LIB" check="expat">
-        <installer
-            distro="UBUNTU"
-            target="libexpat-dev"
-            manager="APT-GET"/>
-        <installer
-            distro="ARCH"
-            target="expat"
-            manager="PACKER"/>
-        <create_ext_lib_comp>env.CreateExternalLibraryComponent("expat",[],env.Dir('/usr/lib'),[],True)</create_ext_lib_comp>
+    
+    <component name="expat" type="LIB">
+        <installer distro="UBUNTU" target="libexpat-dev" manager="APT-GET"/>
+        <installer distro="ARCH" target="expat" manager="PACKER"/>
     </component>
-
-    <component name="flex" type="PRO" check="flex">
-        <installer
-            distro="UBUNTU"
-            target="flex"
-            manager="APT-GET"/>
-        <installer
-            distro="ARCH"
-            target="flex"
-            manager="PACKER"/>
-        <create_ext_lib_comp>env.CreateExternalLibraryComponent("flex",[],env.Dir('/usr/bin'),[],False)</create_ext_lib_comp>
+    
+    <component name="flex" type="PRO">
+        <installer distro="*" target="flex" manager="*"/>
     </component>
-
-    <component name="gmock" type="LIB" check="gmock">
+    
+    <component name="gmock" type="LIB" deps="gtest,pthread">
         <installer
             distro="*"
             target="https://googlemock.googlecode.com/svn/tags/release-1.6.0"
@@ -85,14 +119,11 @@
             sudo mv {TMP_DIR}/gmock/make/gmock_main.a /usr/lib/libgmock_main.a
             sudo cp -r {TMP_DIR}/gmock/include/gmock /usr/include/gmock
         </execute_after>
-        <create_ext_lib_comp>env.CreateExternalLibraryComponent("gmock",[],env.Dir('/usr/lib'),['gtest','pthread'],True)</create_ext_lib_comp>
     </component>
-
-    <component name="gmock_main" type="LIB" check="gmock_main">
-        <create_ext_lib_comp>env.CreateExternalLibraryComponent("gmock_main",[],env.Dir('/usr/lib'),['gmock'],True)</create_ext_lib_comp>
-    </component>
-
-    <component name="gtest" type="LIB" check="gtest">
+    
+    <component name="gmock_main" type="LIB" deps="gmock"/>
+    
+    <component name="gtest" type="LIB" deps="pthread">
         <installer
             distro="*"
             target="https://googletest.googlecode.com/svn/tags/release-1.6.0"
@@ -103,27 +134,24 @@
             sudo mv {TMP_DIR}/gtest/make/gtest_main.a /usr/lib/libgtest_main.a
             sudo cp -r {TMP_DIR}/gtest/include/gtest /usr/include/gtest
         </execute_after>
-        <create_ext_lib_comp>env.CreateExternalLibraryComponent("gtest",[],env.Dir('/usr/lib'),['pthread'],True)</create_ext_lib_comp>
     </component>
-
-    <component name="gtest_main" type="LIB" check="gtest_main">
-        <create_ext_lib_comp>env.CreateExternalLibraryComponent("gtest_main",[],env.Dir('/usr/lib'),['gtest'],True)</create_ext_lib_comp>
-    </component>
-
-    <component name="odeint" type="HLIB" check="boost/numeric/odeint.hpp">
+    
+    <component name="gtest_main" type="LIB" deps="gtest"/>
+    
+    <component name="odeint" type="HLIB" check="boost/numeric/odeint.hpp"
+               deps="boost_system,boost_thread">
         <installer
             distro="UBUNTU"
             target="http://github.com/headmyshoulder/odeint-v2/tarball/master"
             manager="WGET"/>
-        <install_checker>stat -f /usr/include/boost/numeric/odeint.hpp</install_checker>
         <execute_after>
-            cd ./{TMP_DIR}/odeint; tar zxvf master
-            sudo cp -r ./{TMP_DIR}/odeint/headmyshoulder-odeint-v2-da114de/boost/numeric/* /usr/include/boost/numeric/
+            cd ./{TMP_DIR}/odeint; tar zxvf master; mv *odeint*/* .
+            sudo cp -r ./{TMP_DIR}/odeint/boost/numeric/* /usr/include/boost/numeric/
         </execute_after>
-        <create_ext_lib_comp>env.CreateExternalLibraryComponent('odeint',[],env.Dir('/usr/lib'),['boost_system', 'boost_thread'],False)</create_ext_lib_comp>
+        <install_checker>stat -f /usr/include/boost/numeric/odeint.hpp</install_checker>
     </component>
-
-    <component name="xdrfile" type="LIB" check="xdrfile">
+    
+    <component name="xdrfile" type="LIB">
         <installer
             distro="*"
             target="ftp://ftp.gromacs.org/pub/contrib/xdrfile-1.1.tar.gz"
@@ -134,7 +162,6 @@
             cd ./{TMP_DIR}/xdrfile; ./configure CFLAGS={CFLAGS} CXXFLAGS={CXXFLAGS} --bindir=/usr/bin --libdir=/usr/lib --includedir=/usr/include
             cd ./{TMP_DIR}/xdrfile; make; sudo make install
         </execute_after>
-        <create_ext_lib_comp>env.CreateExternalLibraryComponent("xdrfile",[],env.Dir('/usr/lib'),[],True)</create_ext_lib_comp>
     </component>
 
 </external_dependencies>

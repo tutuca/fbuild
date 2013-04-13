@@ -146,7 +146,7 @@ class ExternalLibraryComponent(Component):
 
     def GetIncludePaths(self):
         (incs, processedComponents) = self._GetIncludePaths([], 0)
-        return utils.removeDuplicates(incs)
+        return utils.RemoveDuplicates(incs)
 
     def _GetIncludePaths(self, processedComponents, depth):
         incs = []
@@ -186,27 +186,32 @@ class HeaderOnlyComponent(Component):
         filters = []
         filters.extend(headersFilter)
         filters.extend(sourceFilters)
-        sources = utils.files_flatten(self.env, self.projDir, filters)
+        sources = utils.FilesFlatten(self.env, self.projDir, filters)
+        # Check if the coverage is needed.
+        if (utils.WasTargetInvoked('%s:jenkins' % self.name.split(':')[0]) or 
+           utils.WasTargetInvoked('%s:coverage' % self.name.split(':')[0])):
+            gprofFlags = ['--coverage']
+            self.env.Append(CXXFLAGS=gprofFlags, CFLAGS=gprofFlags, LINKFLAGS=gprofFlags)
         # Create target for jenkins.
-        self._create_jenkins_target()
+        self._CreateJenkinsTarget()
         if self.name.endswith(':test'):
             # Create target for ready to commit.
-            self._create_ready_to_commit_target()
+            self._CreateReadyToCommitTarget()
         # Create target for generate the documentation.
-        self._create_doc_target()
+        self._CreateDocTarget()
         # We add astyle target to all the components that can have a header.
-        self._create_astyle_target(sources)
+        self._CreateAstyleTarget(sources)
         # We add a traget for check if the component is astyled.
-        self._create_astyle_check_target(sources)
+        self._CreateAstyleCheckTtarget(sources)
         # This condition is for the cases when the method is called from a subclass.
         if not called_from_subclass:
             # Create the list of the 'sources' files.
             sources = []
             for d in self.extInc:
                 sources.extend(utils.FindFiles(self.env, d,['*.h']))
-            self._create_cccc_target(sources)
-            self._create_cloc_target(sources)
-            self._create_cppcheck_target(sources)
+            self._CreateCCCCTarget(sources)
+            self._CreateClocTarget(sources)
+            self._CreateCppcheckTarget(sources)
         if not self.name.endswith(':test'):
             # If the component doesnt have external headers, we dont process it since
             # there is nothing to install
@@ -254,7 +259,7 @@ class HeaderOnlyComponent(Component):
                     incs.extend(depIncs)
         return (incs, processedComponents)
     
-    def _create_cccc_target(self, sources):
+    def _CreateCCCCTarget(self, sources):
         if not self.name.endswith(':test'):
             # Create the 'target', it is the directory where the result will be put.
             reports_dir = self.env['INSTALL_REPORTS_DIR']
@@ -270,7 +275,7 @@ class HeaderOnlyComponent(Component):
             # Add dependence for jenkins.
             self.env.Depends(self.jenkins_target,cccc)
     
-    def _create_cloc_target(self, sources):
+    def _CreateClocTtarget(self, sources):
         if not self.name.endswith(':test'):
             # Check if we need to create an xml report.
             if utils.wasTargetInvoked('%s:jenkins' % self.name.split(':')[0]):
@@ -296,7 +301,7 @@ class HeaderOnlyComponent(Component):
             # Add dependence for jenkins.
             self.env.Depends(self.jenkins_target,cloc)
     
-    def _create_jenkins_target(self):
+    def _CreateJenkinsTarget(self):
         # Create the target for jenkins.
         name = self.name.split(':')[0]
         self.jenkins_target = self.env.Alias('%s:jenkins' % name, None, '')
@@ -308,7 +313,7 @@ class HeaderOnlyComponent(Component):
         self.env.Alias('%s:ready-to-commit' % self.name.split(':')[0], self.ready_to_commit, '')
         self.env.AlwaysBuild(self.ready_to_commit)
     
-    def _create_cppcheck_target(self, sources):
+    def _CreateCppcheckTarget(self, sources):
         # Create the 'target', it is the directory where the result will be put.
         target = self.env.Dir(self.env['INSTALL_REPORTS_DIR']).Dir('cppcheck').Dir(self.name[:-5])
         # Call RunCppCheck().
@@ -323,7 +328,7 @@ class HeaderOnlyComponent(Component):
             # Add dependence for jenkins.
             self.env.Depends(self.jenkins_target,cppcheck)
     
-    def _create_doc_target(self):
+    def _CreateDocTarget(self):
         if not self.name.endswith(':test'):
             targetDocDir = self.env.Dir(self.env['INSTALL_DOC_DIR']).Dir(self.name)
             doxyfile = self.env.File(self.env.Dir('#').abspath+'/conf/doxygenTemplate')
@@ -336,7 +341,7 @@ class HeaderOnlyComponent(Component):
             # Add dependence for jenkins.
             self.env.Depends(self.jenkins_target,doc)
     
-    def _create_astyle_check_target(self, sources):
+    def _CreateAstyleCheckTarget(self, sources):
         # Create the target.
         if self.name.endswith(':test'):
             name = self.name[:-5]
@@ -363,7 +368,7 @@ class HeaderOnlyComponent(Component):
             # Add dependence for jenkins.
             self.env.Depends(self.jenkins_target, astyle_check)
     
-    def _create_astyle_target(self, sources):
+    def _CreateAstyleTarget(self, sources):
         if not self.name.endswith(':test'):
             # Create the target.
             target = self.env.Dir(self.env['BUILD_DIR']).Dir('astyle').Dir(self.name)
@@ -405,7 +410,7 @@ class SourcedComponent(HeaderOnlyComponent):
                     self.src.append(os.path.abspath(compDir.rel_path(src)))
         # Create list sources and headers files
         self.src_files = []
-        self.inc_files = self._get_include_files()
+        self.inc_files = self._GetIncludeFiles()
         for x in self.src:
             self.src_files.append(self.env.File(x))
 
@@ -433,7 +438,7 @@ class SourcedComponent(HeaderOnlyComponent):
                 incs.append(hDir)
         return (incs, processedComponents)
 
-    def _get_include_files (self):
+    def _GetIncludeFiles (self):
         include_files = []
         for i in self.inc:
             hDir = os.path.join(self.projDir, i)
@@ -568,7 +573,7 @@ class UnitTestComponent(ProgramComponent):
             self.env.AlwaysBuild(tTest)
         # Create the target for the test.
         self.env.Alias(self.name, tTest, "Run test for " + self.name)
-        # Make the test depends from coverage generated files.
+        # Make the test depends from files in 'ref' dir.
         for refFile in utils.FindFiles(self.env, self.compDir.Dir('ref')):
             self.env.Depends(tTest, refFile)
         # Alias target for 'all'.
@@ -611,7 +616,7 @@ class UnitTestComponent(ProgramComponent):
         if (utils.wasTargetInvoked('%s:jenkins' % self.name.split(':')[0]) or
             utils.wasTargetInvoked('%s:ready-to-commit' % self.name.split(':')[0])):
             report_dir = self.env['INSTALL_REPORTS_DIR']
-            vdir = self.env.Dir(report_dir).Dir('valgrind').Dir(self.name)
+            vdir = self.env.Dir(report_dir).Dir('valgrind').Dir(self.name[:-5])
             if not os.path.exists(vdir.abspath):
                 os.makedirs(vdir.abspath)
             vreport = '%s/valgrind-report.xml' % vdir.abspath
@@ -627,12 +632,7 @@ class UnitTestComponent(ProgramComponent):
     def _CreateCoverageTarget(self, target):
         # Get the path directory to the project.
         project = self.componentGraph.get(self.name.split(':')[0])
-        self.env['PROJECT_DIR'] = project.dir
-        # Check if the coverage is needed.
-        if (utils.wasTargetInvoked('%s:jenkins' % self.name.split(':')[0]) or 
-           utils.wasTargetInvoked('%s:coverage' % self.name.split(':')[0])) :
-            gprofFlags = ['--coverage']
-            self.env.Append(CXXFLAGS=gprofFlags, CFLAGS=gprofFlags, LINKFLAGS=gprofFlags)
+        self.env['PROJECT_DIR'] = project.dir        
         # Targets and sources for builder InitLcov.
         initLcovTarget = os.path.join(self.dir, 'coverage_data')
         initLcovSoureces = [self.prog]
@@ -641,6 +641,9 @@ class UnitTestComponent(ProgramComponent):
         # Call builder RunLcov().
         target = "%s.cov" % target
         covTest = self.env.RunUnittest(target, self.prog)
+        # Make the test depends from files in 'ref' dir.
+        for refFile in utils.FindFiles(self.env, self.compDir.Dir('ref')):
+            self.env.Depends(covTest, refFile)
         # Targets and sources for RunLcov() builder.
         reports_dir = self.env['INSTALL_REPORTS_DIR']
         coverage_dir = self.env.Dir(reports_dir).Dir('coverage').Dir(self.name)

@@ -34,7 +34,7 @@ from SCons.Script import *
 import SCons.Builder
 
 from utils import FindFiles
-from utils import chain_calls
+from utils import ChainCalls
 import utils
 
 
@@ -120,7 +120,7 @@ def InitLcov(env, source, target):
         'output_dir'   : env.Dir('INSTALL_METRICS_DIR'),
         'project_dir'  : env['PROJECT_DIR']
     }
-    r = chain_calls(env, [
+    r = ChainCalls(env, [
         'lcov --zerocounters --directory %(project_dir)s -b .' % data,
         'lcov --cproject = os.path.split(target)[1]apture --initial --directory %(project_dir)s -b . --output-file %(coverage_file)s' % data,
     ])
@@ -135,7 +135,7 @@ def RunLcov(env, source, target):
         'output_dir'   : os.path.dirname(indexFile),
         'project_dir'  : env['PROJECT_DIR']
     }
-    r = chain_calls(env, [
+    r = ChainCalls(env, [
         'rm -f %(coverage_file)s' % data,
         'lcov --no-checksum --directory %(project_dir)s -b . --capture --output-file %(coverage_file)s' % data,
         'lcov --no-checksum --directory %(project_dir)s -b . --capture --output-file %(coverage_file)s' % data,
@@ -262,6 +262,7 @@ def AStyleCheck(env, source, target):
     # Close the report file.
     if special_invoke:
         report.close()
+
 
 def AStyle(env, source, target):
     env.Cprint('Running astyle...', 'green')
