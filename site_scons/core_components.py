@@ -185,7 +185,7 @@ class HeaderOnlyComponent(Component):
         filters.extend(sourceFilters)
         sources = utils.FilesFlatten(self.env, self.projDir, filters)
         # Create targets.
-        self._CreateAstyleCheckTtarget(sources)
+        self._CreateAstyleCheckTarget(sources)
         self._CreateAstyleTarget(sources)
         self._CreateCCCCTarget(sources)
         self._CreateClocTarget(sources)
@@ -348,13 +348,13 @@ class HeaderOnlyComponent(Component):
         return astyle_check_builder
     
     def _CreateAstyleTarget(self, sources):
-        if not self.name.endswith(':test'):
-            # Create the target.
-            target = self.env.Dir(self.env['BUILD_DIR']).Dir('astyle').Dir(self.name)
-            # Call RunAStyle().
-            astyleOut = self.env.RunAStyle(target, sources)
-            # Create an alias for astyle.
-            self.env.Alias('%s:astyle' % self.name, astyleOut, "Runs astyle on " + self.name)
+        # Create the target.
+        target = self.env.Dir(self.env['BUILD_DIR']).Dir('astyle').Dir(self.name)
+        # Call RunAStyle().
+        astyle_builder = self.env.RunAStyle(target, sources)
+        # Create an alias for astyle.
+        self.env.Alias('%s:astyle' % self.name, astyle_builder, "Runs astyle on " + self.name)
+        return astyle_builder
 
 
 class SourcedComponent(HeaderOnlyComponent):
@@ -387,19 +387,22 @@ class SourcedComponent(HeaderOnlyComponent):
                     self.src.append(os.path.abspath(src))
                 else:
                     self.src.append(os.path.abspath(compDir.rel_path(src)))
-        # Create list sources and headers files
+        # Create list of sources and headers files
         self.src_files = []
         self.inc_files = self._GetIncludeFiles()
         for x in self.src:
             self.src_files.append(self.env.File(x))
 
     def Process(self):
-        HeaderOnlyComponent.Process(self,True)
         # Create the list of the 'sources' files.
         sources = self.src_files + self.inc_files
-        self._create_cccc_target(sources)
-        self._create_cloc_target(sources)
-        self._create_cppcheck_target(sources)
+        # Create targets.
+        self._CreateAstyleCheckTarget(sources)
+        self._CreateAstyleTarget(sources)
+        self._CreateCCCCTarget(sources)
+        self._CreateClocTarget(sources)
+        self._CreateCppcheckTarget(sources)
+        self._CreateDocTarget()
 
     def GetIncludePaths(self):
         (incs, processedComponents) = self._GetIncludePaths([], 0)
