@@ -76,19 +76,19 @@ def init(env):
     env['CLOC_OUTPUT_FORMAT'] = 'txt' # txt | sql | xml
     env['CLOC_OPTIONS'] = []
     #-
-    bldCppCheck = Builder(action = SCons.Action.Action(RunCppCheck, PrintDummy))
-    env.Append(BUILDERS = {'RunCppCheck':bldCppCheck})
+    bldCppCheck = Builder(action = SCons.Action.Action(RunCppcheck, PrintDummy))
+    env.Append(BUILDERS = {'RunCppcheck':bldCppCheck})
     env['CPPCHECK_OPTIONS'] = []
     #-
     bldReadyToCommit = Builder(action = SCons.Action.Action(RunReadyToCommit, PrintDummy))
     env.Append(BUILDERS = {'RunReadyToCommit':bldReadyToCommit})
 
 
-def PrintDummy(env, source, target):
+def PrintDummy(env, target, source):
     return ""
 
 
-def RunUnittest(env, source, target):
+def RunUnittest(env, target, source):
     rc = 0
     tindex = 0
     for s in source:
@@ -112,7 +112,7 @@ def RunUnittest(env, source, target):
     return rc
 
 
-def InitLcov(env, source, target):
+def InitLcov(env, target, source):
     test_executable = source[0].abspath
     indexFile = target[0].abspath
     data = {
@@ -127,7 +127,7 @@ def InitLcov(env, source, target):
     return r
 
 
-def RunLcov(env, source, target):
+def RunLcov(env, target, source):
     test_executable = source[0].abspath
     indexFile = target[0].abspath
     data = {
@@ -152,7 +152,7 @@ def RunLcov(env, source, target):
     return r
 
 
-def RunDoxygen(env, source, target):
+def RunDoxygen(env, target, source):
     # Path to the doxygen template file.
     doxyTamplate = source[0].abspath
     # Path to the doc/project directory.
@@ -187,7 +187,7 @@ def RunDoxygen(env, source, target):
     return rc
 
 
-def AStyleCheck(env, source, target):
+def AStyleCheck(env, target, source):
     # We use the target as a temporary directory.
     targetDir = target[0]
     target = str(target[0].abspath)
@@ -264,7 +264,7 @@ def AStyleCheck(env, source, target):
         report.close()
 
 
-def AStyle(env, source, target):
+def AStyle(env, target, source):
     env.Cprint('Running astyle...', 'green')
     rc = 0
     t = target[0].abspath
@@ -278,7 +278,7 @@ def AStyle(env, source, target):
     return rc
 
 
-def RunPdfLatex(env, source, target):
+def RunPdfLatex(env, target, source):
     #Deberiamos usar las env.{operation} ya que son crossplatform.
     (pathHead, pathTail) = os.path.split(source[0].abspath)
     tmpPdf2TexDir = pathHead + '/tmp_Pdf2Texfile/'
@@ -298,68 +298,99 @@ def RunPdfLatex(env, source, target):
     #env.Execute(env.Delete(tmpPdf2TexDir))
 
 
-def RunValgrind(env, source, target):
-    cwd = env.Dir('#').abspath
+def RunValgrind(env, target, source):
+    # Get the current directory.
+    cwd = os.getcwd()
+    # Get the test executable file.
+    test = source[0].abspath
+    # Get the test executable directory.
     test_dir = source[0].dir.abspath
+    # Change to the test directory.
     os.chdir(test_dir)
-    cmd = 'valgrind %s %s' % (env['VALGRIND_OPTIONS'], source[0].abspath)
+    # Command to execute valgrind.
+    cmd = 'valgrind %s %s' % (env['VALGRIND_OPTIONS'], test)
+    # Execute the command.
     ret_val = subprocess.call(cmd, shell=True)
+    # Get back to the previous directory.
     os.chdir(cwd)
     return ret_val
 
 
-def RunCCCC(env, source, target):
+def RunCCCC(env, target, source):
+    # Print message on the screen.
     env.Cprint('Running cccc...', 'green')
-    target = target[0].abspath
-    # It tells to cccc the name of the directory that will contain the result.
-    env.Append(CCCC_OPTIONS = '--outdir=%s' % target)
-    # Check if the install directory for the cccc results already exists.
+    # Get the report file name.
+    report_file_name = target[0].abspath
+    # Tell cccc the name of the output file.
+    self.env.Append(CCCC_OPTIONS='--html_outfile=%s' % report_file_name)
+    # Get the output directory.
+    output_directory = os.path.split(target[0].apspath)[0]
+    # Tell cccc the name of the output directory.
+    env.Append(CCCC_OPTIONS = '--outdir=%s' % output_directory)
+    # Check if the output directory directory already exists.
     if not os.path.exists(target):
         os.makedirs(target)
-    # From the env['CCCC_OPTIONS'] we create a string with the options for cccc.
+    # Create a string with the options for cccc.
     options = ' '.join([opt for opt in env['CCCC_OPTIONS']])
-    # From the 'source' we create a string with the file names for cccc.
+    # Create a string with the file names for cccc.
     files = ' '.join([f.abspath for f in source])
     # Create the command to be pass to subprocess.call()
     cmd = 'cccc %s %s' % (options, files)
-    ret_val = subprocess.call(cmd, shell=True)
-    return ret_val
+    return subprocess.call(cmd, shell=True)
 
 
-def RunCLOC(env, source, target):
+def RunCLOC(env, target, source):
+    # Print message on the screen.
     env.Cprint('Running cloc...', 'green')
-    target = target[0].abspath
-    # Check if the install directory for the cloc results already exists.
-    if not os.path.exists(target):
-        os.makedirs(target)
-    # From the env['CLOC_OPTIONS'] we create a string with the options for cloc.
+    # Get the report file name.
+    report_file = target[0].abspath
+    # Check the type of the report file.
+    if self.env['CLOC_OUTPUT_FORMAT'] == 'txt':
+        output_option = '--out=%s.txt' % report_file
+    elif self.env['CLOC_OUTPUT_FORMAT'] == 'sql':
+        output_option = '--sql=%s.sql' % report_file)
+    elif self.env['CLOC_OUTPUT_FORMAT'] == 'xml':
+        output_option = '--xml --out=%s.xml' % report_file)
+    else:
+        error_msg = "Invalid value for the CLOC_OUTPUT_FORMAT flag"
+        value = self.env['CLOC_OUTPUT_FORMAT']
+        env.Cprint('[ERROR] %s : %s' % (error_msg,value))
+    # Set the type of the report file.
+    self.env.Append(CLOC_OPTIONS = output_option)
+    # Get the output directory.
+    output_directory = os.path.split(target[0].abspath)[0]
+    # Check if the output directory directory already exists.
+    if not os.path.exists(output_directory):
+        os.makedirs(output_directory)
+    # Create a string with the options for cloc.
     options = ' '.join([opt for opt in env['CLOC_OPTIONS']])
-    # From the 'source' we create a string with the file names for cloc.
+    # Create a string with the file names for cloc.
     files = ' '.join([f.abspath for f in source])
     # Create the command to be pass to subprocess.call()
     cmd = 'cloc %s %s' % (options, files)
     return subprocess.call(cmd, shell=True)
 
 
-def RunCppCheck(env, source, target):
+def RunCppcheck(env, target, source):
+    # Print message on the screen.
     env.Cprint('Running cppcheck...', 'green')
-    target = target[0].abspath
-    # Check if the install directory for the cppcheck results already exists.
-    if not os.path.exists(target):
-        os.makedirs(target)
-    # We create a string with the options for cilder should be in the SConscript
-    # of the legacy_script, and it's src is in the obj directory cppcheck.
+    # Get the report file name.
+    report_file = target[0].abspath
+    # Get the output directory.
+    output_directory = os.path.split(target[0].abspath)[0]
+    # Check if the output directory for the cppcheck report already exists.
+    if not os.path.exists(output_directory):
+        os.makedirs(output_directory)
+    # Create a string with the options for cppcheck.
     options = ' '.join([opt for opt in env['CPPCHECK_OPTIONS']])
     # We create a string with the files for cppcheck.
     files = ' '.join([f.abspath for f in source])
-    # Set the name of the report file.
-    outfile = "%s/CppCheckReport.txt" % target
     # Create the command to be pass to subprocess.call()
-    cmd = "cppcheck %s %s | sed '/files checked /d' > %s" % (options, files, outfile)
+    cmd = "cppcheck %s %s | sed '/files checked /d' > %s" % (options, files, report_file)
     return subprocess.call(cmd, shell=True)
 
 
-def RunReadyToCommit(env, source, target):
+def RunReadyToCommit(env, target, source):
     targetDir = os.path.join(env['INSTALL_REPORTS_DIR'])
     project = target[0].abspath.split('/')[-1].split(':')[0]
     env.Cprint('\nRunning ready-to-commit...\n', 'green')
