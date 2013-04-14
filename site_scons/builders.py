@@ -188,80 +188,44 @@ def RunDoxygen(env, target, source):
 
 
 def AStyleCheck(env, target, source):
-    # We use the target as a temporary directory.
-    targetDir = target[0]
-    target = str(target[0].abspath)
-    # If it doesn't exist we create it.
-    if not os.path.exists(target):
-        os.makedirs(target)
-    for f in source:
-        os.system('cp %s %s' % (f.abspath,target))
-    # Get the list of copied files.
-    files_lis = utils.FindFiles(env,targetDir)
-    files_str = ' '.join([x.abspath for x in files_lis])
-    # Create the command for subprocess.call().
-    cmd = 'astyle -k1 --options=none --convert-tabs -bSKpUH %s' % files_str
-    # This variable holds if some file needs to be astyled.
-    need_astyle = False
-    # A list for the files that needs astyle.
-    need_astyle_list = []
-    # Apply astyle to those files.
-    rc = subprocess.call(cmd, shell=True, stdout=subprocess.PIPE)
-    if rc != 0:
-        return rc
-    # Check if astyle did some modifications.
-    for f in files_lis:
-        # If the '.orig' file exists for the file 'f' then it was modify for 
-        # astyle.
-        if os.path.exists('%s.orig' % f.abspath):
-            # Print the differences between files.
-            cmd = 'diff -Nau %s.orig %s' % (f.abspath,f.abspath)
-            diff = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
-            diff_stdout = diff.stdout.read()
-            diff.wait()
-            need_astyle_list.append((os.path.split(f.abspath)[1],diff_stdout))
-            need_astyle = True
-    # Remove the '*.orig' files.
-    os.system('rm -rf %s/*.orig' % target)
-    # Get the name of the project.
-    project = os.path.split(target)[1]
-    # Create the report directory.
-    report_dir = os.path.join(env['INSTALL_REPORTS_DIR'], 'astyle-check', project)
-    if not os.path.exists(report_dir):
-        os.makedirs(report_dir)
-    # Report file name.
-    report_file = 'astyle-check-report.diff'
-    # Path to the report file.
-    report_path = os.path.join(report_dir, report_file)
-    special_invoke = (utils.wasTargetInvoked('%s:jenkins' % project) or
-                     utils.wasTargetInvoked('%s:ready-to-commit' % project))
-    # Check if the builder was called for jenkins or ready to commit.
-    if special_invoke:
-        # Open the report file.
-        try:
-            report = open(report_path, 'w')
-        except IOError:
-            env.Cprint('No such file or directory:', report_path)
-            return 1
-        else:
-            # If we can open it we truncate it.
-            report.truncate(0)
+    # Get the report file.
+    report_file = targte[0]
+    # Get the output directory.
+    output_directory = os.path.split(targte[0])[0]
+    # Check if the directory exists.
+    if not os.path.exists(output_directory):
+        os.makedirs(output_directory)
+    # Check if some file need astyle.
+    check_astyle_result = _CheckAstyle(evn, source, output_directory)
+    # Check if _CheckAstyle() fails.
+    if check_astyle_result is None:
+        return 1
+    # Open the report file.
+    try:
+        report = open(report_file, 'w')
+    except IOError:
+        env.Cprint('No such file or directory:', report_file)
+        return 1
+    else:
+        # If we can open it we truncate it.
+        report.truncate(0)
     # If some file needs astyle we print info.
-    if need_astyle:
+    if check_astyle_result['need_astyle']:
         # Print a warning message.
         env.Cprint('[WARNING] The following files need astyle:', 'red')
         # Print what need to be astyled.
-        for f,info in need_astyle_list:
-            # If it was called for jenkins or ready to commit we write the diff into the report file.
-            if special_invoke:
-                report.write(info+'\n\n')
+        for file, info in check_astyle_result['need_astyle_list']:
+            # Write into hte report file.
+            report.write(info+'\n\n')
+            # Print on the screen.
             env.Cprint('====> %s' % f, 'red')
             env.Cprint(info,'yellow')
     else:
         env.Cprint('[OK] No file needs astyle.', 'green')
     # Close the report file.
-    if special_invoke:
-        report.close()
+    report.close()
+    # Return OK.
+    return 0
 
 
 def AStyle(env, target, source):
@@ -320,11 +284,11 @@ def RunCCCC(env, target, source):
     # Print message on the screen.
     env.Cprint('Running cccc...', 'green')
     # Get the report file name.
-    report_file_name = target[0].abspath
+    report_file_name = target[0]
     # Tell cccc the name of the output file.
     self.env.Append(CCCC_OPTIONS='--html_outfile=%s' % report_file_name)
     # Get the output directory.
-    output_directory = os.path.split(target[0].apspath)[0]
+    output_directory = os.path.split(target[0])[0]
     # Tell cccc the name of the output directory.
     env.Append(CCCC_OPTIONS = '--outdir=%s' % output_directory)
     # Check if the output directory directory already exists.
@@ -343,7 +307,7 @@ def RunCLOC(env, target, source):
     # Print message on the screen.
     env.Cprint('Running cloc...', 'green')
     # Get the report file name.
-    report_file = target[0].abspath
+    report_file = target[0]
     # Check the type of the report file.
     if self.env['CLOC_OUTPUT_FORMAT'] == 'txt':
         output_option = '--out=%s.txt' % report_file
@@ -358,7 +322,7 @@ def RunCLOC(env, target, source):
     # Set the type of the report file.
     self.env.Append(CLOC_OPTIONS = output_option)
     # Get the output directory.
-    output_directory = os.path.split(target[0].abspath)[0]
+    output_directory = os.path.split(target[0])[0]
     # Check if the output directory directory already exists.
     if not os.path.exists(output_directory):
         os.makedirs(output_directory)
@@ -375,9 +339,9 @@ def RunCppcheck(env, target, source):
     # Print message on the screen.
     env.Cprint('Running cppcheck...', 'green')
     # Get the report file name.
-    report_file = target[0].abspath
+    report_file = target[0]
     # Get the output directory.
-    output_directory = os.path.split(target[0].abspath)[0]
+    output_directory = os.path.split(target[0])[0]
     # Check if the output directory for the cppcheck report already exists.
     if not os.path.exists(output_directory):
         os.makedirs(output_directory)
@@ -416,3 +380,42 @@ def RunReadyToCommit(env, target, source):
     # We return 0 since we want this builder always run ok. If something fails it 
     # will be tell to the user.
     return 0
+
+
+def _CheckAstyle(evn, source, output_directory):
+    # Create a temporary directory.
+    tmp_dir = os.path.join(output_directory, 'tmp')
+    if not os.path.exists(tmp_dir):
+        os.makedirs(tmp_dir)
+    # Copy all sources into the temporary directory.
+    for file in source:
+        os.system('cp %s %s' % (file.abspath, tmp_dir))
+    # Get the list of copied files.
+    files_list = utils.FindFiles(env, tmp_dir)
+    files_str = ' '.join([x.abspath for x in files_list])
+    # This variable holds if some file needs astyle.
+    need_astyle = False
+    # A list for the files that needs astyle.
+    need_astyle_list = []
+    # Create the command for subprocess.call().
+    cmd = 'astyle -k1 --options=none --convert-tabs -bSKpUH %s' % files_str
+    # To see if a file needs astyle we first apply astyle to the file and
+    # check if it suffer some change.
+    if subprocess.call(cmd, shell=True, stdout=subprocess.PIPE) != 0:
+        # If astyle fails, we fail.
+        return None
+    # Check if astyle did some modifications.
+    for file in files_list:
+        # If the '.orig' file exists for the file then it was modify by astyle.
+        if os.path.exists('%s.orig' % file.abspath):
+            # Print the differences between files.
+            cmd = 'diff -Nau %s.orig %s' % (file.abspath,file.abspath)
+            diff = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
+            diff_stdout = diff.stdout.read()
+            diff.wait()
+            need_astyle_list.append((os.path.split(file.abspath)[1],diff_stdout))
+            need_astyle = True
+    # Remove the temporary directory.
+    os.system('rm -rf %s' %s tmp_dir)
+    # Return a dictionary.
+    return {'need_astyle':need_astyle, 'need_astyle_list':need_astyle_list}
