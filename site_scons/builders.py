@@ -229,17 +229,25 @@ def AStyleCheck(env, target, source):
 
 
 def AStyle(env, target, source):
+    # Print message on the screen.
     env.Cprint('Running astyle...', 'green')
-    rc = 0
-    t = target[0].abspath
-    cmd = "astyle -k1 --options=none --convert-tabs -bSKpUH %s"
-    fileList = ' '.join(s.abspath for s in source)
-    rc = subprocess.call(cmd % fileList, shell=True)
-    if rc:
-        env.cerror('[error] %s, error: %s' % (t, rc))
+    # Get the project directory.
+    project_dir = target[0].abspath
+    # Generate the list of files to apply astyle.
+    #   This is because the files in 'source' point to the build/ directory 
+    #   instead of the projects/ directory.
+    build_dir = env['BUILD_DIR']
+    ws_dir = env['WS_DIR']
+    file_list = ' '.join([f.abspath.replace(build_dir,ws_dir) for f in source])
+    # Create the command for subprocess.call().
+    cmd = "astyle -k1 --options=none --convert-tabs -bSKpUH %s" % file_list
+    # Run astyle.
+    result = subprocess.call(cmd % fileList, shell=True)
+    if result != 0:
+        env.cerror('[astyle] ERROR running astyle on: %s' % project_dir)
     else:
-        env.Cprint('[astyle] %s' % t, 'green')
-    return rc
+        env.Cprint('[astyle] OK on: %s' % project_dir, 'green')
+    return result
 
 
 def RunPdfLatex(env, target, source):

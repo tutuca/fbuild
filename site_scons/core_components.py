@@ -348,12 +348,18 @@ class HeaderOnlyComponent(Component):
         return astyle_check_builder
     
     def _CreateAstyleTarget(self, sources):
-        # Create the target.
-        target = self.env.Dir(self.env['BUILD_DIR']).Dir('astyle').Dir(self.name)
-        # Call RunAStyle().
+        # We use the prject directory as the target.
+        target = self.env.Dir(self.env['WS_DIR']).Dir(self.name)
+        # Create an instance of the RunAStyle() builder.
         astyle_builder = self.env.RunAStyle(target, sources)
-        # Create an alias for astyle.
-        self.env.Alias('%s:astyle' % self.name, astyle_builder, "Runs astyle on " + self.name)
+        # astyle can always be executed.
+        self.env.AlwaysBuild(astyle_check_builder)
+        # Create the alias.
+        name = '%s:astyle' % self.name
+        deps = [astyle_builder]
+        msg = "Run astyle on %s" % self.name
+        self.env.Alias(name, deps, msg)
+        # Return the builder instance.
         return astyle_builder
 
 
