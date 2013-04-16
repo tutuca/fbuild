@@ -202,7 +202,7 @@ class HeaderOnlyComponent(Component):
                 self.env.Alias(alias, hLib, "Build group " + alias)
             return hLib
         # 
-        # TODO: This must no be here. It must be in the 
+        # TODO: This must not be here. It must be in the 
         #       UnitTestComponent.Process(). This was for solving the problem 
         #       where the the coverage doesn't generate the report correctly.
         # 
@@ -444,17 +444,41 @@ class StaticLibraryComponent(SourcedComponent):
         self.shouldBeLinked = True
 
     def Process(self):
-        SourcedComponent.Process(self)
-        incpaths = self.GetIncludePaths()
+        # The target is the name of library to be created.
         target = os.path.join(self.dir, self.name)
-        sLib = self.env.StaticLibrary(target, self.src, CPPPATH=incpaths)
-        iLib = self.env.Install(self.env['INSTALL_LIB_DIR'], sLib)
-        self.env.Alias(self.name, sLib, "Build " + self.name)
-        self.env.Alias('all:build', sLib, "build all targets")
-        self.env.Alias('all:install', iLib, "Install all targets")
+        # Create the list of the 'sources' files.
+        sources = self.src_files
+        # Create targets.
+        self._CreateAstyleCheckTarget(sources)
+        self._CreateAstyleTarget(sources)
+        self._CreateCCCCTarget(sources)
+        self._CreateClocTarget(sources)
+        self._CreateCppcheckTarget(sources)
+        self._CreateDocTarget()
+        # Get include paths.
+        includes = self.GetIncludePaths()
+        # Create an instance of th StaticLibrary() builder.
+        slib_builder = self.env.StaticLibrary(
+            target,
+            self.src_files,
+            CPPPATH=includes
+        )
+        # Create an instance of the Install() builder.
+        install_builder = self.env.Install(
+            self.env['INSTALL_LIB_DIR'],
+            slib_builder
+        ) 
+        # Create the aliases.
+        name = self.name
+        deps = [slib_builder]
+        msg = "Build %s" % self.name
+        self.env.Alias(name, deps, msg)
+        self.env.Alias('all:build', slib_builder, "Build all targets")
+        self.env.Alias('all:install', install_builder, "Install all targets")
         for alias in self.aliasGroups:
-            self.env.Alias(alias, iLib, "Build group " + alias)
-        return sLib
+            self.env.Alias(alias, install_builder, "Build group " + alias)
+        # Return the instance builder.
+        return slib_builder
 
 
 class DynamicLibraryComponent(SourcedComponent):
@@ -464,18 +488,43 @@ class DynamicLibraryComponent(SourcedComponent):
         self.shouldBeLinked = True
 
     def Process(self):
-        SourcedComponent.Process(self)
-        incpaths = self.GetIncludePaths()
-        (libs,libpaths) = self.GetLibs()
+        # The target is the name of library to be created.
         target = os.path.join(self.dir, self.name)
-        dLib = self.env.SharedLibrary(target, self.src, CPPPATH=incpaths, LIBS=libs, LIBPATH=libpaths)
-        iLib = self.env.Install(self.env['INSTALL_LIB_DIR'], dLib)
-        self.env.Alias(self.name, iLib, "Build and install " + self.name)
-        self.env.Alias('all:build', dLib, "build all targets")
-        self.env.Alias('all:install', iLib, "Install all targets")
+        # Create targets.
+        self._CreateAstyleCheckTarget(sources)
+        self._CreateAstyleTarget(sources)
+        self._CreateCCCCTarget(sources)
+        self._CreateClocTarget(sources)
+        self._CreateCppcheckTarget(sources)
+        self._CreateDocTarget()
+        # Get include paths.
+        includes = self.GetIncludePaths()
+        # Get the libraries to link and tehir directories.
+        (libs,libpaths) = self.GetLibs()
+        # Create an instance of the SharedLibrary() builder.
+        dlib_builder = self.env.SharedLibrary(
+            target,
+            self.src_files, 
+            CPPPATH = incpaths, 
+            LIBS = libs, 
+            LIBPATH = libpaths
+        )
+        # Create an instance of the Install() builder.
+        install_builder = self.env.Install(
+            self.env['INSTALL_LIB_DIR'], 
+            dlib_builder
+        )
+        # Create the aliases.
+        name = self.name
+        deps = [install_builder]
+        msg = "Build and install %s" % self.name
+        self.env.Alias(name, deps, msg)
+        self.env.Alias('all:build', dlib_builder, "Build all targets")
+        self.env.Alias('all:install', install_builder, "Install all targets")
         for alias in self.aliasGroups:
-            self.env.Alias(alias, iLib, "Build group " + alias)
-        return dLib
+            self.env.Alias(alias, install_builder, "Build group " + alias)
+        # Return the builder instance.
+        return dlib_builder
 
 
 class ObjectComponent(SourcedComponent):
