@@ -90,6 +90,7 @@ def init(env):
     _CreateExternalDependenciesTargets(env)
     # Puts a public function within the environment.
     env.CheckoutDependencyNow = CheckoutDependencyNow
+    env.GetComponentDeps = GetComponentDeps
 
 
 class Dependencies(object):
@@ -624,3 +625,13 @@ def UpdateDependencyMessage(env, source, target):
 def UpdateDependency(env, source, target):
     dep = str(target[0]).split(':')[0]
     return projects[dep].Update()
+
+def GetComponentDeps(depname, env):
+    if depname in external_dependencies.keys():
+        dep = external_dependencies.get(depname)
+    else:
+        dep = projects.get(depname)
+       
+    dep_list = dep.component_deps if dep else []
+        
+    return dep_list

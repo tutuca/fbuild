@@ -216,21 +216,24 @@ def WalkDirsForSconscripts(env, topdir, ignore=None):
                     env = env2
         # Check if there is a component that we dont know how to build
         for component in componentGraph.GetComponentsNames():
-            c = componentGraph.get(component)
-            if c is None:
-                # check if we know how to download this component
-                downloadedDependencies = env.CheckoutDependencyNow(component,env)
-            else:
-                for dep in c.deps:
-                    cdep = componentGraph.get(dep)
-                    if cdep == None:
-                        downloadedDependencies = c.env.CheckoutDependencyNow(dep,env)
-                        break
+            downloadedDependencies = InstallComponentAndDep(env, component, [])
+            if downloadedDependencies:
+                break
+            #c = componentGraph.get(component)
+            #if c is None:
+                #import ipdb; ipdb.set_trace()
+                ## check if we know how to download this component
+                #downloadedDependencies = env.CheckoutDependencyNow(component,env)
+            #else:
+                #for dep in c.deps:
+                    #cdep = componentGraph.get(dep)
+                    #if cdep == None:
+                        #import ipdb; ipdb.set_trace()
+                        #downloadedDependencies = c.env.CheckoutDependencyNow(dep,env)
+                        #break
             # If a dependency was downloaded we need to re-parse all the
             # SConscripts to assurance not to try to download something that
             # is added by another component (i.e.: gtest_main is added by gmock)
-            if downloadedDependencies:
-                break
         if downloadedDependencies:
             # Reset this to allow it to reparse those that were already added
             componentGraph.clear()
@@ -245,3 +248,38 @@ def WalkDirsForSconscripts(env, topdir, ignore=None):
     for componentName in componentGraph.GetComponentsNames():
         component = componentGraph.get(componentName)
         component.Process()
+
+# This method search recursively for dependencies to install.
+def InstallComponentAndDep(env, component, depsToInstall):
+    global componentGraph
+    downloadedDependencies = False
+
+    _component = componentGraph.get(component)
+    # Get dependency list for component.
+    if _component is not None:
+        dep_list_comp = _component.deps
+    else:
+        dep_list_comp = env.GetComponentDeps(component, env)
+    # We remove from the list dependencies already installed.
+    dep_list_comp = [dep for dep in dep_list_comp if componentGraph.get(dep) == None]
+    # If dependency list is empty, then we can download the component.
+    if not dep_list_comp and _component is None:
+        downloadedDependencies = env.CheckoutDependencyNow(component,env)
+    # Else we need to continue installing others dependencies.
+    elif dep_list_comp:
+        # This loop avoid an infinite loop search. TODO: Check if its necessary.
+        for dep in dep_list_comp:
+            if dep in depsToInstall:
+                downloadedDependencies = env.CheckoutDependencyNow(dep,env)
+        
+            if downloadedDependencies:
+                break
+        # If there is not downloaded dependencies, then we install the first dependecy
+        # in the list.
+        if not downloadedDependencies:
+            # Add new dependencies and remove duplicates.
+            comp_to_download = dep_list_comp.pop()
+            depsToInstall = list(set(depsToInstall + dep_list_comp))
+            downloadedDependencies = InstallComponentAndDep(env, comp_to_download, depsToInstall)
+                
+    return downloadedDependencies
