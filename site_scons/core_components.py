@@ -447,7 +447,7 @@ class StaticLibraryComponent(SourcedComponent):
         # The target is the name of library to be created.
         target = os.path.join(self.dir, self.name)
         # Create the list of the 'sources' files.
-        sources = self.src_files
+        sources = self.src_files + self.inc_files
         # Create targets.
         self._CreateAstyleCheckTarget(sources)
         self._CreateAstyleTarget(sources)
@@ -490,6 +490,8 @@ class DynamicLibraryComponent(SourcedComponent):
     def Process(self):
         # The target is the name of library to be created.
         target = os.path.join(self.dir, self.name)
+        # Create the list of the 'sources' files.
+        sources = self.src_files + self.inc_files
         # Create targets.
         self._CreateAstyleCheckTarget(sources)
         self._CreateAstyleTarget(sources)
@@ -534,11 +536,20 @@ class ObjectComponent(SourcedComponent):
         self.objs = []
 
     def Process(self):
+        # The target is the name of library to be created.
+        target = os.path.join(self.dir, self.name)
+        # Create the list of the 'sources' files.
+        sources = self.src_files + self.inc_files
+        # Create targets.
+        self._CreateAstyleCheckTarget(sources)
+        self._CreateAstyleTarget(sources)
+        self._CreateCCCCTarget(sources)
+        self._CreateClocTarget(sources)
+        self._CreateCppcheckTarget(sources)
+        self._CreateDocTarget()
         if not self.objs:
-            SourcedComponent.Process(self)
             incpaths = self.GetIncludePaths()
             (libs,libpaths) = self.GetLibs()
-            target = os.path.join(self.dir, self.name)
             for src in self.src:
                 target = src.split('.')[0]
                 obj = self.env.Object(target, src, CPPPATH=incpaths, LIBS=libs, LIBPATH=libpaths)
