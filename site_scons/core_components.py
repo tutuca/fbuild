@@ -20,12 +20,14 @@
 
 
 """
-    Add a description here!
+    This file contains the classes hierarchy for the components of the system.
 """
 
 
 import os
 import sys
+import abc
+
 import utils
 
 
@@ -40,29 +42,86 @@ class CyclicDependencieError(Exception):
     pass
 
 
-class Component(object):
+class Component(abc.ABC):
+    """
+        This class represents a component.
+        
+        This is an abstract base class which contains the main interface for a 
+        component.
+    """
     
-    def __init__(self, componentGraph, env, name, compDir, deps, aliasGroups):
+    #
+    # Public attributes.
+    # 
+    # A string with the name of the component.
+    name = None
+    
+    #
+    # Private attributes.
+    # 
+    # The directory where the component lives (instance of SCons Dir class).
+    _dir = None
+    # The string representation of self._dir.
+    _dir_path = None
+    # A list with names of the components from which it depends.
+    _dependencies = None
+    # A list with the includes directories.
+    _includes = None
+    # A list of external includes directories.
+    _external_includes = None
+    # The environment of the component.
+    _env = None
+    # A list with the group of aliases to which the component belongs.
+    _alias_groups = None
+    # A reference to the graph of components.
+    _component_graph = None
+    # A boolean that tells if the component is linkable or not.
+    _should_be_linked = False
+    
+    #
+    # Special methods.
+    #
+      
+    def __init__(self, graph, env, name, dir, deps, inc, ext_inc aliases=None):
         self.name = name
-        # Directory where the component lives (the directory that contains the
-        # SConscript)
-        self.compDir = compDir
-        self.dir = compDir.abspath
-        self.deps = deps
-        self.env = env.Clone()
-        self.aliasGroups = aliasGroups
-        self.componentGraph = componentGraph
-        self.projDir = os.path.join(env['WS_DIR'], os.path.relpath(self.dir, env['BUILD_DIR']))
-        self.shouldBeLinked = False
-
+        self._env = env.Clone()
+        self._component_graph = graph
+        self._dir = dir
+        self._dir_path = dir.abspath
+        self._dependencies = deps
+        self._includes = inc
+        self._external_includes = ext_inc
+        self._alias_groups = aliases if aliases is not None else []
+    
+    #
+    # Abstract methods.
+    #
+    
+    @abstractmethod
     def Process(self):
-        return None
+        """
+            Description:
+                This method describes how the component must be built and what 
+                actions can be perform on it.
+            Arguments:
+                None. (If some subclass add arguments they must be optional).
+            Exceptions:
+                None. (If some subclass raise an exception it must be specified)
+            Return:
+                This method must return a reference to a builder, it can be an 
+                instance of a Builder or an Alias.
+        """
+        return abc.NotImplemented
+    
+    #
+    # Public methods.
+    #
     
     def GetLibs(self):
         """
             Description:
                 This method returns the libraries (and its paths) that should be 
-                linked when the component have to be build.
+                linked when the component needs to be built.
             Arguments:
                 None.
             Exceptions:
@@ -96,10 +155,32 @@ class Component(object):
         # Create the libs list.
         libs = [t[1] for t in aux]
         return (libs, libpaths)
-
-    def _GetLibs(self, libs, libpaths, stack, depth):
+    
+    def GetIncludePaths(self):
         """
-            This is a recursive internal method used by the self.getLibs() method.
+            Description:
+                This method looks for the include's paths of the component.
+            Arguments:
+                None.
+            Exceptions:
+                None.
+            Return:
+                A set of paths.
+        """
+        try:
+            includes = self._GetIncludePaths(set(), [])[0]
+        except CyclicDependencieError, error:
+            msg = (' -> ').join(error[0])
+            self.env.cerror('[error] A dependency cycle was found:\n  %s' % msg)
+        return includes
+
+    #
+    # Private methods.
+    #
+    
+    def _GetIncludePaths(self, include_paths, stack):
+        """
+            This is a recursive internal method used by the GetIncludePaths method.
         """
         if self.name in stack:
             # If the component name is within the stack then there is a cycle.
@@ -108,14 +189,51 @@ class Component(object):
         else:
             # We add the component name to the stack.
             stack.append(self.name)
-        if self.shouldBeLinked and depth > 0:
+        if len(stack) == 1:
+            # If we enter here is because we are looking for the includes of this
+            # component.
+            for path in self._includes:
+                include_paths.add(path)
+        else:
+            # If we enter here is because someone else is looking for my includes.
+            path = self.env.Dir('INSTALL_HEADERS_DIR').Dir(self.name).abspath
+            include_paths.add(path)
+        # We always add external includes.
+        for path in self._external_includes:
+            include_paths.add(path)
+        # Look for the includes of its dependencies.
+        for dependency in self._dependencies:
+            component = self._component_graph.get(dependency)
+            if component is not None:
+                component._GetIncludePaths(include_paths, stack)
+            else:
+                self.env.cerror(
+                    '[error] %s depends on %s which could not be found' % 
+                    (self.name, dependency)
+                )
+        # We remove the component name from the stack.
+        if self.name in stack:
+            stack.pop()
+    
+    def _GetLibs(self, libs, libpaths, stack, depth):
+        """
+            This is a recursive internal method used by the GetLibs method.
+        """
+        if self.name in stack:
+            # If the component name is within the stack then there is a cycle.
+            stack.append(self.name)
+            raise CyclicDependencieError(stack)
+        else:
+            # We add the component name to the stack.
+            stack.append(self.name)
+        if self._should_be_linked and depth > 0:
             libs.append((depth,self.name))
             # We add the directory where the library lives.
-            if not self.dir in libpaths:
-                libpaths.append(self.dir)
+            if not self._dir_path in libpaths:
+                libpaths.append(self._dir_path)
         # Check its dependencies.
-        for dep in self.deps:
-            c = self.componentGraph.get(dep)
+        for dep in self._dependencies:
+            c = self._component_graph.get(dep)
             if c is None:
                 self.env.cerror(
                     '[error] %s depends on %s which could not be found' % 
@@ -128,7 +246,7 @@ class Component(object):
             stack.pop()
 
 
-class ExternalLibraryComponent(Component):
+class ExternalComponent(Component):
     
     def __init__(self, componentGraph, env, name, compDir, deps, extInc, shouldBeLinked, aliasGroups):
         Component.__init__(self, componentGraph, env, name, compDir, deps, aliasGroups)
@@ -139,38 +257,20 @@ class ExternalLibraryComponent(Component):
                     self.extInc.append( i )
             else:
                 self.extInc.append( extInc )
-        self.shouldBeLinked = shouldBeLinked
+        self._should_be_linked = shouldBeLinked
 
     def Process(self):
-        pass
-
-    def GetIncludePaths(self):
-        (incs, processedComponents) = self._GetIncludePaths([], 0)
-        return utils.RemoveDuplicates(incs)
-
-    def _GetIncludePaths(self, processedComponents, depth):
-        incs = []
-        if depth > 0:
-            for i in self.extInc:
-                incs.append(os.path.join(self.env['WS_DIR'],
-                                   os.path.relpath(i.abspath,self.env['BUILD_DIR'])))
-        processedComponents.append(self.name)
-        for dep in self.deps:
-            # Only process the dep if it was not already processed
-            if dep not in processedComponents:
-                c = self.componentGraph.get(dep)
-                if c is None:
-                    self.env.cerror('[error] %s depends on %s which could not be found' % (self.name, dep))
-                    continue
-                (depIncs, depProcessedComp) = c._GetIncludePaths(processedComponents,depth+1)
-                incs.extend(depIncs)
-        return (incs, processedComponents)
+        """
+            This type of component need not be built here.
+        """
+        return None
 
 
 class HeaderOnlyComponent(Component):
     
     def __init__(self, componentGraph, env, name, compDir, deps, extInc, aliasGroups):
         Component.__init__(self, componentGraph, env, name, compDir, deps, aliasGroups)
+        self.projDir = os.path.join(env['WS_DIR'], os.path.relpath(self._dir_path, env['BUILD_DIR']))
         self.extInc = []
         if extInc:
             if isinstance(extInc, (list, tuple)):
@@ -198,7 +298,7 @@ class HeaderOnlyComponent(Component):
             self.env.Alias(self.name, hLib, 'Install ' + self.name + ' headers')
             self.env.Clean(self.name, hLib)
             self.env.Alias('all:install', hLib, "Install all targets")
-            for alias in self.aliasGroups:
+            for alias in self._alias_groups:
                 self.env.Alias(alias, hLib, "Build group " + alias)
             return hLib
         # 
@@ -212,40 +312,42 @@ class HeaderOnlyComponent(Component):
         #   utils.WasTargetInvoked('%s:coverage' % self.name.split(':')[0])):
         #    gprofFlags = ['--coverage']
         #    self.env.Append(CXXFLAGS=gprofFlags, CFLAGS=gprofFlags, LINKFLAGS=gprofFlags)
-
-
-    def GetIncludePaths(self):
-        (incs, processedComponents) = self._GetIncludePaths([], 0)
-        return incs
-
-    def _GetIncludePaths(self, processedComponents, depth):
-        includeModulePath = os.path.join(self.env['INSTALL_HEADERS_DIR'], self.name)
-        incs = []
-        if depth > 0:
-            for i in self.extInc:
-                rel = os.path.relpath(i.abspath, self.compDir.abspath)
-                hDir = os.path.join(includeModulePath, rel)
-                (hDirHead, hDirTail) = os.path.split(hDir)
-                incs.append(hDirHead)
-        # Because we are building from #, we include also compDir as an include
-        # path so it finds local includes
-        incs.append(self.dir)
-        processedComponents.append(self.name)
-        # Some modules export env.Dir('.') as a path, in those cases, we
-        # need to include env['INSTALL_HEADERS_DIR'] as include path, this is
-        # dangerous since it will be possible to refer to other modules
-        #incs.append(self.env['INSTALL_HEADERS_DIR'])
-        for dep in self.deps:
-            # Only process the dep if it was not already processed
-            if dep not in processedComponents:
-                c = self.componentGraph.get(dep)
-                if c is None:
-                    self.env.cerror('[error] %s depends on %s which could not be found' % (self.name, dep))
-                    continue
-                if hasattr(c, '_GetIncludePaths'):
-                    (depIncs, depProcessedComp) = c._GetIncludePaths(processedComponents,depth+1)
-                    incs.extend(depIncs)
-        return (incs, processedComponents)
+    
+    def GetSources(self):
+        """
+            Description:
+            
+            Arguments:
+            
+            Exceptions:
+            
+            Return:
+            
+        """
+        pass
+    
+    def GetSourcesAndHeaders(self):
+        """
+            Description:
+            
+            Arguments:
+            
+            Exceptions:
+            
+            Return:
+            
+        """
+        pass
+    
+    def _GetIncludeFiles (self):
+        include_files = []
+        for i in self.inc:
+            hDir = os.path.join(self.projDir, i)
+            if hDir.endswith('/.'):
+                hDir = hDir.replace('/.','/')
+            for p in [hDir+x for x in headersFilter]:
+                include_files.extend(self.env.Glob(p))
+        return include_files
     
     def _CreateCCCCTarget(self, sources):
         # The target is the cccc report file.
@@ -318,7 +420,7 @@ class HeaderOnlyComponent(Component):
         #      We pass it the path to the SConscript file because we need the 
         #      path to the project directory but we only can put 'env.File' 
         #      objects as sources.
-        sconscript = ('%s/SConscript' % self.dir).replace('/build/','/projects/')
+        sconscript = ('%s/SConscript' % self._dir_path).replace('/build/','/projects/')
         # Create an instance of the RunDoxygen() builder.
         doc_builder = self.env.RunDoxygen(target, [doxyfile,sconscript])
         self.env.Clean(doc, targetDocDir)
@@ -414,120 +516,6 @@ class SourcedComponent(HeaderOnlyComponent):
         (incs, processedComponents) = self._GetIncludePaths([], 0)
         return incs
 
-    def _GetIncludePaths(self, processedComponents, depth):
-        incs = []
-        (extIncs, processedComponents) = HeaderOnlyComponent._GetIncludePaths(self, processedComponents, depth)
-        incs.extend(extIncs)
-        if depth == 0:
-            # local headers can be referred explicitely (they are relative to the
-            # current build directory) and are not from the install directory
-            for i in self.inc:
-                hDir = os.path.join(self.projDir, i)
-                incs.append(hDir)
-        return (incs, processedComponents)
-
-    def _GetIncludeFiles (self):
-        include_files = []
-        for i in self.inc:
-            hDir = os.path.join(self.projDir, i)
-            if hDir.endswith('/.'):
-                hDir = hDir.replace('/.','/')
-            for p in [hDir+x for x in headersFilter]:
-                include_files.extend(self.env.Glob(p))
-        return include_files
-
-
-class StaticLibraryComponent(SourcedComponent):
-    
-    def __init__(self, componentGraph, env, name, compDir, deps, inc, extInc, src, aliasGroups):
-        SourcedComponent.__init__(self, componentGraph, env, name, compDir, deps, inc, extInc, src, aliasGroups)
-        self.shouldBeLinked = True
-
-    def Process(self):
-        # The target is the name of library to be created.
-        target = os.path.join(self.dir, self.name)
-        # Create the list of the 'sources' files.
-        sources = self.src_files + self.inc_files
-        # Create targets.
-        self._CreateAstyleCheckTarget(sources)
-        self._CreateAstyleTarget(sources)
-        self._CreateCCCCTarget(sources)
-        self._CreateClocTarget(sources)
-        self._CreateCppcheckTarget(sources)
-        self._CreateDocTarget()
-        # Get include paths.
-        includes = self.GetIncludePaths()
-        # Create an instance of th StaticLibrary() builder.
-        slib_builder = self.env.StaticLibrary(
-            target,
-            self.src_files,
-            CPPPATH = includes
-        )
-        # Create an instance of the Install() builder.
-        install_builder = self.env.Install(
-            self.env['INSTALL_LIB_DIR'],
-            slib_builder
-        ) 
-        # Create the aliases.
-        name = self.name
-        deps = [slib_builder]
-        msg = "Build %s" % self.name
-        self.env.Alias(name, deps, msg)
-        self.env.Alias('all:build', slib_builder, "Build all targets")
-        self.env.Alias('all:install', install_builder, "Install all targets")
-        for alias in self.aliasGroups:
-            self.env.Alias(alias, install_builder, "Build group " + alias)
-        # Return the instance builder.
-        return slib_builder
-
-
-class DynamicLibraryComponent(SourcedComponent):
-    
-    def __init__(self, componentGraph, env, name, compDir, deps, inc, extInc, src, aliasGroups):
-        SourcedComponent.__init__(self, componentGraph, env, name, compDir, deps, inc, extInc, src, aliasGroups)
-        self.shouldBeLinked = True
-
-    def Process(self):
-        # The target is the name of library to be created.
-        target = os.path.join(self.dir, self.name)
-        # Create the list of the 'sources' files.
-        sources = self.src_files + self.inc_files
-        # Create targets.
-        self._CreateAstyleCheckTarget(sources)
-        self._CreateAstyleTarget(sources)
-        self._CreateCCCCTarget(sources)
-        self._CreateClocTarget(sources)
-        self._CreateCppcheckTarget(sources)
-        self._CreateDocTarget()
-        # Get include paths.
-        includes = self.GetIncludePaths()
-        # Get the libraries to link and tehir directories.
-        (libs,libpaths) = self.GetLibs()
-        # Create an instance of the SharedLibrary() builder.
-        dlib_builder = self.env.SharedLibrary(
-            target,
-            self.src_files, 
-            CPPPATH = incpaths, 
-            LIBPATH = libpaths,
-            LIBS = libs
-        )
-        # Create an instance of the Install() builder.
-        install_builder = self.env.Install(
-            self.env['INSTALL_LIB_DIR'], 
-            dlib_builder
-        )
-        # Create the aliases.
-        name = self.name
-        deps = [install_builder]
-        msg = "Build and install %s" % self.name
-        self.env.Alias(name, deps, msg)
-        self.env.Alias('all:build', dlib_builder, "Build all targets")
-        self.env.Alias('all:install', install_builder, "Install all targets")
-        for alias in self.aliasGroups:
-            self.env.Alias(alias, install_builder, "Build group " + alias)
-        # Return the builder instance.
-        return dlib_builder
-
 
 class ObjectComponent(SourcedComponent):
     
@@ -568,11 +556,111 @@ class ObjectComponent(SourcedComponent):
                 self.objects.append(object_builder)
         return self.objects
 
+    def FindSources(self):
+        src_files = self.src_files
+        for dependency in self._dependencies:
+            dep_component = self._component_graph.get(dependency)
+            if isinstance(dep_component, ObjectComponent):
+                src_files.extend(dep_component.Process())
+        return src_files
 
-class ProgramComponent(SourcedComponent):
+
+class StaticLibraryComponent(ObjectComponent):
+    
+    def __init__(self, componentGraph, env, name, compDir, deps, inc, extInc, src, aliasGroups):
+        ObjectComponent.__init__(self, componentGraph, env, name, compDir, deps, inc, extInc, src, aliasGroups)
+        self._should_be_linked = True
+
+    def Process(self):
+        # The target is the name of library to be created.
+        target = os.path.join(self._dir_path, self.name)
+        # Create the list of the 'sources' files.
+        sources = self.src_files + self.inc_files
+        # Create targets.
+        self._CreateAstyleCheckTarget(sources)
+        self._CreateAstyleTarget(sources)
+        self._CreateCCCCTarget(sources)
+        self._CreateClocTarget(sources)
+        self._CreateCppcheckTarget(sources)
+        self._CreateDocTarget()
+        # Get include paths.
+        includes = self.GetIncludePaths()
+        # Create an instance of th StaticLibrary() builder.
+        slib_builder = self.env.StaticLibrary(
+            target,
+            self.src_files,
+            CPPPATH = includes
+        )
+        # Create an instance of the Install() builder.
+        install_builder = self.env.Install(
+            self.env['INSTALL_LIB_DIR'],
+            slib_builder
+        ) 
+        # Create the aliases.
+        name = self.name
+        deps = [slib_builder]
+        msg = "Build %s" % self.name
+        self.env.Alias(name, deps, msg)
+        self.env.Alias('all:build', slib_builder, "Build all targets")
+        self.env.Alias('all:install', install_builder, "Install all targets")
+        for alias in self._alias_groups:
+            self.env.Alias(alias, install_builder, "Build group " + alias)
+        # Return the instance builder.
+        return slib_builder
+
+
+class DynamicLibraryComponent(ObjectComponent):
+    
+    def __init__(self, componentGraph, env, name, compDir, deps, inc, extInc, src, aliasGroups):
+        ObjectComponent.__init__(self, componentGraph, env, name, compDir, deps, inc, extInc, src, aliasGroups)
+        self._should_be_linked = True
+
+    def Process(self):
+        # The target is the name of library to be created.
+        target = os.path.join(self._dir_path, self.name)
+        # Create the list of the 'sources' files.
+        sources = self.src_files + self.inc_files
+        # Create targets.
+        self._CreateAstyleCheckTarget(sources)
+        self._CreateAstyleTarget(sources)
+        self._CreateCCCCTarget(sources)
+        self._CreateClocTarget(sources)
+        self._CreateCppcheckTarget(sources)
+        self._CreateDocTarget()
+        # Get include paths.
+        includes = self.GetIncludePaths()
+        # Get the libraries to link and tehir directories.
+        (libs,libpaths) = self.GetLibs()
+        # Create an instance of the SharedLibrary() builder.
+        dlib_builder = self.env.SharedLibrary(
+            target,
+            self.src_files, 
+            CPPPATH = incpaths, 
+            LIBPATH = libpaths,
+            LIBS = libs
+        )
+        # Create an instance of the Install() builder.
+        install_builder = self.env.Install(
+            self.env['INSTALL_LIB_DIR'], 
+            dlib_builder
+        )
+        # Create the aliases.
+        name = self.name
+        deps = [install_builder]
+        msg = "Build and install %s" % self.name
+        self.env.Alias(name, deps, msg)
+        self.env.Alias('all:build', dlib_builder, "Build all targets")
+        self.env.Alias('all:install', install_builder, "Install all targets")
+        for alias in self._alias_groups:
+            self.env.Alias(alias, install_builder, "Build group " + alias)
+        # Return the builder instance.
+        return dlib_builder
+
+
+class ProgramComponent(ObjectComponent):
     
     def __init__(self, componentGraph, env, name, compDir, deps, inc, src, aliasGroups):
-        SourcedComponent.__init__(self, componentGraph, env, name, compDir, deps, inc, [], src, aliasGroups)
+        ObjectComponent.__init__(self, componentGraph, env, name, compDir, deps, inc, [], src, aliasGroups)
 
     def Process(self):
         # The target is the name of program to be created.
@@ -611,18 +699,10 @@ class ProgramComponent(SourcedComponent):
         )
         self.env.Alias('all:build', program_builder, "Build all targets")
         self.env.Alias('all:install', install_builder, "Install all targets")
-        for alias in self.aliasGroups:
+        for alias in self._alias_groups:
             self.env.Alias(alias, install_builder, "Build group " + alias)
         # Return the builder instance.
         return program_builder
-
-    def FindSources(self):
-        src = self.src
-        for dep in self.deps:
-            c = self.componentGraph.get(dep)
-            if isinstance(c, ObjectComponent):
-                src.extend(c.Process())
-        return src
 
 
 class UnitTestComponent(ProgramComponent):
@@ -631,11 +711,9 @@ class UnitTestComponent(ProgramComponent):
         ProgramComponent.__init__(self, componentGraph, env, name, compDir, deps, inc, src, aliasGroups)
 
     def Process(self):
-        
-        
         incpaths = self.GetIncludePaths()
         (libs,libpaths) = self.GetLibs()
-        target = os.path.join(self.dir, self.name)
+        target = os.path.join(self._dir_path, self.name)
         self.prog = self.env.Program(target, self.FindSources(), CPPPATH=incpaths, LIBS=libs, LIBPATH=libpaths)
         self.env.Alias(self.name, self.prog, "Build and install " + self.name)
         self.env.Alias('all:build', self.prog, "Build all targets")
@@ -651,7 +729,7 @@ class UnitTestComponent(ProgramComponent):
             gtest_report = self.env.Dir(self.env['INSTALL_REPORTS_DIR']).Dir('test').Dir(self.name[:-5])
             self.env.gtest_report = 'xml:%s/test-report.xml' % gtest_report.abspath
         # File to store the test results.
-        target = os.path.join(self.dir, self.name + '.passed')
+        target = os.path.join(self._dir_path, self.name + '.passed')
         tTest = self.env.RunUnittest(target, self.prog)
         # Check if the user want to run the tests anyway.
         if self.env.GetOption('forcerun'):
@@ -672,14 +750,14 @@ class UnitTestComponent(ProgramComponent):
         # Add dependence for ready to commit.
         self.env.Depends(self.ready_to_commit, tvalg)
         # Create alias for aliasGroups.
-        for alias in self.aliasGroups:
+        for alias in self._alias_groups:
             self.env.Alias(alias, tTest, "Build group " + alias)
 
     def GetIncludePaths(self):
         includes = super(UnitTestComponent, self).GetIncludePaths()
-        project = self.componentGraph.get(self.name.split(':')[0])
+        project = self._component_graph.get(self.name.split(':')[0])
         #adding current test dir
-        filtered_includes = [self.dir, project.dir]
+        filtered_includes = [self._dir_path, project.dir]
         #adding project in test include path (relative to build dir)
         for i in getattr(project, 'inc', []):
             filtered_includes.append(os.path.join(project.dir, i))
@@ -716,10 +794,10 @@ class UnitTestComponent(ProgramComponent):
         
     def _CreateCoverageTarget(self, target):
         # Get the path directory to the project.
-        project = self.componentGraph.get(self.name.split(':')[0])
+        project = self._component_graph.get(self.name.split(':')[0])
         self.env['PROJECT_DIR'] = project.dir        
         # Targets and sources for builder InitLcov.
-        initLcovTarget = os.path.join(self.dir, 'coverage_data')
+        initLcovTarget = os.path.join(self._dir_path, 'coverage_data')
         initLcovSoureces = [self.prog]
         # Call builder initLcov().
         initLcov = self.env.InitLcov(initLcovTarget, initLcovSoureces)
