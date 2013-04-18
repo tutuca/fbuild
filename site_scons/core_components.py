@@ -461,7 +461,7 @@ class StaticLibraryComponent(SourcedComponent):
         slib_builder = self.env.StaticLibrary(
             target,
             self.src_files,
-            CPPPATH=includes
+            CPPPATH = includes
         )
         # Create an instance of the Install() builder.
         install_builder = self.env.Install(
@@ -508,8 +508,8 @@ class DynamicLibraryComponent(SourcedComponent):
             target,
             self.src_files, 
             CPPPATH = incpaths, 
-            LIBS = libs, 
-            LIBPATH = libpaths
+            LIBPATH = libpaths,
+            LIBS = libs
         )
         # Create an instance of the Install() builder.
         install_builder = self.env.Install(
@@ -561,8 +561,8 @@ class ObjectComponent(SourcedComponent):
                     target,
                     source,
                     CPPPATH = incpaths,
-                    LIBS = libs,
-                    LIBPATH = libpaths
+                    LIBPATH = libpaths,
+                    LIBS = libs
                 )
                 # Add the builder to the list.
                 self.objects.append(object_builder)
@@ -575,20 +575,48 @@ class ProgramComponent(SourcedComponent):
         SourcedComponent.__init__(self, componentGraph, env, name, compDir, deps, inc, [], src, aliasGroups)
 
     def Process(self):
-        SourcedComponent.Process(self)
-        incpaths = self.GetIncludePaths()
-        (libs,libpaths) = self.GetLibs()
+        # The target is the name of program to be created.
         target = os.path.join(self.env['INSTALL_LIB_DIR'], self.name)
-        self.prog = self.env.Program(target, self.findSources(), CPPPATH=incpaths, LIBS=libs, LIBPATH=libpaths)
-        iProg = self.env.Install(self.env['INSTALL_BIN_DIR'], self.prog)
-        self.env.Alias(self.name, iProg, "Build and install " + self.name)
-        self.env.Alias('all:build', self.prog, "Build all targets")
-        self.env.Alias('all:install', iProg, "Install all targets")
+        # Create the list of the 'sources' files.
+        sources = self.src_files + self.inc_files
+        # Create targets.
+        self._CreateAstyleCheckTarget(sources)
+        self._CreateAstyleTarget(sources)
+        self._CreateCCCCTarget(sources)
+        self._CreateClocTarget(sources)
+        self._CreateCppcheckTarget(sources)
+        self._CreateDocTarget()
+        # Get include paths.
+        includes = self.GetIncludePaths()
+        # Get the libraries to link and their directories.
+        (libs,libpaths) = self.GetLibs()
+        # Create an instance of the Program() builder.
+        program_builder = self.env.Program(
+            target,
+            self.FindSources(),
+            CPPPATH = incpaths,
+            LIBPATH = libpaths,
+            LIBS = libs
+        )
+        # Create an instance of the Install() builder.
+        install_builder = self.env.Install(
+            self.env['INSTALL_BIN_DIR'],
+            program_builder
+        )
+        # Create the aliases.
+        self.env.Alias(
+            self.name,
+            install_builder,
+            "Build and install %s" % self.name
+        )
+        self.env.Alias('all:build', program_builder, "Build all targets")
+        self.env.Alias('all:install', install_builder, "Install all targets")
         for alias in self.aliasGroups:
-            self.env.Alias(alias, iProg, "Build group " + alias)
-        return self.prog
+            self.env.Alias(alias, install_builder, "Build group " + alias)
+        # Return the builder instance.
+        return program_builder
 
-    def findSources(self):
+    def FindSources(self):
         src = self.src
         for dep in self.deps:
             c = self.componentGraph.get(dep)
@@ -603,15 +631,12 @@ class UnitTestComponent(ProgramComponent):
         ProgramComponent.__init__(self, componentGraph, env, name, compDir, deps, inc, src, aliasGroups)
 
     def Process(self):
-        # Call to super-super-class SourcedComponent().
-        # We not call directly to the supper class ProgramComponent.Process() 
-        # since it generates a problem when running the test executable.
-        SourcedComponent.Process(self)
-        # So, we have to call the Program() builder.
+        
+        
         incpaths = self.GetIncludePaths()
         (libs,libpaths) = self.GetLibs()
         target = os.path.join(self.dir, self.name)
-        self.prog = self.env.Program(target, self.findSources(), CPPPATH=incpaths, LIBS=libs, LIBPATH=libpaths)
+        self.prog = self.env.Program(target, self.FindSources(), CPPPATH=incpaths, LIBS=libs, LIBPATH=libpaths)
         self.env.Alias(self.name, self.prog, "Build and install " + self.name)
         self.env.Alias('all:build', self.prog, "Build all targets")
         # Flags for gtest and gmock.
