@@ -533,11 +533,10 @@ class ObjectComponent(SourcedComponent):
     
     def __init__(self, componentGraph, env, name, compDir, deps, inc, src, aliasGroups):
         SourcedComponent.__init__(self, componentGraph, env, name, compDir, deps, inc, [], src, aliasGroups)
-        self.objs = []
+        # A list of builders of the class Object().
+        self.objects = []
 
     def Process(self):
-        # The target is the name of library to be created.
-        target = os.path.join(self.dir, self.name)
         # Create the list of the 'sources' files.
         sources = self.src_files + self.inc_files
         # Create targets.
@@ -547,14 +546,27 @@ class ObjectComponent(SourcedComponent):
         self._CreateClocTarget(sources)
         self._CreateCppcheckTarget(sources)
         self._CreateDocTarget()
-        if not self.objs:
+        # If the objects are not compiled, we compile them.
+        if not self.objects:
+            # Get the list of include paths.
             incpaths = self.GetIncludePaths()
+            # Get the list of libraries to link, and its directories.
             (libs,libpaths) = self.GetLibs()
-            for src in self.src:
-                target = src.split('.')[0]
-                obj = self.env.Object(target, src, CPPPATH=incpaths, LIBS=libs, LIBPATH=libpaths)
-                self.objs.append(obj)
-        return self.objs
+            # Create an object from each file.
+            for source in self.src_files:
+                # Create the target for each file.
+                target = source.abspath.split('.')[0]
+                # Create an instance of the Object() builder.
+                object_builder = self.env.Object(
+                    target,
+                    source,
+                    CPPPATH = incpaths,
+                    LIBS = libs,
+                    LIBPATH = libpaths
+                )
+                # Add the builder to the list.
+                self.objects.append(object_builder)
+        return self.objects
 
 
 class ProgramComponent(SourcedComponent):
