@@ -82,19 +82,19 @@ class Component(abc.ABC):
     # Special methods.
     #
       
-    def __init__(self, graph, env, name, dir, deps, inc, ext_inc aliases=None):
+    def __init__(self, graph, env, name, dir, deps, inc, ext_inc, aliases=None):
         self.name = name
         self._env = env.Clone()
         self._component_graph = graph
         self._dir = dir
         self._dir_path = dir.abspath
-        self._dependencies = deps
-        self._includes = inc
-        self._external_includes = ext_inc
+        self._dependencies = list(deps)
+        self._includes = list(inc)
+        self._external_includes = list(ext_inc)
         self._alias_groups = aliases if aliases is not None else []
     
     #
-    # Abstract methods.
+    # Public methods.
     #
     
     @abstractmethod
@@ -112,10 +112,6 @@ class Component(abc.ABC):
                 instance of a Builder or an Alias.
         """
         return abc.NotImplemented
-    
-    #
-    # Public methods.
-    #
     
     def GetLibs(self):
         """
@@ -247,36 +243,54 @@ class Component(abc.ABC):
 
 
 class ExternalComponent(Component):
+    """
+        This class represents an external component.
+        
+        External components are installed in the system rather than in the 
+        fbuild install/ directory.
+    """
     
-    def __init__(self, componentGraph, env, name, compDir, deps, extInc, shouldBeLinked, aliasGroups):
-        Component.__init__(self, componentGraph, env, name, compDir, deps, aliasGroups)
-        self.extInc = []
-        if extInc:
-            if isinstance(extInc,list) or isinstance(extInc,tuple):
-                for i in extInc:
-                    self.extInc.append( i )
-            else:
-                self.extInc.append( extInc )
-        self._should_be_linked = shouldBeLinked
+    #
+    # Special methods.
+    #
+    
+    def __init__(self, graph, env, name, dir, deps, inc, linkable, aliases):
+        Component.__init__(self, graph, env, name, dir, deps, [], inc, aliases)
+        self._should_be_linked = linkable
+    
+    #
+    # Public methods.
+    #
 
     def Process(self):
         """
-            This type of component need not be built here.
+            This type of component no need to be built here.
         """
-        return None
+        pass
 
 
 class HeaderOnlyComponent(Component):
+    """
+        This class represents a component which contains only header files.
+    """
     
-    def __init__(self, componentGraph, env, name, compDir, deps, extInc, aliasGroups):
-        Component.__init__(self, componentGraph, env, name, compDir, deps, aliasGroups)
-        self.projDir = os.path.join(env['WS_DIR'], os.path.relpath(self._dir_path, env['BUILD_DIR']))
-        self.extInc = []
-        if extInc:
-            if isinstance(extInc, (list, tuple)):
-                self.extInc.extend(extInc)
-            else:
-                self.extInc.append(extInc)
+    #
+    # Private attributes.
+    #
+    # The path to the project's directory into the fbuild projects/ folder.
+    _project_dir = None
+    
+    #
+    # Special methods.
+    #
+    
+    def __init__(self, graph, env, name, dir, deps, ext_inc, aliases):
+        Component.__init__(self, graph, env, name, dir, deps, [], ext_inc, aliases)
+        self._project_dir = self.env.Dir('WS_DIR').Dir(self.name).abspath
+    
+    #
+    # Public methods.
+    #
 
     def Process(self, called_from_subclass=False):
         # Look for the sources of this component.
@@ -313,41 +327,42 @@ class HeaderOnlyComponent(Component):
         #    gprofFlags = ['--coverage']
         #    self.env.Append(CXXFLAGS=gprofFlags, CFLAGS=gprofFlags, LINKFLAGS=gprofFlags)
     
-    def GetSources(self):
+    def GetSourcesFiles(self):
         """
             Description:
-            
+                This method does nothing for this class.
             Arguments:
-            
+                None.
             Exceptions:
-            
+                None.
             Return:
-            
+                An empty list.
         """
-        pass
+        return []
     
-    def GetSourcesAndHeaders(self):
+    def GetIncludeFiles (self):
         """
             Description:
-            
+                This method looks for the headers files of the component.
             Arguments:
-            
+                None.
             Exceptions:
-            
+                None.
             Return:
-            
+                A list of files.
         """
-        pass
-    
-    def _GetIncludeFiles (self):
         include_files = []
-        for i in self.inc:
-            hDir = os.path.join(self.projDir, i)
+        for include_dir in self._includes:
+            hDir = os.path.join(self._project_dir, include_dir)
             if hDir.endswith('/.'):
                 hDir = hDir.replace('/.','/')
             for p in [hDir+x for x in headersFilter]:
                 include_files.extend(self.env.Glob(p))
         return include_files
+    
+    #
+    # Private methods.
+    #
     
     def _CreateCCCCTarget(self, sources):
         # The target is the cccc report file.
@@ -384,14 +399,6 @@ class HeaderOnlyComponent(Component):
         self.env.Alias(name, deps, msg)
         # Return the builder instance.
         return cloc_builder
-        # 
-        # ============> This is for jenkis. <=====================
-        #
-        # Check if we need to create an xml report.
-        #
-        #if utils.wasTargetInvoked('%s:jenkins' % self.name.split(':')[0]):
-        #    self.env.Replace(CLOC_OUTPUT_FORMAT='xml')
-        #self.env.Depends(self.jenkins_target,cloc)
     
     def _CreateCppcheckTarget(self, sources):
         # The target is the cppcheck report file.
@@ -835,3 +842,12 @@ class UnitTestComponent(ProgramComponent):
         # Create an alias for ready-to-commit.
         self.env.Alias('%s:ready-to-commit' % self.name.split(':')[0], self.ready_to_commit, '')
         self.env.AlwaysBuild(self.ready_to_commit)
+        
+    # 
+    # ============> This is for jenkis. <=====================
+    #
+    # Check if we need to create an xml report.
+    #
+    #if utils.wasTargetInvoked('%s:jenkins' % self.name.split(':')[0]):
+    #    self.env.Replace(CLOC_OUTPUT_FORMAT='xml')
+    #self.env.Depends(self.jenkins_target,cloc)
