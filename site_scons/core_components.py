@@ -31,8 +31,8 @@ import abc
 import utils
 
 
-headersFilter = ['*.h','*.hpp']
-sourceFilters = ['*.c','*.cpp','*.cc']
+HEADERS_FILTER = ['*.h','*.hpp']
+SOURCES_FILTER = ['*.c','*.cpp','*.cc']
 
 
 class CyclicDependencieError(Exception):
@@ -44,7 +44,7 @@ class CyclicDependencieError(Exception):
 
 class Component(abc.ABC):
     """
-        This class represents a component.
+        This class represents a component in the component graph.
         
         This is an abstract base class which contains the main interface for a 
         component.
@@ -61,13 +61,11 @@ class Component(abc.ABC):
     # 
     # The directory where the component lives (instance of SCons Dir class).
     _dir = None
-    # The string representation of self._dir.
-    _dir_path = None
     # A list with names of the components from which it depends.
     _dependencies = None
-    # A list with the includes directories.
+    # A list with the includes directories (instances of SCons Dir class).
     _includes = None
-    # A list of external includes directories.
+    # A list of external includes directories (instances of SCons Dir class).
     _external_includes = None
     # The environment of the component.
     _env = None
@@ -87,7 +85,6 @@ class Component(abc.ABC):
         self._env = env.Clone()
         self._component_graph = graph
         self._dir = dir
-        self._dir_path = dir.abspath
         self._dependencies = list(deps)
         self._includes = list(inc)
         self._external_includes = list(ext_inc)
@@ -254,7 +251,7 @@ class ExternalComponent(Component):
     # Special methods.
     #
     
-    def __init__(self, graph, env, name, dir, deps, inc, linkable, aliases):
+    def __init__(self, graph, env, name, dir, deps, inc, linkable, aliases=None):
         Component.__init__(self, graph, env, name, dir, deps, [], inc, aliases)
         self._should_be_linked = linkable
     
@@ -271,14 +268,21 @@ class ExternalComponent(Component):
 
 class HeaderOnlyComponent(Component):
     """
-        This class represents a component which contains only header files.
+        This class represents a header only component.
+        
+        This type of component does not have sources files, it contains only 
+        header files.
     """
     
     #
     # Private attributes.
     #
     # The path to the project's directory into the fbuild projects/ folder.
+    # (instance of SCons Dir class).
     _project_dir = None
+    # A list with the header files (instance of SCons File class). Never use this 
+    # attribute directly, always use the method GetIncludeFiles().
+    _header_file_list = None
     
     #
     # Special methods.
@@ -286,18 +290,27 @@ class HeaderOnlyComponent(Component):
     
     def __init__(self, graph, env, name, dir, deps, ext_inc, aliases):
         Component.__init__(self, graph, env, name, dir, deps, [], ext_inc, aliases)
-        self._project_dir = self.env.Dir('WS_DIR').Dir(self.name).abspath
+        self._project_dir = self.env.Dir('WS_DIR').Dir(self.name)
     
     #
     # Public methods.
     #
 
-    def Process(self, called_from_subclass=False):
+    def Process(self):
+        """
+            Description:
+                This method creates the targets of the actions that can be applied
+                to this component.
+            Arguments:
+                None.
+            Exceptions:
+                None.
+            Return:
+                An instance of a builder which tell how to install the component.
+        """
         # Look for the sources of this component.
-        filters = []
-        filters.extend(headersFilter)
-        filters.extend(sourceFilters)
-        sources = utils.FilesFlatten(self.env, self.projDir, filters)
+        filters = HEADERS_FILTER + SOURCES_FILTER
+        sources = utils.FilesFlatten(self._env, self._dir, filters)
         # Create targets.
         self._CreateAstyleCheckTarget(sources)
         self._CreateAstyleTarget(sources)
@@ -308,39 +321,28 @@ class HeaderOnlyComponent(Component):
         # If the component doesnt have external headers, we dont process it since
         # there is nothing to install
         if len(self.extInc) > 0:
-            hLib = utils.RecursiveInstall(self.env, self.compDir, self.extInc, self.name, headersFilter)
-            self.env.Alias(self.name, hLib, 'Install ' + self.name + ' headers')
-            self.env.Clean(self.name, hLib)
-            self.env.Alias('all:install', hLib, "Install all targets")
+            install_builder = utils.RecursiveInstall(
+                self._env,
+                self._dir, 
+                self._external_includes, 
+                self.name, 
+                HEADERS_FILTER
+            )
+            # Create the aliases.
+            self.env.Alias(
+                self.name, 
+                install_builder, 
+                'Install %s headers' % self.name
+            )
+            self.env.Clean(self.name, install_builder)
+            self.env.Alias('all:install', install_builder, "Install all targets")
             for alias in self._alias_groups:
-                self.env.Alias(alias, hLib, "Build group " + alias)
-            return hLib
-        # 
-        # TODO: This must not be here. It must be in the 
-        #       UnitTestComponent.Process(). This was for solving the problem 
-        #       where the the coverage doesn't generate the report correctly.
-        # 
-        # Check if the coverage is needed.
-        # 
-        #if (utils.WasTargetInvoked('%s:jenkins' % self.name.split(':')[0]) or
-        #   utils.WasTargetInvoked('%s:coverage' % self.name.split(':')[0])):
-        #    gprofFlags = ['--coverage']
-        #    self.env.Append(CXXFLAGS=gprofFlags, CFLAGS=gprofFlags, LINKFLAGS=gprofFlags)
+                self.env.Alias(alias, install_builder, "Build group " + alias)
+            return install_builder
+        else:
+            return None
     
-    def GetSourcesFiles(self):
-        """
-            Description:
-                This method does nothing for this class.
-            Arguments:
-                None.
-            Exceptions:
-                None.
-            Return:
-                An empty list.
-        """
-        return []
-    
-    def GetIncludeFiles (self):
+    def GetIncludeFiles(self):
         """
             Description:
                 This method looks for the headers files of the component.
@@ -349,16 +351,18 @@ class HeaderOnlyComponent(Component):
             Exceptions:
                 None.
             Return:
-                A list of files.
+                A list of files. Each file is an instace of the SCons File class.
         """
-        include_files = []
+        # If the files were already calculate we just return them.
+        if self._header_file_list is not None:
+            return self._header_file_list
+        # Otherwise we look for them.
+        self._header_file_list = []
+        # Look for the files in each include directory.
         for include_dir in self._includes:
-            hDir = os.path.join(self._project_dir, include_dir)
-            if hDir.endswith('/.'):
-                hDir = hDir.replace('/.','/')
-            for p in [hDir+x for x in headersFilter]:
-                include_files.extend(self.env.Glob(p))
-        return include_files
+            files = FindFiles(self._env, include_dir, HEADERS_FILTER)
+            self._header_file_list.extend(files)
+        return self._header_file_list
     
     #
     # Private methods.
@@ -473,44 +477,54 @@ class HeaderOnlyComponent(Component):
 
 
 class SourcedComponent(HeaderOnlyComponent):
-
-    def __init__(self, componentGraph, env, name, compDir, deps, inc, extInc, src, aliasGroups):
-        HeaderOnlyComponent.__init__(self, componentGraph, env, name, compDir, deps, extInc, aliasGroups)
-        self.inc = []
-        self.inc_paths = []
-        if inc:
-            if isinstance(inc, (list, tuple)):
-                for i in inc:
-                    self.inc_paths.append(i.abspath)
-                    self.inc.append( os.path.relpath(i.abspath, compDir.abspath) )
-            else:
-                self.inc_paths.append(inc.abspath)
-                self.inc.append( os.path.relpath(inc.abspath, compDir.abspath) )
-        self.src = []
-        if src:
-            if isinstance(src, (list, tuple)):
-                for s in src:
-                    if isinstance(s, str):
-                        self.src.append(os.path.abspath(s))
-                    elif isinstance(s, (list, tuple)):
-                        for subS in s:
-                            self.src.append(os.path.abspath(compDir.rel_path(subS)))
-                    else:
-                        self.src.append(os.path.abspath(compDir.rel_path(s)))
-            else:
-                if isinstance(src, str):
-                    self.src.append(os.path.abspath(src))
-                else:
-                    self.src.append(os.path.abspath(compDir.rel_path(src)))
-        # Create list of sources and headers files
-        self.src_files = []
-        self.inc_files = self._GetIncludeFiles()
-        for x in self.src:
-            self.src_files.append(self.env.File(x))
+    """
+        This class represents a sourced component.
+        
+        This type of component can have sources and headers files.
+    """
+    
+    #
+    # Private attributes.
+    #
+    # A list with the sources files (instances of the SCons File class). Never 
+    # use this attribute directly, use the GetSourcesFiles() method.
+    _sources_file_list = None
+    
+    #
+    # Special methods.
+    #
+    
+    def __init__(self, graph, env, name, dir, deps, inc, ext_inc, src, als=None):
+        HeaderOnlyComponent.__init__(self, graph, env, name, dir, deps, ext_inc, als)
+        # Because HeaderOnlyComponent doesn't have includes.
+        self._includes = inc
+        # Check the 'src' argument.
+        if not src:
+            self._env.Cprint("[error] %s: None sources were specify for a 
+                             SourcedComponent object." % self.name)
+            raise ValueError("HeaderOnlyComponent.__init__(): Argument 'src'
+                             cannot be None or empty.")
+        # Initialize the source files.
+        self._InitSourcesFileList(src)
+    
+    #
+    # Public methods.
+    #
 
     def Process(self):
+        """
+            Description:
+                This method creates the targets of the actions that can be applied
+                to this component.
+            Arguments:
+                None.
+            Exceptions:
+                None.
+            Return:
+                None. (A sourced component can't be built.)
+        """
         # Create the list of the 'sources' files.
-        sources = self.src_files + self.inc_files
+        sources = self.GetSourcesFiles() + self.GetIncludeFiles()
         # Create targets.
         self._CreateAstyleCheckTarget(sources)
         self._CreateAstyleTarget(sources)
@@ -518,10 +532,41 @@ class SourcedComponent(HeaderOnlyComponent):
         self._CreateClocTarget(sources)
         self._CreateCppcheckTarget(sources)
         self._CreateDocTarget()
-
-    def GetIncludePaths(self):
-        (incs, processedComponents) = self._GetIncludePaths([], 0)
-        return incs
+    
+    def GetSourcesFiles(self):
+        """
+            Description:
+                This method return a list with source files of the component.
+            Arguments:
+                None.
+            Exceptions:
+                None.
+            Return:
+                A list with the source files, each element is an instance of the
+                SCons File class.
+        """
+        return self._sources_file_list
+        
+    #
+    # Private methods.
+    #
+    
+    def _InitSourcesFileList(self, src):
+        """
+            This is an internal method that initialize the list of sources files.
+        """
+        # Get the sources.
+        if isinstance(src, env.Dir):
+            pass
+        elif isinstance(src, str):
+            pass
+        else:
+            # It must be an iterable.
+            for s in src:
+                if isinstance(s, env.Dir):
+                    pass
+                else: # Must be of type str.
+                    pass
 
 
 class ObjectComponent(SourcedComponent):
@@ -851,3 +896,15 @@ class UnitTestComponent(ProgramComponent):
     #if utils.wasTargetInvoked('%s:jenkins' % self.name.split(':')[0]):
     #    self.env.Replace(CLOC_OUTPUT_FORMAT='xml')
     #self.env.Depends(self.jenkins_target,cloc)
+
+    # 
+    # TODO: This must not be here. It must be in the 
+    #       UnitTestComponent.Process(). This was for solving the problem 
+    #       where the the coverage doesn't generate the report correctly.
+    # 
+    # Check if the coverage is needed.
+    # 
+    #if (utils.WasTargetInvoked('%s:jenkins' % self.name.split(':')[0]) or
+    #   utils.WasTargetInvoked('%s:coverage' % self.name.split(':')[0])):
+    #    gprofFlags = ['--coverage']
+    #    self.env.Append(CXXFLAGS=gprofFlags, CFLAGS=gprofFlags, LINKFLAGS=gprofFlags)

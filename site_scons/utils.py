@@ -46,8 +46,7 @@ class DistroError (Exception):
 
 
 def FindFiles(env, fromDir, filters=None):
-    if filters == None:
-        filters = ['*']
+    filters = filters if filters is not None else ['*']
     path = fromDir.abspath
     files = []
     for s in env.Glob(path + '/*'):
