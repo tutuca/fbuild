@@ -93,21 +93,6 @@ def init(env):
 
 
 class Dependencies(object):
-    """
-    <component
-        name="ComponentName"
-        type=["LIB" | "HLIB" | "PRO"]
-        check="ComponentNameInTheSystem"
-        deps="A,B,C"
-        <installer
-            distro=["UBUNTU" | "ARCH" | "*"]
-            target=["PackageName" | "Url"]
-            manager=["HG" | "SVN" | "WGET"] | 
-                    ["APT-GET" | "APTITUDE" | "PACKER" | "PACMAN" | "*"] />
-        <install_checker> ShellScript </install_checker>
-        <execute_after> ShellScript </execute_after>
-    </component>
-    """
     
     def __init__(self, name, target, node, env):
         self.env = env
@@ -135,6 +120,28 @@ class Dependencies(object):
            self.inatllChecker = ((elems[0]).childNodes[0]).data
         else:
             self.inatllChecker = ''
+        if self.component_type:
+            # Create the cal to 'CreateExternalLibraryComponent()'.
+            pcall = "env.CreateExternalLibraryComponent('%s',%s,%s,%s,%s)"
+            # External components no need external includes.
+            ext = '[]'
+            # External components no need a directory since now they are install
+            # in the system.
+            path = "env.Dir('.')"
+            # Get the dependencies of the component.
+            deps = self.component_deps
+            # Remove empty strings from the dependency list.
+            while '' in deps:
+                deps.remove('')
+            # Check if the component is linkable library.
+            if self.component_type in ['LIB']:
+                link = 'True'
+            else:
+                link = 'False'
+            # Create the string that with the python call.
+            self.create_ext_lib_component = pcall % (name, ext, path, deps, link)
+        else:
+            self.create_ext_lib_component = ''
 
     def AfterCheckout(self):
         """
@@ -233,7 +240,7 @@ class SVN(Dependencies):
         if not os.path.exists(self.target):
             os.makedirs(self.target)
         Cprint('[svn] Checkout %s => %s' % (self.url, self.target), 'purple')
-        cmd = ['svn', 'Checkout'] + (['--username', self.username] if self.username else []) + [self.url, self.target]
+        cmd = ['svn', 'checkout'] + (['--username', self.username] if self.username else []) + [self.url, self.target]
         rc = subprocess.call(cmd)
         if rc != 0 :
             return Cformat('[error] svn failed to checkout target %s from %s, error: %s' 
@@ -425,26 +432,7 @@ def _CreateExternalDependenciesTargets(env):
         if external_dependencies[component].CheckInstall():
             # If it's installed we have to add the component to the graph by adding
             # a call to 'CreateExternalLibraryComponent()'.
-            pcall = "env.CreateExternalLibraryComponent('%s',%s,%s,%s,%s)"
-            # Get the component's name.
-            name = external_dependencies[component].name
-            # External components no need external includes.
-            ext = '[]'
-            # External components no need a directory since now they are install
-            # in the system.
-            path = "env.Dir('.')"
-            # Get the dependencies of the component.
-            deps = external_dependencies[component].component_deps
-            # Remove empty strings from the dependency list.
-            while '' in deps:
-                deps.remove('')
-            # Check if the component is linkable library.
-            if external_dependencies[component].component_type in ['LIB']:
-                link = 'True'
-            else:
-                link = 'False'
-            # Create the string that with the python call.
-            pcall = pcall % (name, ext, path, deps, link)
+            pcall = external_dependencies[component].create_ext_lib_component
             # Add it to the list of calls.
             env.ExternalDependenciesCreateComponentsDict[component] = pcall
 
@@ -603,6 +591,11 @@ def CheckoutDependency(env, source, target):
     os.system('rm -rf %s' % TMP_DIR)
     return result
 
+#
+# In this both functions we have to check if the component dependencies are
+# installed or not. Also we have to see if we can let only one function instead 
+# CheckoutDependency() and CheckoutDependencyNow().
+#
 
 def CheckoutDependencyNow(depname, env):
     # Crate a temporary directory for download external components.
