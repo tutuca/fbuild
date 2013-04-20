@@ -61,6 +61,10 @@ check_install python true
 if [ "$?" -ne "0" ]; then return $?; fi
 check_install scons true
 if [ "$?" -ne "0" ]; then return $?; fi
+check_install g++ true
+if [ "$?" -ne "0" ]; then return $?; fi
+check_install build-essentials true
+if [ "$?" -ne "0" ]; then return $?; fi
 check_install moc
 if [ "$?" -ne "0" ]; then return $?; fi
 check_install doxygen
@@ -80,6 +84,8 @@ if [ "$?" -ne "0" ]; then return $?; fi
 check_install valgrind false
 if [ "$?" -ne "0" ]; then return $?; fi
 check_install cppcheck false
+if [ "$?" -ne "0" ]; then return $?; fi
+check_install lcov false
 if [ "$?" -ne "0" ]; then return $?; fi
 
 if [ "$(astyle -V 2>&1 | cut -f4 -d' ' | sed 's/\..*//' | bc)" -lt "2" ]; then
