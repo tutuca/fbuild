@@ -30,6 +30,7 @@ from SCons.Script.SConscript import SConsEnvironment
 
 from core_components import *
 from components import *
+from fbuild_exceptions import CircularDependencyError
 
 
 downloadedDependencies = False
@@ -216,7 +217,7 @@ def WalkDirsForSconscripts(env, topdir, ignore=None):
                     env = env2
         # Check if there is a component that we dont know how to build
         for component in componentGraph.GetComponentsNames():
-            downloadedDependencies = InstallComponentAndDep(env, component, [])
+            downloadedDependencies = _InstallComponentAndDep(env, component, [])
             if downloadedDependencies:
                 break
             #c = componentGraph.get(component)
@@ -250,36 +251,35 @@ def WalkDirsForSconscripts(env, topdir, ignore=None):
         component.Process()
 
 # This method search recursively for dependencies to install.
-def InstallComponentAndDep(env, component, depsToInstall):
+def _InstallComponentAndDep(env, component_name, depsToInstall):
     global componentGraph
     downloadedDependencies = False
 
-    _component = componentGraph.get(component)
+    component = componentGraph.get(component_name)
     # Get dependency list for component.
-    if _component is not None:
-        dep_list_comp = _component.deps
+    if component is not None:
+        dep_list_comp = component.deps
     else:
-        dep_list_comp = env.GetComponentDeps(component, env)
+        dep_list_comp = env.GetComponentDeps(component_name, env)
     # We remove from the list dependencies already installed.
     dep_list_comp = [dep for dep in dep_list_comp if componentGraph.get(dep) == None]
     # If dependency list is empty, then we can download the component.
-    if not dep_list_comp and _component is None:
-        downloadedDependencies = env.CheckoutDependencyNow(component,env)
+    if not dep_list_comp and component is None:
+        downloadedDependencies = env.CheckoutDependencyNow(component_name,env)
     # Else we need to continue installing others dependencies.
     elif dep_list_comp:
-        # This loop avoid an infinite loop search. TODO: Check if its necessary.
-        for dep in dep_list_comp:
-            if dep in depsToInstall:
-                downloadedDependencies = env.CheckoutDependencyNow(dep,env)
-        
-            if downloadedDependencies:
-                break
-        # If there is not downloaded dependencies, then we install the first dependecy
-        # in the list.
-        if not downloadedDependencies:
-            # Add new dependencies and remove duplicates.
+        try:
+            _CheckCircularDependencies(component_name, dep_list_comp, depsToInstall)
+        except CircularDependencyError as Dep:
+            downloadedDependencies = env.CheckoutDependencyNow(Dep.dependency,env)
+        if not downloadedDependencies: 
             comp_to_download = dep_list_comp.pop()
             depsToInstall = list(set(depsToInstall + dep_list_comp))
-            downloadedDependencies = InstallComponentAndDep(env, comp_to_download, depsToInstall)
-                
+            downloadedDependencies = _InstallComponentAndDep(env, comp_to_download, depsToInstall)
+              
     return downloadedDependencies
+
+def _CheckCircularDependencies(component, deps_installing, deps_to_install):
+    for dep in deps_installing:
+        if dep in deps_to_install:
+            raise CircularDependencyError(component, dep)

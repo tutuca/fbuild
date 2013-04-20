@@ -29,6 +29,7 @@ import sys
 import os
 
 from SCons.Node.FS import Dir
+from fbuild_exceptions import DistroError
 
 
 # Contants for the distributions supported.
@@ -36,14 +37,6 @@ DISTRO_UBUNTU = 'UBUNTU'
 DISRTO_ARCH = 'ARCH'
 # Path to the /etc/issue file which contains the distro.
 _DISRTO_FILE = '/etc/issue'
-
-
-class DistroError (Exception):
-    """
-        This class exception is used by the function GetDistro().
-    """
-    pass
-
 
 def FindFiles(env, fromDir, filters=None):
     if filters == None:
