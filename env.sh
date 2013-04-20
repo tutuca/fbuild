@@ -35,7 +35,7 @@
 # function interface
 
 if [ $FBUILD_ENV_STARTED != true ]; then
-    echo -e "\e[0;31m[error] Use 'source start.sh' instead 'source env.sh'\e[0m";
+    echo -e "\e[0;31m[error] Use 'source start.sh' instead of 'source env.sh'\e[0m";
     return 1
 else
     export FBUILD_ENV_STARTED=false
