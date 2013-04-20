@@ -63,8 +63,6 @@ check_install scons true
 if [ "$?" -ne "0" ]; then return $?; fi
 check_install g++ true
 if [ "$?" -ne "0" ]; then return $?; fi
-check_install build-essentials true
-if [ "$?" -ne "0" ]; then return $?; fi
 check_install moc
 if [ "$?" -ne "0" ]; then return $?; fi
 check_install doxygen
