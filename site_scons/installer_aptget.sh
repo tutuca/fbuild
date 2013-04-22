@@ -64,3 +64,7 @@ function check_install {
     unset mappings
     return 0
 }
+
+function check_build_essential {
+
+}

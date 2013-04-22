@@ -35,7 +35,7 @@ import SCons
 from termcolor import Cformat
 from termcolor import Cprint
 import utils
-from fbuild_exceptions import DistroError
+import fbuild_exceptions
 
 
 # Constants for the _CreateDependency() function.
@@ -75,7 +75,7 @@ def init(env):
             MANAGER = 'PACMAN'
         else:
             MANAGER = 'APTITUDE'
-    except DistroError:
+    except fbuild_exceptions.DistroError:
         env.Cprint('[warn] unsupported distribution.', 'yellow')
     # Create a builder for the checkout of the dependencies.
     coDep = SCons.Action.Action(CheckoutDependency, CheckoutDependencyMessage)
@@ -627,12 +627,10 @@ def UpdateDependency(env, source, target):
     dep = str(target[0]).split(':')[0]
     return projects[dep].Update()
 
-def GetComponentDeps(component, env):
+def GetComponentDeps(component):
     if component in external_dependencies.keys():
         dep = external_dependencies.get(component)
     else:
         dep = projects.get(component)
-       
-    dep_list = dep.component_deps if dep else []
         
-    return dep_list
+    return dep.component_deps if dep else []

@@ -29,7 +29,7 @@ import sys
 import os
 
 from SCons.Node.FS import Dir
-from fbuild_exceptions import DistroError
+import fbuild_exceptions
 
 
 # Contants for the distributions supported.
@@ -189,7 +189,7 @@ def GetDistro():
     try:
         f = open(_DISRTO_FILE, 'r')
     except OSError:
-        raise DistroError()
+        raise fbuild_exceptions.DistroError()
     else:
         result = None
         distro = (f.readline().split())[0]
@@ -199,7 +199,7 @@ def GetDistro():
         elif distro in ['Arch','arch','ARCH']:
             result = DISRTO_ARCH
         else:
-            raise DistroError()
+            raise fbuild_exceptions.DistroError()
         return result
 
 
