@@ -495,7 +495,7 @@ class SourcedComponent(HeaderOnlyComponent):
     #
     
     def __init__(self, graph, env, name, dir, deps, inc, ext_inc, src, als=None):
-        HeaderOnlyComponent.__init__(self, graph, env, name, dir, deps, ext_inc, als)
+        HeaderOnlyComponent.__init__(self,graph,env,name,dir,deps,ext_inc,als)
         # Because HeaderOnlyComponent doesn't have includes.
         self._includes = inc
         # Check the 'src' argument.
@@ -545,6 +545,8 @@ class SourcedComponent(HeaderOnlyComponent):
                 A list with the source files, each element is an instance of the
                 SCons File class.
         """
+        # A sourced component must have at least one element.
+        assert(len(self._sources_file_list) > 0)
         return self._sources_file_list
         
     #
@@ -555,18 +557,48 @@ class SourcedComponent(HeaderOnlyComponent):
         """
             This is an internal method that initialize the list of sources files.
         """
-        # Get the sources.
-        if isinstance(src, env.Dir):
-            pass
+        # This method must be called only once.
+        assert(self._sources_file_list is None)
+        # Create the list.
+        self._sources_file_list = []
+        if isinstance(src, self_env.Dir):
+            # If it's a Dir we read the files it contains.
+            self._sources_file_list.extend(utils.FindFiles(src, SOURCES_FILTER))
+        elif isinstance(src, env.File):
+            # If it's a File, we just add it.
+            self._sources_file_list.append(src)
         elif isinstance(src, str):
-            pass
+            self._FindSourcesByStr(src)
         else:
-            # It must be an iterable.
+            # It must be an iterable object.
             for s in src:
                 if isinstance(s, env.Dir):
-                    pass
-                else: # Must be of type str.
-                    pass
+                    # If it's a Dir we read the files it contains.
+                    src_files = utils.FindFiles(s, SOURCES_FILTER)
+                    self._sources_file_list.extend(src_files)
+                elif isinstance(s, env.File):
+                    # If it's a File, we just add it.
+                    self._sources_file_list.append(s)
+                else:
+                    # Must be of type string.
+                    assert(isinstance(s,str))
+                    self._FindSourcesByStr(s)
+    
+    def _FindSourcesByStr(self, src):
+        """
+            Private method used by _InitSourcesFileList() method.
+        """
+        assert(self._sources_file_list is not None)
+        # Check if the string is a directory or a file.
+        if os.path.isdir(src):
+            # If it's a Dir we read the files it contains.
+            dir = self._env.Dir(src)
+            src_files = utils.FindFiles(dir, SOURCES_FILTER)
+            self._sources_file_list.extend(src_files)
+        else:
+            assert(os.path.isfile(src))
+            # If it's a File, we just add it.
+            self._sources_file_list.append(self._env.File(src))
 
 
 class ObjectComponent(SourcedComponent):
