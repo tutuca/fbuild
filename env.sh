@@ -52,6 +52,9 @@ else
         fi
     }
 fi
+# We need to check if build essential its installed
+check_build_essential
+if [ "$?" -ne "0" ]; then return $?; fi
 # three parameters: 
 # 1) binary to check for existance
 # 2) required?
