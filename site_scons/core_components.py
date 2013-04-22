@@ -42,7 +42,7 @@ class CyclicDependencieError(Exception):
     pass
 
 
-class Component(abc.ABC):
+class Component(abc.ABCMeta):
     """
         This class represents a component in the component graph.
         
@@ -75,6 +75,12 @@ class Component(abc.ABC):
     _component_graph = None
     # A boolean that tells if the component is linkable or not.
     _should_be_linked = False
+    # A list with the libraries that need to be linked for build this component.
+    _libs = None # To get this attribute use the method GetLibs()
+    # A list with the path to the libraries in self._libs.
+    _libpaths = None # To get this attribute use the method GetLibs()
+    # A list with the path of the include directories.
+    _include_paths = None  # To get this attribute use the method GetIncludePaths()
     
     #
     # Special methods.
@@ -94,7 +100,7 @@ class Component(abc.ABC):
     # Public methods.
     #
     
-    @abstractmethod
+    @abc.abstractmethod
     def Process(self):
         """
             Description:
@@ -103,10 +109,12 @@ class Component(abc.ABC):
             Arguments:
                 None. (If some subclass add arguments they must be optional).
             Exceptions:
-                None. (If some subclass raise an exception it must be specified)
+                None. (If some subclass raise an exception it must be specified
+                       here)
             Return:
-                This method must return a reference to a builder, it can be an 
-                instance of a Builder or an Alias.
+                This method must return a reference to a builder (it can be an 
+                instance of a Builder or an Alias) or None if the component does
+                not need to be built.
         """
         return abc.NotImplemented
     
@@ -123,31 +131,32 @@ class Component(abc.ABC):
                 A tuple instance of the form (libs,libpaths) where 'libs' is the 
                 list of the libraries and 'libpaths' the list of its paths.
         """
-        # List of libraries.
-        libs = []
-        # List of libraries paths.
-        libpaths = []
+        if self._libs is not None and self._libpaths is not None:
+            return (self._libs, self._libpaths)
+        else:
+            self._libs = []
+            self._libpaths = []
         # Append some strandars paths to this variable.
-        libpaths.append(self.env['INSTALL_LIB_DIR'])
-        libpaths.append(self.env['INSTALL_BIN_DIR'])
+        self._libpaths.append(self.env['INSTALL_LIB_DIR'])
+        self._libpaths.append(self.env['INSTALL_BIN_DIR'])
         # Look for the libs and its paths.
         try:
-            self._GetLibs(libs, libpaths, [], 0)
+            self._GetLibs(self._libs, self._libpaths, [], 0)
         except CyclicDependencieError, error:
             msg = (' -> ').join(error[0])
             self.env.cerror('[error] A dependency cycle was found:\n  %s' % msg)
         # Remember:
         #   t[0]  ->  depth.
         #   t[1]  ->  name.
-        # This function tells if the tuple depth (t[0]) is the maximum in libs.
-        is_max = lambda t : len([x for x in libs if x[1]==t[1] and x[0]>t[0]]) == 0
-        # This function tells if the tuple name (t[1]) is unique in libs.
-        unique = lambda t : len([x for x in libs if x[1]==t[1]]) == 1
+        # This function tells if the tuple depth (t[0]) is the maximum in self._libs.
+        IsMax = lambda t : len([x for x in self._libs if x[1]==t[1] and x[0]>t[0]]) == 0
+        # This function tells if the tuple name (t[1]) is unique in self._libs.
+        Unique = lambda t : len([x for x in self._libs if x[1]==t[1]]) == 1
         # Remove from the list the duplicated names.
-        aux = [t for t in libs if unique(t) or is_max(t)]; aux.sort()
-        # Create the libs list.
-        libs = [t[1] for t in aux]
-        return (libs, libpaths)
+        aux = [t for t in self._libs if Unique(t) or IsMax(t)]; aux.sort()
+        # Create the self._libs list.
+        self._libs = [t[1] for t in aux]
+        return (self._libs, self._libpaths)
     
     def GetIncludePaths(self):
         """
@@ -160,12 +169,61 @@ class Component(abc.ABC):
             Return:
                 A set of paths.
         """
+        if self._include_paths is not None:
+            return self._include_paths
+        else:
+            self._include_paths = set()
         try:
-            includes = self._GetIncludePaths(set(), [])[0]
+            self._include_paths = self._GetIncludePaths(set(), [])[0]
         except CyclicDependencieError, error:
             msg = (' -> ').join(error[0])
             self.env.cerror('[error] A dependency cycle was found:\n  %s' % msg)
-        return includes
+        return set(self._include_paths
+    
+    def GetIncludeFiles(self):
+        """
+            Description:
+                This method looks for the headers files of the component.
+            Arguments:
+                None.
+            Exceptions:
+                None.
+            Return:
+                A list of files. Each file is an instance of the SCons File class.
+        """
+        return []
+    
+    def GetSourcesFiles(self):
+        """
+            Description:
+                This method return a list with source files of the component.
+            Arguments:
+                None.
+            Exceptions:
+                None.
+            Return:
+                A list with the source files, each element is an instance of the
+                SCons File class.
+        """
+        return []
+    
+    def GetObjectsFiles(self):
+        """
+            Description:
+                This method looks for the objects files that this component needs
+                to be built.
+            Arguments:
+                None.
+            Exceptions:
+                None.
+            Return:
+                A list with instance of the SCons Object() class.
+        """
+        object_files = []
+        for dependency in self._dependencies:
+            component = self._component_graph.get(dependency)
+            object_files.extend(component.GetObjectsFiles())
+        return object_files
 
     #
     # Private methods.
@@ -351,7 +409,7 @@ class HeaderOnlyComponent(Component):
             Exceptions:
                 None.
             Return:
-                A list of files. Each file is an instace of the SCons File class.
+                A list of files. Each file is an instance of the SCons File class.
         """
         # If the files were already calculate we just return them.
         if self._header_file_list is not None:
@@ -500,10 +558,10 @@ class SourcedComponent(HeaderOnlyComponent):
         self._includes = inc
         # Check the 'src' argument.
         if not src:
-            self._env.Cprint("[error] %s: None sources were specify for a 
-                             SourcedComponent object." % self.name)
-            raise ValueError("HeaderOnlyComponent.__init__(): Argument 'src'
-                             cannot be None or empty.")
+            self._env.Cprint("[error] %s: None sources were specify for a " + 
+                             "SourcedComponent object." % self.name)
+            raise ValueError("HeaderOnlyComponent.__init__(): Argument 'src' " +
+                             "cannot be None or empty.")
         # Initialize the source files.
         self._InitSourcesFileList(src)
     
@@ -521,7 +579,7 @@ class SourcedComponent(HeaderOnlyComponent):
             Exceptions:
                 None.
             Return:
-                None. (A sourced component can't be built.)
+                None. (A sourced component can't be built nor installed.)
         """
         # Create the list of the 'sources' files.
         sources = self.GetSourcesFiles() + self.GetIncludeFiles()
@@ -568,7 +626,7 @@ class SourcedComponent(HeaderOnlyComponent):
             # If it's a File, we just add it.
             self._sources_file_list.append(src)
         elif isinstance(src, str):
-            self._FindSourcesByStr(src)
+            self._GetObjectsFilesByStr(src)
         else:
             # It must be an iterable object.
             for s in src:
@@ -582,9 +640,9 @@ class SourcedComponent(HeaderOnlyComponent):
                 else:
                     # Must be of type string.
                     assert(isinstance(s,str))
-                    self._FindSourcesByStr(s)
+                    self._GetObjectsFilesByStr(s)
     
-    def _FindSourcesByStr(self, src):
+    def _GetObjectsFilesByStr(self, src):
         """
             Private method used by _InitSourcesFileList() method.
         """
@@ -602,15 +660,33 @@ class SourcedComponent(HeaderOnlyComponent):
 
 
 class ObjectComponent(SourcedComponent):
+    """
+        This class represents a set of objects files, from which other component
+        can depend to be built.
+    """
     
-    def __init__(self, componentGraph, env, name, compDir, deps, inc, src, aliasGroups):
-        SourcedComponent.__init__(self, componentGraph, env, name, compDir, deps, inc, [], src, aliasGroups)
+    #
+    # Private attributes.
+    #
+    # A list with the object files (instances of the SCons Object() class).
+    _objects = None
+    
+    #
+    # Special methods.
+    #
+    
+    def __init__(self, graph, env, name, dir, deps, inc, src, aliases=None):
+        SourcedComponent.__init__(self,graph,env,name,dir,deps,inc,[],src,aliases)
         # A list of builders of the class Object().
-        self.objects = []
+        self._objects = []
+        
+    #
+    # Public methods.
+    #
 
     def Process(self):
         # Create the list of the 'sources' files.
-        sources = self.src_files + self.inc_files
+        sources = self.GetSourcesFiles() + self.GetIncludeFiles()
         # Create targets.
         self._CreateAstyleCheckTarget(sources)
         self._CreateAstyleTarget(sources)
@@ -619,47 +695,74 @@ class ObjectComponent(SourcedComponent):
         self._CreateCppcheckTarget(sources)
         self._CreateDocTarget()
         # If the objects are not compiled, we compile them.
-        if not self.objects:
-            # Get the list of include paths.
-            incpaths = self.GetIncludePaths()
-            # Get the list of libraries to link, and its directories.
-            (libs,libpaths) = self.GetLibs()
-            # Create an object from each file.
-            for source in self.src_files:
-                # Create the target for each file.
-                target = source.abspath.split('.')[0]
-                # Create an instance of the Object() builder.
-                object_builder = self.env.Object(
-                    target,
-                    source,
-                    CPPPATH = incpaths,
-                    LIBPATH = libpaths,
-                    LIBS = libs
-                )
-                # Add the builder to the list.
-                self.objects.append(object_builder)
-        return self.objects
-
-    def FindSources(self):
-        src_files = self.src_files
-        for dependency in self._dependencies:
-            dep_component = self._component_graph.get(dependency)
-            if isinstance(dep_component, ObjectComponent):
-                src_files.extend(dep_component.Process())
-        return src_files
+        if not self._objects:
+            for source in self.GetSourcesFiles():
+                self._objects.append(self._CreateObjectBuilder(source))
+        return self._objects
+    
+    def GetObjectsFiles(self):
+        """
+            Description:
+                This method looks for the objects files that this component needs
+                to be built.
+            Arguments:
+                None.
+            Exceptions:
+                None.
+            Return:
+                A list with instance of the SCons Object() class.
+        """
+        return self.Process() + SourcedComponent.GetObjectsFiles()
+    
+    #
+    # Private methods.
+    #
+    
+    def _CreateObjectBuilder(self, source):
+        """
+            This is a private method that takes a file source and return an 
+            instance of the SCons Object() builder class.
+        """
+        # Get the list of include paths.
+        include_paths = self.GetIncludePaths()
+        # Get the list of libraries to link, and its directories.
+        (libs,libpaths) = self.GetLibs()
+        # Create the target for each file.
+        target = source.abspath.split('.')[0]
+        # Create an instance of the Object() builder.
+        object_builder = self.env.Object(
+            target,
+            source,
+            CPPPATH = include_paths,
+            LIBPATH = libpaths,
+            LIBS = libs
+         )
+         # Return the builder instance.
+         return object_builder
 
 
 class StaticLibraryComponent(ObjectComponent):
+    """
+        This class represents a static library component.
+    """
     
-    def __init__(self, componentGraph, env, name, compDir, deps, inc, extInc, src, aliasGroups):
-        ObjectComponent.__init__(self, componentGraph, env, name, compDir, deps, inc, extInc, src, aliasGroups)
+    #
+    ## Special methods.
+    #
+    
+    def __init__(self, graph, env, name, dir, deps, inc, inc, src, als=None):
+        ObjectComponent.__init__(self,graph,env,name,dir,deps,inc,ext_inc,src,als)
         self._should_be_linked = True
+    
+    #
+    # Public methods.
+    #
 
     def Process(self):
         # The target is the name of library to be created.
         target = os.path.join(self._dir_path, self.name)
         # Create the list of the 'sources' files.
-        sources = self.src_files + self.inc_files
+        sources = self.GetSourcesFiles() + self.GetIncludeFiles()
         # Create targets.
         self._CreateAstyleCheckTarget(sources)
         self._CreateAstyleTarget(sources)
@@ -667,30 +770,44 @@ class StaticLibraryComponent(ObjectComponent):
         self._CreateClocTarget(sources)
         self._CreateCppcheckTarget(sources)
         self._CreateDocTarget()
+        
         # Get include paths.
         includes = self.GetIncludePaths()
         # Create an instance of th StaticLibrary() builder.
         slib_builder = self.env.StaticLibrary(
             target,
-            self.src_files,
+            self.GetSourcesFiles(),
             CPPPATH = includes
         )
-        # Create an instance of the Install() builder.
-        install_builder = self.env.Install(
-            self.env['INSTALL_LIB_DIR'],
-            slib_builder
-        ) 
         # Create the aliases.
         name = self.name
         deps = [slib_builder]
         msg = "Build %s" % self.name
         self.env.Alias(name, deps, msg)
         self.env.Alias('all:build', slib_builder, "Build all targets")
+        
+                
+        # Create an instance of the Install() builder.
+        install_builder = self.env.Install(
+            self.env['INSTALL_LIB_DIR'],
+            slib_builder
+        )
         self.env.Alias('all:install', install_builder, "Install all targets")
+        
+        
         for alias in self._alias_groups:
             self.env.Alias(alias, install_builder, "Build group " + alias)
         # Return the instance builder.
+        
+        
         return slib_builder
+    
+    #
+    # Private methods.
+    #
+    
+    def _CreateStaticLibraryBuilder(self):
+        
 
 
 class DynamicLibraryComponent(ObjectComponent):
@@ -703,7 +820,7 @@ class DynamicLibraryComponent(ObjectComponent):
         # The target is the name of library to be created.
         target = os.path.join(self._dir_path, self.name)
         # Create the list of the 'sources' files.
-        sources = self.src_files + self.inc_files
+        sources = self.GetSourcesFiles() + self.GetIncludeFiles()
         # Create targets.
         self._CreateAstyleCheckTarget(sources)
         self._CreateAstyleTarget(sources)
@@ -711,6 +828,8 @@ class DynamicLibraryComponent(ObjectComponent):
         self._CreateClocTarget(sources)
         self._CreateCppcheckTarget(sources)
         self._CreateDocTarget()
+        
+        
         # Get include paths.
         includes = self.GetIncludePaths()
         # Get the libraries to link and tehir directories.
@@ -718,15 +837,10 @@ class DynamicLibraryComponent(ObjectComponent):
         # Create an instance of the SharedLibrary() builder.
         dlib_builder = self.env.SharedLibrary(
             target,
-            self.src_files, 
+            self.GetSourcesFiles(), 
             CPPPATH = incpaths, 
             LIBPATH = libpaths,
             LIBS = libs
-        )
-        # Create an instance of the Install() builder.
-        install_builder = self.env.Install(
-            self.env['INSTALL_LIB_DIR'], 
-            dlib_builder
         )
         # Create the aliases.
         name = self.name
@@ -734,10 +848,21 @@ class DynamicLibraryComponent(ObjectComponent):
         msg = "Build and install %s" % self.name
         self.env.Alias(name, deps, msg)
         self.env.Alias('all:build', dlib_builder, "Build all targets")
+        
+        
+        # Create an instance of the Install() builder.
+        install_builder = self.env.Install(
+            self.env['INSTALL_LIB_DIR'], 
+            dlib_builder
+        )
         self.env.Alias('all:install', install_builder, "Install all targets")
+        
+        
         for alias in self._alias_groups:
             self.env.Alias(alias, install_builder, "Build group " + alias)
         # Return the builder instance.
+        
+        
         return dlib_builder
 
 
@@ -750,7 +875,7 @@ class ProgramComponent(ObjectComponent):
         # The target is the name of program to be created.
         target = os.path.join(self.env['INSTALL_LIB_DIR'], self.name)
         # Create the list of the 'sources' files.
-        sources = self.src_files + self.inc_files
+        sources = self.GetSourcesFiles() + self.GetIncludeFiles()
         # Create targets.
         self._CreateAstyleCheckTarget(sources)
         self._CreateAstyleTarget(sources)
@@ -758,6 +883,7 @@ class ProgramComponent(ObjectComponent):
         self._CreateClocTarget(sources)
         self._CreateCppcheckTarget(sources)
         self._CreateDocTarget()
+        
         # Get include paths.
         includes = self.GetIncludePaths()
         # Get the libraries to link and their directories.
@@ -765,27 +891,32 @@ class ProgramComponent(ObjectComponent):
         # Create an instance of the Program() builder.
         program_builder = self.env.Program(
             target,
-            self.FindSources(),
+            self.GetObjectsFiles(),
             CPPPATH = incpaths,
             LIBPATH = libpaths,
             LIBS = libs
         )
+        
         # Create an instance of the Install() builder.
         install_builder = self.env.Install(
             self.env['INSTALL_BIN_DIR'],
             program_builder
         )
+        
         # Create the aliases.
         self.env.Alias(
             self.name,
             install_builder,
             "Build and install %s" % self.name
         )
+        
         self.env.Alias('all:build', program_builder, "Build all targets")
         self.env.Alias('all:install', install_builder, "Install all targets")
+        
         for alias in self._alias_groups:
             self.env.Alias(alias, install_builder, "Build group " + alias)
         # Return the builder instance.
+        
         return program_builder
 
 
@@ -798,7 +929,7 @@ class UnitTestComponent(ProgramComponent):
         incpaths = self.GetIncludePaths()
         (libs,libpaths) = self.GetLibs()
         target = os.path.join(self._dir_path, self.name)
-        self.prog = self.env.Program(target, self.FindSources(), CPPPATH=incpaths, LIBS=libs, LIBPATH=libpaths)
+        self.prog = self.env.Program(target, self.GetObjectsFiles(), CPPPATH=incpaths, LIBS=libs, LIBPATH=libpaths)
         self.env.Alias(self.name, self.prog, "Build and install " + self.name)
         self.env.Alias('all:build', self.prog, "Build all targets")
         # Flags for gtest and gmock.
