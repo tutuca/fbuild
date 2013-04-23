@@ -295,6 +295,13 @@ class Component(abc.ABCMeta):
         # We remove the component name from the stack.
         if self.name in stack:
             stack.pop()
+    
+    def _CreateGroupAliases(self):
+        """
+            This method creates the aliases for the group.
+        """
+        for alias in self._alias_groups:
+            self.env.Alias(alias, install_builder, "Build group " + alias)
 
 
 class ExternalComponent(Component):
@@ -394,8 +401,7 @@ class HeaderOnlyComponent(Component):
             )
             self.env.Clean(self.name, install_builder)
             self.env.Alias('all:install', install_builder, "Install all targets")
-            for alias in self._alias_groups:
-                self.env.Alias(alias, install_builder, "Build group " + alias)
+            self._CreateGroupAliases()
             return install_builder
         else:
             return None
@@ -626,7 +632,7 @@ class SourcedComponent(HeaderOnlyComponent):
             # If it's a File, we just add it.
             self._sources_file_list.append(src)
         elif isinstance(src, str):
-            self._GetObjectsFilesByStr(src)
+            self._GetSourcesFilesByStr(src)
         else:
             # It must be an iterable object.
             for s in src:
@@ -640,11 +646,12 @@ class SourcedComponent(HeaderOnlyComponent):
                 else:
                     # Must be of type string.
                     assert(isinstance(s,str))
-                    self._GetObjectsFilesByStr(s)
+                    self._GetSourcesFilesByStr(s)
     
-    def _GetObjectsFilesByStr(self, src):
+    def _GetSourcesFilesByStr(self, src):
         """
             Private method used by _InitSourcesFileList() method.
+            It parses a string and load the sources files.
         """
         assert(self._sources_file_list is not None)
         # Check if the string is a directory or a file.
@@ -739,6 +746,16 @@ class ObjectComponent(SourcedComponent):
          )
          # Return the builder instance.
          return object_builder
+     
+    def _CreateInstallerBuilder(self, target, dir):
+        """
+            This method creates an installer builder.
+        """
+        # Create an instance of the Install() builder.
+        install_builder = self.env.Install(dir, target)
+        # Create the all:install alias.
+        self.env.Alias('all:install', install_builder, "Install all targets")
+        return install_builder
 
 
 class StaticLibraryComponent(ObjectComponent):
@@ -747,7 +764,7 @@ class StaticLibraryComponent(ObjectComponent):
     """
     
     #
-    ## Special methods.
+    # Special methods.
     #
     
     def __init__(self, graph, env, name, dir, deps, inc, inc, src, als=None):
@@ -763,6 +780,8 @@ class StaticLibraryComponent(ObjectComponent):
         target = os.path.join(self._dir_path, self.name)
         # Create the list of the 'sources' files.
         sources = self.GetSourcesFiles() + self.GetIncludeFiles()
+        # Intall directory.
+        dir = self.env['INSTALL_LIB_DIR']
         # Create targets.
         self._CreateAstyleCheckTarget(sources)
         self._CreateAstyleTarget(sources)
@@ -770,7 +789,24 @@ class StaticLibraryComponent(ObjectComponent):
         self._CreateClocTarget(sources)
         self._CreateCppcheckTarget(sources)
         self._CreateDocTarget()
-        
+        # Create a static library builder.
+        slib_builder = self._CreateStaticLibraryBuilder(target)
+        # Create an installer builder.
+        install_builder = self._CreateInstallerBuilder(slib_builder, dir)
+        # Create the alias.
+        name = self.name
+        deps = [install_builder]
+        msg = "Build  and install %s" % self.name
+        self.env.Alias(name, deps, msg)
+        # Create the group aliases.
+        self._CreateGroupAliases()
+        return install_builder
+    
+    #
+    # Private methods.
+    #
+    
+    def _CreateStaticLibraryBuilder(self, target):
         # Get include paths.
         includes = self.GetIncludePaths()
         # Create an instance of th StaticLibrary() builder.
@@ -779,48 +815,35 @@ class StaticLibraryComponent(ObjectComponent):
             self.GetSourcesFiles(),
             CPPPATH = includes
         )
-        # Create the aliases.
-        name = self.name
-        deps = [slib_builder]
-        msg = "Build %s" % self.name
-        self.env.Alias(name, deps, msg)
+        # Create the all:buil alias.
         self.env.Alias('all:build', slib_builder, "Build all targets")
-        
-                
-        # Create an instance of the Install() builder.
-        install_builder = self.env.Install(
-            self.env['INSTALL_LIB_DIR'],
-            slib_builder
-        )
-        self.env.Alias('all:install', install_builder, "Install all targets")
-        
-        
-        for alias in self._alias_groups:
-            self.env.Alias(alias, install_builder, "Build group " + alias)
-        # Return the instance builder.
-        
-        
         return slib_builder
-    
-    #
-    # Private methods.
-    #
-    
-    def _CreateStaticLibraryBuilder(self):
-        
 
 
 class DynamicLibraryComponent(ObjectComponent):
+    """
+        This class represents a shared library component.
+    """
     
-    def __init__(self, componentGraph, env, name, compDir, deps, inc, extInc, src, aliasGroups):
-        ObjectComponent.__init__(self, componentGraph, env, name, compDir, deps, inc, extInc, src, aliasGroups)
+    #
+    # Special methods.
+    #
+    
+    def __init__(self, graph, env, name, dir, deps, inc, ext_inc, src, als=None):
+        ObjectComponent.__init__(self,graph,env,name,dir,deps,inc,ext_inc,src,als)
         self._should_be_linked = True
-
+    
+    #
+    # Public methods.
+    #
+    
     def Process(self):
         # The target is the name of library to be created.
         target = os.path.join(self._dir_path, self.name)
         # Create the list of the 'sources' files.
         sources = self.GetSourcesFiles() + self.GetIncludeFiles()
+        # Install directory.
+        dir = self.env['INSTALL_LIB_DIR']
         # Create targets.
         self._CreateAstyleCheckTarget(sources)
         self._CreateAstyleTarget(sources)
@@ -828,8 +851,22 @@ class DynamicLibraryComponent(ObjectComponent):
         self._CreateClocTarget(sources)
         self._CreateCppcheckTarget(sources)
         self._CreateDocTarget()
-        
-        
+        # Create the shared library builder.
+        dlib_builder = self._CreateSharedLibraryBuilder(target)
+        # Create the installer builder.
+        install_builder = self._CreateInstallerBuilder(dlib_builder, dir)
+        # Create the alias.
+        name = self.name
+        deps = [install_builder]
+        msg = "Build and install %s" % self.name
+        self.env.Alias(name, deps, msg)
+        return install_builder
+    
+    #
+    # Private methods.
+    #
+    
+    def _CreateSharedLibraryBuilder(self, target):
         # Get include paths.
         includes = self.GetIncludePaths()
         # Get the libraries to link and tehir directories.
@@ -842,40 +879,34 @@ class DynamicLibraryComponent(ObjectComponent):
             LIBPATH = libpaths,
             LIBS = libs
         )
-        # Create the aliases.
-        name = self.name
-        deps = [install_builder]
-        msg = "Build and install %s" % self.name
-        self.env.Alias(name, deps, msg)
+        # Create the all:build alias.
         self.env.Alias('all:build', dlib_builder, "Build all targets")
-        
-        
-        # Create an instance of the Install() builder.
-        install_builder = self.env.Install(
-            self.env['INSTALL_LIB_DIR'], 
-            dlib_builder
-        )
-        self.env.Alias('all:install', install_builder, "Install all targets")
-        
-        
-        for alias in self._alias_groups:
-            self.env.Alias(alias, install_builder, "Build group " + alias)
-        # Return the builder instance.
-        
-        
         return dlib_builder
 
 
 class ProgramComponent(ObjectComponent):
+    """
+        This class represents a program (execitable) component.
+    """
     
-    def __init__(self, componentGraph, env, name, compDir, deps, inc, src, aliasGroups):
-        ObjectComponent.__init__(self, componentGraph, env, name, compDir, deps, inc, [], src, aliasGroups)
+    #
+    # Special methods.
+    #
+    
+    def __init__(self, graph, env, name, dir, deps, inc, src, aliases=None):
+        ObjectComponent.__init__(self,graph,env,name,dir,deps,inc,[],src,aliases)
+        
+    #
+    # Public methods.
+    #
 
     def Process(self):
         # The target is the name of program to be created.
         target = os.path.join(self.env['INSTALL_LIB_DIR'], self.name)
         # Create the list of the 'sources' files.
         sources = self.GetSourcesFiles() + self.GetIncludeFiles()
+        # Install directory.
+        dir = self.env['INSTALL_BIN_DIR']
         # Create targets.
         self._CreateAstyleCheckTarget(sources)
         self._CreateAstyleTarget(sources)
@@ -883,7 +914,25 @@ class ProgramComponent(ObjectComponent):
         self._CreateClocTarget(sources)
         self._CreateCppcheckTarget(sources)
         self._CreateDocTarget()
-        
+        # Create the program builder.
+        program_builder = self._CreateProgramBuilder(target)
+        # Create an instance of the Install() builder.
+        install_builder = self.env.Install(program_builder, dir)
+        # Create the aliases.
+        self.env.Alias(
+            self.name,
+            install_builder,
+            "Build and install %s" % self.name
+        )
+        # Create the group aliases.
+        self._CreateGroupAliases()
+        return install_builder
+    
+    #
+    # Private methods.
+    #
+    
+    def _CreateProgramBuilder(self, target):
         # Get include paths.
         includes = self.GetIncludePaths()
         # Get the libraries to link and their directories.
@@ -896,27 +945,8 @@ class ProgramComponent(ObjectComponent):
             LIBPATH = libpaths,
             LIBS = libs
         )
-        
-        # Create an instance of the Install() builder.
-        install_builder = self.env.Install(
-            self.env['INSTALL_BIN_DIR'],
-            program_builder
-        )
-        
-        # Create the aliases.
-        self.env.Alias(
-            self.name,
-            install_builder,
-            "Build and install %s" % self.name
-        )
-        
+        # Craete the all:build alias.
         self.env.Alias('all:build', program_builder, "Build all targets")
-        self.env.Alias('all:install', install_builder, "Install all targets")
-        
-        for alias in self._alias_groups:
-            self.env.Alias(alias, install_builder, "Build group " + alias)
-        # Return the builder instance.
-        
         return program_builder
 
 
