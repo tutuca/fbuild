@@ -99,7 +99,7 @@ def RunUnittest(env, target, source):
         tmp = target[tindex].abspath.split('.')[0]
         project = os.path.split(tmp)[1]
         if utils.wasTargetInvoked('%s:jenkins' % project[:-5]) or utils.wasTargetInvoked('%s:ready-to-commit' % project[:-5]):
-            os.environ['GTEST_OUTPUT'] = env.gtest_report
+            os.environ['GTEST_OUTPUT'] = env.test_report
         cmd = "cd %s; ./%s > %s" % (dir, appbin, t)
         rc = subprocess.call(cmd, shell=True)
         if env.GetOption('printresults'):

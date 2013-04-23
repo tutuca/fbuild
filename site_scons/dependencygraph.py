@@ -140,11 +140,11 @@ def CreateProgram(env, name, inc, src, deps, aliasGroups=None):
                                         aliasGroups))
 
 def CreateTest(env, name, inc, src, deps, aliasGroups=None):
-    if aliasGroups == None:
-        aliasGroups = []
-    testName = name + ':test'
-    # the test automatically depends on the thing that is testing
-    if deps.count(name) == 0:
+    aliasGroups = aliasGroups if aliasGroups is not None else  []
+    # Change the name so we can add the component to the graph.
+    testName = '%s@test' % name
+    # The test automatically depends on the thing that is testing
+    if name not in deps:
         deps.append(name)
     return componentGraph.Add(UnitTestComponent(componentGraph,
                                          env,
