@@ -1062,8 +1062,8 @@ class UnitTestComponent(ProgramComponent):
         
     def _CreateCoverageTarget(self, target, program_builder):
         # Get the path directory to the project.
-        project = self._component_graph.get(self.name.split(':')[0])
-        self._env['PROJECT_DIR'] = project.dir        
+        project_component = self._component_graph.get(self._project_name)
+        self._env['PROJECT_DIR'] = project_component._dir.abspath
         # Targets and sources for builder InitLcov.
         initLcovTarget = os.path.join(self._dir.abspath, 'coverage_data')
         initLcovSoureces = [program_builder]
