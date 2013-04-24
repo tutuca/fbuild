@@ -252,7 +252,7 @@ def _InstallComponentAndDep(env, component_name, depsToInstall):
     else:
         dep_list_comp = env.GetComponentDeps(component_name)
     # We remove from the list dependencies already installed.
-    dep_list_comp = [dep for dep in dep_list_comp if componentGraph.get(dep) is not None]
+    dep_list_comp = [dep for dep in dep_list_comp if componentGraph.get(dep) is None]
     # If dependency list is empty, then we can download the component.
     if not dep_list_comp and component is None:
         downloadedDependencies = env.CheckoutDependencyNow(component_name,env)
@@ -264,7 +264,7 @@ def _InstallComponentAndDep(env, component_name, depsToInstall):
             env.Cprint('[err] Circular Dependency Error in %s found between %s and %s.' %(component_name, dep_list_comp, depsToInstall), 'red')
         if not downloadedDependencies: 
             comp_to_download = dep_list_comp.pop()
-            depsToInstall = list(set(depsToInstall + dep_list_comp))
+            depsToInstall = list(set(depsToInstall + [comp_to_download]))
             downloadedDependencies = _InstallComponentAndDep(env, comp_to_download, depsToInstall)
               
     return downloadedDependencies
