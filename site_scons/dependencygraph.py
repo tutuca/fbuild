@@ -146,6 +146,11 @@ def CreateTest(env, name, inc, src, deps, aliasGroups=None):
     # The test automatically depends on the thing that is testing
     if name not in deps:
         deps.append(name)
+    else:
+        env.Cprint(
+            '[WARNING] %s: Project added as a dependency of its test',
+            'yellow'
+        )
     return componentGraph.Add(UnitTestComponent(componentGraph,
                                          env,
                                          testName,
