@@ -1061,35 +1061,37 @@ class UnitTestComponent(ProgramComponent):
         return run_valgrind_builder
         
     def _CreateCoverageTarget(self, target, program_builder):
+        # Edit the target
+        target = "%s.cov" % target
         # Get the path directory to the project.
         project_component = self._component_graph.get(self._project_name)
         self._env['PROJECT_DIR'] = project_component._dir.abspath
-        # Targets and sources for builder InitLcov.
-        initLcovTarget = os.path.join(self._dir.abspath, 'coverage_data')
-        initLcovSoureces = [program_builder]
-        # Call builder initLcov().
-        initLcov = self._env.InitLcov(initLcovTarget, initLcovSoureces)
-        # Call builder RunLcov().
-        target = "%s.cov" % target
-        covTest = self._env.RunUnittest(target, program_builder)
+        # Targets and sources for builder InitLcov().
+        init_lcov_target = os.path.join(self._dir.abspath, 'coverage_data')
+        init_lcov_soureces = [program_builder]
+        # Create an instance of the InitLcov() builder.
+        init_lcov_builder = self._env.InitLcov(init_lcov_target,init_lcov_soureces)
+        # Create an instance of the RunUnittest() builder.
+        run_test_builder = self._env.RunUnittest(target, program_builder)
         # Make the test depends from files in 'ref' dir.
         for refFile in utils.FindFiles(self._env, self.compDir.Dir('ref')):
-            self._env.Depends(covTest, refFile)
+            self._env.Depends(run_test_builder, refFile)
         # Targets and sources for RunLcov() builder.
         reports_dir = self._env['INSTALL_REPORTS_DIR']
-        coverage_dir = self._env.Dir(reports_dir).Dir('coverage').Dir(self.name)
-        runLcovTargets = os.path.join(coverage_dir.abspath, 'index.html')
-        runLcovSources = [program_builder]
-        # Call builder RunLcov().
-        lcov = self._env.RunLcov(runLcovTargets, runLcovSources)
+        coverage_dir = self._env.Dir(reports_dir).Dir('coverage')
+        coverage_dir = coverage_dir.Dir(self._project_name).abspath
+        lcov_targets = os.path.join(coverage_dir, 'index.html')
+        lcov_sources = [program_builder]
+        # Create an instance of the RunLcov() builder.
+        run_lcov_builder = self._env.RunLcov(lcov_targets, lcov_sources)
         # Create dependencies between targets.
-        self._env.Depends(covTest, initLcov)
-        self._env.Depends(lcov, covTest)
+        self._env.Depends(run_test_builder, init_lcov_builder)
+        self._env.Depends(run_lcov_builder, run_test_builder)
         # Create the target for coverage.
-        cov = self._env.Alias('%s:coverage' % self.name[:-5], lcov)
+        cov = self._env.Alias('%s:coverage' % self._project_name, run_lcov_builder)
         # Coverage can always be built.
         self._env.AlwaysBuild(cov)
-        self._env.AlwaysBuild(covTest)
+        self._env.AlwaysBuild(run_test_builder)
         return cov
 
     def _CreateJenkinsTarget(self):
