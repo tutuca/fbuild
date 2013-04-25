@@ -42,7 +42,7 @@ class CyclicDependencieError(Exception):
     pass
 
 
-class Component(abc.ABCMeta):
+class Component():
     """
         This class represents a component in the component graph.
         

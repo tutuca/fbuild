@@ -38,7 +38,7 @@ downloadedDependencies = False
 def init(env):
     SConsEnvironment.CreateObject = CreateObject
     SConsEnvironment.CreateProgram = CreateProgram
-    SConsEnvironment.CreateExternalLibraryComponent = CreateExternalLibraryComponent
+    SConsEnvironment.CreateExternalComponent = CreateExternalComponent
     SConsEnvironment.CreateStaticLibrary = CreateStaticLibrary
     SConsEnvironment.CreateSharedLibrary = CreateSharedLibrary
     SConsEnvironment.CreateHeaderOnlyLibrary = CreateHeaderOnlyLibrary
@@ -65,10 +65,10 @@ class ComponentDictionary(dict):
 
 componentGraph = ComponentDictionary()
 
-def CreateExternalLibraryComponent(env, name, ext_inc, libPath, deps, shouldBeLinked, aliasGroups=None):
+def CreateExternalComponent(env, name, ext_inc, libPath, deps, shouldBeLinked, aliasGroups=None):
     if aliasGroups == None:
         aliasGroups = []
-    return componentGraph.Add(ExternalLibraryComponent(componentGraph,
+    return componentGraph.Add(ExternalComponent(componentGraph,
                                                 env,
                                                 name,
                                                 libPath,
@@ -76,7 +76,7 @@ def CreateExternalLibraryComponent(env, name, ext_inc, libPath, deps, shouldBeLi
                                                 ext_inc,
                                                 shouldBeLinked,
                                                 aliasGroups),
-                       False)
+                               False)
 
 def CreateHeaderOnlyLibrary(env, name, ext_inc, deps, aliasGroups=None):
     if aliasGroups == None:

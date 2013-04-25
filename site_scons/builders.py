@@ -320,9 +320,9 @@ def RunCLOC(env, target, source):
     if self.env['CLOC_OUTPUT_FORMAT'] == 'txt':
         output_option = '--out=%s.txt' % report_file
     elif self.env['CLOC_OUTPUT_FORMAT'] == 'sql':
-        output_option = '--sql=%s.sql' % report_file)
+        output_option = '--sql=%s.sql' % report_file
     elif self.env['CLOC_OUTPUT_FORMAT'] == 'xml':
-        output_option = '--xml --out=%s.xml' % report_file)
+        output_option = '--xml --out=%s.xml' % report_file
     else:
         error_msg = "Invalid value for the CLOC_OUTPUT_FORMAT flag"
         value = self.env['CLOC_OUTPUT_FORMAT']
@@ -424,6 +424,6 @@ def _CheckAstyle(evn, source, output_directory):
             need_astyle_list.append((os.path.split(file.abspath)[1],diff_stdout))
             need_astyle = True
     # Remove the temporary directory.
-    os.system('rm -rf %s' %s tmp_dir)
+    os.system('rm -rf %s' % tmp_dir)
     # Return a dictionary.
     return {'need_astyle':need_astyle, 'need_astyle_list':need_astyle_list}

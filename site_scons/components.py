@@ -25,7 +25,7 @@
 
 import os
 
-from core_components import Component, headersFilter
+from core_components import Component
 
 
 class PdfLaTeXComponent(Component):

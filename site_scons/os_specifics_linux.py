@@ -25,4 +25,4 @@
 
 def init(env):
     for module in ['pthread', 'dl', 'gcov']:
-        env.CreateExternalLibraryComponent(module, [], env.Dir('/usr/lib'), [], True)
+        env.CreateExternalComponent(module, [], env.Dir('/usr/lib'), [], True)
