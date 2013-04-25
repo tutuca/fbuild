@@ -178,8 +178,8 @@ class Component(abc.ABCMeta):
         except CyclicDependencieError, error:
             msg = (' -> ').join(error[0])
             self._env.cerror('[error] A dependency cycle was found:\n  %s' % msg)
-        return set(self._include_paths
-    
+        return set(self._include_paths)
+
     def GetIncludeFiles(self):
         """
             Description:
@@ -192,7 +192,7 @@ class Component(abc.ABCMeta):
                 A list of files. Each file is an instance of the SCons File class.
         """
         return []
-    
+
     def GetSourcesFiles(self):
         """
             Description:
@@ -783,9 +783,9 @@ class ObjectComponent(SourcedComponent):
             CPPPATH = include_paths,
             LIBPATH = libpaths,
             LIBS = libs
-         )
-         # Return the builder instance.
-         return object_builder
+        )
+        # Return the builder instance.
+        return object_builder
      
     def _CreateInstallerBuilder(self, target, dir):
         """
@@ -807,7 +807,7 @@ class StaticLibraryComponent(ObjectComponent):
     # Special methods.
     #
     
-    def __init__(self, graph, env, name, dir, deps, inc, inc, src, als=None):
+    def __init__(self, graph, env, name, dir, deps, inc, ext_inc, src, als=None):
         ObjectComponent.__init__(self,graph,env,name,dir,deps,inc,ext_inc,src,als)
         self._should_be_linked = True
     
@@ -1034,7 +1034,7 @@ class UnitTestComponent(ProgramComponent):
         # Create the alias for 'project:test'.
         name = '%s:test' % self._project_name
         deps = [run_test_builder]
-        msg = "Run test for %s" %s self._project_name
+        msg = "Run test for %s" % self._project_name
         self._env.Alias(name, deps, msg)
         # Create alias for 'all:test'.
         self._env.Alias('all:test', run_test_builder, "Run all tests")
@@ -1044,7 +1044,7 @@ class UnitTestComponent(ProgramComponent):
         self._CreateValgrindTarget(program_builder)
         self._CreateCoverageTarget(run_test_target, program_builder)
         self._CreateJenkinsTarget(flags, run_test_target, program_builder)
-        self._CreateReadyToCommitTtarget(flags, run_test_target, program_builder)
+        self._CreateReadyToCommitTtarget(flags, program_builder)
         # Return the builder that execute the test.
         return run_test_builder
 
@@ -1149,7 +1149,7 @@ class UnitTestComponent(ProgramComponent):
             return self._builders['jenkins']
         # Get the component of the project.
         project_component = self._component_graph.get(self._project_name)
-        # Create the alinas.
+        # Create the alias.
         jenkins = self._env.Alias('%s:jenkins' % self._project_name)
         # If the target 'jenkins' was invoked...
         if flags['jenkins']:
@@ -1175,7 +1175,25 @@ class UnitTestComponent(ProgramComponent):
         self._builders['jenkins'] = jenkins
         return jenkins
 
-    def _CreateReadyToCommitTtarget(self, flags, target, program_builder):
-        if self._builders['jenkins'] is not None:
-            return self._builders['jenkins']
-        #self._env.RunReadyToCommit(self.name, None)
+    def _CreateReadyToCommitTtarget(self, flags, program_builder):
+        if self._builders['ready-to-commit'] is not None:
+            return self._builders['ready-to-commit']
+        # Get the component of the project.
+        project_component = self._component_graph.get(self._project_name)
+        # Create the alias.
+        ready_to_commit = self._env.Alias('%s:ready-to-commit' % self._project_name)
+        # If the target 'ready-to-commit' was invoked...
+        if flags['ready-to-commit']:
+            # Get the builders from which the ready-to-commit target will depend on.
+            sources = project_component.GetSourcesFiles()
+            includes = project_component.GetIncludeFiles()
+            source = sources + includes
+            astyle_check = project_component._CreateAstyleCheckTarget(source)
+            cppcheck = project_component._CreateCppcheckTarget(source)
+            valgrind = self._CreateValgrindTarget(program_builder)
+            # Create dependencies.
+            self._env.Depends(ready_to_commit, astyle_check)
+            self._env.Depends(ready_to_commit, cppcheck)
+            self._env.Depends(ready_to_commit, valgrind)
+        self._builders['ready-to-commit'] = ready_to_commit
+        return ready_to_commit
