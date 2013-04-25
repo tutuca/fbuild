@@ -30,6 +30,7 @@ from SCons.Script.SConscript import SConsEnvironment
 
 from core_components import *
 from components import *
+import utils
 import fbuild_exceptions
 
 
@@ -244,7 +245,6 @@ def _InstallComponentAndDep(env, component_name, depsToInstall):
     """
     global componentGraph
     downloadedDependencies = False
-
     component = componentGraph.get(component_name)
     # Get dependency list for component.
     if component is not None:
@@ -262,11 +262,9 @@ def _InstallComponentAndDep(env, component_name, depsToInstall):
             _CheckCircularDependencies(component_name, dep_list_comp, depsToInstall)
         except fbuild_exceptions.CircularDependencyError as Dep:
             env.Cprint('[err] Circular Dependency Error in %s found between %s and %s.' %(component_name, dep_list_comp, depsToInstall), 'red')
-        if not downloadedDependencies: 
-            comp_to_download = dep_list_comp.pop()
-            depsToInstall = list(set(depsToInstall + [comp_to_download]))
-            downloadedDependencies = _InstallComponentAndDep(env, comp_to_download, depsToInstall)
-              
+        comp_to_download = dep_list_comp.pop()
+        depsToInstall = list(set(depsToInstall + [comp_to_download]))
+        downloadedDependencies = _InstallComponentAndDep(env, comp_to_download, depsToInstall)
     return downloadedDependencies
 
 def _CheckCircularDependencies(component, deps_installing, deps_to_install):

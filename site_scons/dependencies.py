@@ -628,9 +628,12 @@ def UpdateDependency(env, source, target):
     return projects[dep].Update()
 
 def GetComponentDeps(component):
+    result = []
     if component in external_dependencies.keys():
         dep = external_dependencies.get(component)
     else:
         dep = projects.get(component)
-        
-    return dep.component_deps if dep else []
+    if dep:
+        if dep.component_deps:
+            result = dep.component_deps if dep.component_deps[0] is not '' else []
+    return result
