@@ -148,7 +148,7 @@ def CreateTest(env, name, inc, src, deps, aliasGroups=None):
         deps.append(name)
     else:
         env.Cprint(
-            '[WARNING] %s: Project added as a dependency of its test',
+            '[WARNING] %s: Project added as a dependency of its test.' % name,
             'yellow'
         )
     return componentGraph.Add(UnitTestComponent(componentGraph,

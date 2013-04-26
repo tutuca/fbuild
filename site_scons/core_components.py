@@ -28,6 +28,8 @@ import os
 import sys
 import abc
 
+from SCons import Node
+
 import utils
 
 
@@ -87,13 +89,14 @@ class Component():
     #
       
     def __init__(self, graph, env, name, dir, deps, inc, ext_inc, als=None):
+        # Check consistency for some types.
         self.name = name
         self._env = env.Clone()
         self._component_graph = graph
         self._dir = dir
-        self._dependencies = list(deps)
-        self._includes = list(inc)
-        self._external_includes = list(ext_inc)
+        self._dependencies = deps
+        self._includes = self._ParseList(inc)
+        self._external_includes = self._ParseList(ext_inc)
         self._alias_groups = als if als is not None else []
     
     #
@@ -302,6 +305,24 @@ class Component():
         """
         for alias in self._alias_groups:
             self._env.Alias(alias, install_builder, "Build group " + alias)
+
+    def _ParseList(self, arg):
+        #if self.name == 'gmock_main':
+            #import ipdb; ipdb.set_trace()
+        if not isinstance(arg, list):
+            arg = [arg]
+        result = []
+        for element in arg:
+            if isinstance(element, str):
+                result.append(self._env.Dir(element))
+            elif isinstance(element, Node.FS.Dir):
+                result.append(element)
+            else:
+                msg1 = '[ERROR] %s: Initializing component. ' % self.name
+                msg2 = 'Argument must be of type str or Dir.'
+                self._env.Cprint(msg1 + msg2, 'red')
+                raise TypeError('Argument must be of type str or Dir.')
+        return result
 
 
 class ExternalComponent(Component):
@@ -604,10 +625,10 @@ class SourcedComponent(HeaderOnlyComponent):
         self._includes = inc
         # Check the 'src' argument.
         if not src:
-            self._env.Cprint("[error] %s: None sources were specify for a " + 
-                             "SourcedComponent object." % self.name)
-            raise ValueError("HeaderOnlyComponent.__init__(): Argument 'src' " +
-                             "cannot be None or empty.")
+            msg = "[ERROR] %s: None sources were specify for a" % self.name
+            self._env.Cprint("%s SourcedComponent object." % msg, 'red')
+            #raise ValueError("HeaderOnlyComponent.__init__(): Argument 'src' " +
+                             #"cannot be None or empty.")
         # Initialize the source files.
         self._InitSourcesFileList(src)
     
@@ -665,10 +686,10 @@ class SourcedComponent(HeaderOnlyComponent):
         assert(self._sources_file_list is None)
         # Create the list.
         self._sources_file_list = []
-        if isinstance(src, self_env.Dir):
+        if isinstance(src, Node.FS.Dir):
             # If it's a Dir we read the files it contains.
             self._sources_file_list.extend(utils.FindFiles(src, SOURCES_FILTER))
-        elif isinstance(src, env.File):
+        elif isinstance(src, Node.FS.File):
             # If it's a File, we just add it.
             self._sources_file_list.append(src)
         elif isinstance(src, str):
@@ -676,15 +697,17 @@ class SourcedComponent(HeaderOnlyComponent):
         else:
             # It must be an iterable object.
             for s in src:
-                if isinstance(s, env.Dir):
+                if isinstance(s, Node.FS.Dir):
                     # If it's a Dir we read the files it contains.
                     src_files = utils.FindFiles(s, SOURCES_FILTER)
                     self._sources_file_list.extend(src_files)
-                elif isinstance(s, env.File):
+                elif isinstance(s, Node.FS.File):
                     # If it's a File, we just add it.
                     self._sources_file_list.append(s)
                 else:
                     # Must be of type string.
+                    print self.name
+                    print '>>>>>>>>', s
                     assert(isinstance(s,str))
                     self._GetSourcesFilesByStr(s)
     
@@ -808,7 +831,7 @@ class StaticLibraryComponent(ObjectComponent):
     #
     
     def __init__(self, graph, env, name, dir, deps, inc, ext_inc, src, als=None):
-        ObjectComponent.__init__(self,graph,env,name,dir,deps,inc,ext_inc,src,als)
+        ObjectComponent.__init__(self,graph,env,name,dir,deps,inc,src,als)
         self._should_be_linked = True
     
     #
@@ -870,7 +893,7 @@ class DynamicLibraryComponent(ObjectComponent):
     #
     
     def __init__(self, graph, env, name, dir, deps, inc, ext_inc, src, als=None):
-        ObjectComponent.__init__(self,graph,env,name,dir,deps,inc,ext_inc,src,als)
+        ObjectComponent.__init__(self,graph,env,name,dir,deps,inc,src,als)
         self._should_be_linked = True
     
     #
@@ -934,7 +957,7 @@ class ProgramComponent(ObjectComponent):
     #
     
     def __init__(self, graph, env, name, dir, deps, inc, src, als=None):
-        ObjectComponent.__init__(self,graph,env,name,dir,deps,inc,[],src,als)
+        ObjectComponent.__init__(self,graph,env,name,dir,deps,inc,src,als)
         
     #
     # Public methods.

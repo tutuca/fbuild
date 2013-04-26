@@ -122,9 +122,9 @@ class Dependencies(object):
             self.inatllChecker = ''
         if self.component_type:
             # Create the cal to 'CreateExternalLibraryComponent()'.
-            pcall = "env.CreateExternalLibraryComponent('%s',%s,%s,%s,%s)"
+            pcall = "env.CreateExternalComponent('%s',[%s],[%s],%s,%s)"
             # External components no need external includes.
-            ext = '[]'
+            ext = ''
             # External components no need a directory since now they are install
             # in the system.
             path = "env.Dir('.')"

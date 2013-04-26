@@ -49,8 +49,8 @@ def init(env):
     qtdir =  os.environ.get('QT4DIR') or os.environ.get('QTDIR')
     QT_INCLUDE_ROOT = os.getenv("QT_INCLUDE_ROOT", os.path.join(qtdir, 'include', 'qt4'))
     env.CreateExternalComponent('QtInc',
-                                 env.Dir(os.getenv("QT_INCLUDE", QT_INCLUDE_ROOT)), 
-                                 env.Dir('/usr/lib/x86_64-linux-gnu'), 
+                                 [env.Dir(os.getenv("QT_INCLUDE", QT_INCLUDE_ROOT))], 
+                                 [env.Dir('/usr/lib/x86_64-linux-gnu')], 
                                  [],
                                  False)
     validModules = [
@@ -79,8 +79,8 @@ def init(env):
         'QtMultimedia',
         ]
     for module in validModules:
-        env.CreateExternalLibraryComponent(module,
-                                           env.Dir(os.path.join(QT_INCLUDE_ROOT, module)), 
-                                           env.Dir('/usr/lib/x86_64-linux-gnu'), 
-                                           ['QtInc'],
-                                           True)
+        env.CreateExternalComponent(module,
+                                    [env.Dir(os.path.join(QT_INCLUDE_ROOT, module))], 
+                                    [env.Dir('/usr/lib/x86_64-linux-gnu')], 
+                                    ['QtInc'],
+                                    True)
