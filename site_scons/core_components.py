@@ -44,13 +44,16 @@ class CyclicDependencieError(Exception):
     pass
 
 
-class Component():
+class Component(object):
     """
         This class represents a component in the component graph.
         
         This is an abstract base class which contains the main interface for a 
         component.
     """
+
+    # Make this class an abstract class.
+    __metaclass__ = abc.ABCMeta
     
     #
     # Public attributes.
@@ -112,27 +115,27 @@ class Component():
             Arguments:
                 None. (If some subclass add arguments they must be optional).
             Exceptions:
-                None. (If some subclass raise an exception it must be specified
-                       here)
+                None. (If some subclass raise an exception it must be 
+                specified here)
             Return:
                 This method must return a reference to a builder (it can be an 
-                instance of a Builder or an Alias) or None if the component does
-                not need to be built.
+                instance of a Builder or an Alias) or None if the component 
+                does not need to be built.
         """
         return abc.NotImplemented
     
     def GetLibs(self):
         """
             Description:
-                This method returns the libraries (and its paths) that should be 
-                linked when the component needs to be built.
+                This method returns the libraries (and its paths) that should 
+                be linked when the component needs to be built.
             Arguments:
                 None.
             Exceptions:
                 None.
             Return:
-                A tuple instance of the form (libs,libpaths) where 'libs' is the 
-                list of the libraries and 'libpaths' the list of its paths.
+                A tuple instance of the form (libs,libpaths) where 'libs' is 
+                the list of the libraries and 'libpaths' the list of its paths.
         """
         if self._libs is not None and self._libpaths is not None:
             return (self._libs, self._libpaths)
@@ -151,7 +154,8 @@ class Component():
         # Remember:
         #   t[0]  ->  depth.
         #   t[1]  ->  name.
-        # This function tells if the tuple depth (t[0]) is the maximum in self._libs.
+        # This function tells if the tuple depth (t[0]) is the maximum in 
+        # self._libs.
         IsMax = lambda t : len([x for x in self._libs if x[1]==t[1] and x[0]>t[0]]) == 0
         # This function tells if the tuple name (t[1]) is unique in self._libs.
         Unique = lambda t : len([x for x in self._libs if x[1]==t[1]]) == 1
@@ -234,7 +238,8 @@ class Component():
     
     def _GetIncludePaths(self, include_paths, stack):
         """
-            This is a recursive internal method used by the GetIncludePaths method.
+            This is a recursive internal method used by the GetIncludePaths 
+            method.
         """
         if self.name in stack:
             # If the component name is within the stack then there is a cycle.
@@ -244,12 +249,13 @@ class Component():
             # We add the component name to the stack.
             stack.append(self.name)
         if len(stack) == 1:
-            # If we enter here is because we are looking for the includes of this
-            # component.
+            # If we enter here is because we are looking for the includes of 
+            # this component.
             for path in self._includes:
                 include_paths.add(path)
         else:
-            # If we enter here is because someone else is looking for my includes.
+            # If we enter here is because someone else is looking for my 
+            # includes.
             path = self._env.Dir('INSTALL_HEADERS_DIR').Dir(self.name).abspath
             include_paths.add(path)
         # We always add external includes.
@@ -338,7 +344,7 @@ class ExternalComponent(Component):
     #
     
     def __init__(self, graph, env, name, dir, deps, inc, linkable, als=None):
-        Component.__init__(self, graph, env, name, dir, deps, [], inc, als)
+        Component.__init__(self,graph,env,name,dir,deps,[],inc,als)
         self._should_be_linked = linkable
     
     #
@@ -366,11 +372,11 @@ class HeaderOnlyComponent(Component):
     # The path to the project's directory into the fbuild projects/ folder.
     # (instance of SCons Dir class).
     _project_dir = None
-    # A list with the header files (instance of SCons File class). Never use this 
-    # attribute directly, always use the method GetIncludeFiles().
+    # A list with the header files (instance of SCons File class). Never use 
+    # this attribute directly, always use the method GetIncludeFiles().
     _header_file_list = None
-    # A dictionary with the builder of the component that can have a target like
-    # 'project:target'.
+    # A dictionary with the builder of the component that can have a target 
+    # like 'project:target'.
     _builders = None
     
     #
@@ -378,7 +384,7 @@ class HeaderOnlyComponent(Component):
     #
     
     def __init__(self, graph, env, name, dir, deps, ext_inc, als=None):
-        Component.__init__(self, graph, env, name, dir, deps, [], ext_inc, als)
+        Component.__init__(self,graph,env,name,dir,deps,[],ext_inc,als)
         self._project_dir = self._env.Dir('WS_DIR').Dir(self.name)
         self._builders = { # Maintain alphabetical order. 
             'astyle':None,
@@ -401,14 +407,15 @@ class HeaderOnlyComponent(Component):
     def Process(self):
         """
             Description:
-                This method creates the targets of the actions that can be applied
-                to this component.
+                This method creates the targets of the actions that can be 
+                applied to this component.
             Arguments:
                 None.
             Exceptions:
                 None.
             Return:
-                An instance of a builder which tell how to install the component.
+                An instance of a builder which tell how to install the 
+                component.
         """
         # Look for the sources of this component.
         filters = HEADERS_FILTER + SOURCES_FILTER
@@ -420,8 +427,8 @@ class HeaderOnlyComponent(Component):
         self._CreateClocTarget(sources)
         self._CreateCppcheckTarget(sources)
         self._CreateDocTarget()
-        # If the component doesnt have external headers, we dont process it since
-        # there is nothing to install
+        # If the component doesnt have external headers, we dont process it 
+        # since there is nothing to install
         if len(self.extInc) > 0:
             install_builder = utils.RecursiveInstall(
                 self._env,
@@ -452,7 +459,8 @@ class HeaderOnlyComponent(Component):
             Exceptions:
                 None.
             Return:
-                A list of files. Each file is an instance of the SCons File class.
+                A list of files. Each file is an instance of the SCons File 
+                class.
         """
         # If the files were already calculate we just return them.
         if self._header_file_list is not None:
@@ -639,8 +647,8 @@ class SourcedComponent(HeaderOnlyComponent):
     def Process(self):
         """
             Description:
-                This method creates the targets of the actions that can be applied
-                to this component.
+                This method creates the targets of the actions that can be 
+                applied to this component.
             Arguments:
                 None.
             Exceptions:
@@ -667,8 +675,8 @@ class SourcedComponent(HeaderOnlyComponent):
             Exceptions:
                 None.
             Return:
-                A list with the source files, each element is an instance of the
-                SCons File class.
+                A list with the source files, each element is an instance of 
+                the SCons File class.
         """
         # A sourced component must have at least one element.
         assert(len(self._sources_file_list) > 0)
@@ -680,7 +688,8 @@ class SourcedComponent(HeaderOnlyComponent):
     
     def _InitSourcesFileList(self, src):
         """
-            This is an internal method that initialize the list of sources files.
+            This is an internal method that initialize the list of sources 
+            files.
         """
         # This method must be called only once.
         assert(self._sources_file_list is None)
@@ -731,8 +740,8 @@ class SourcedComponent(HeaderOnlyComponent):
 
 class ObjectComponent(SourcedComponent):
     """
-        This class represents a set of objects files, from which other component
-        can depend to be built.
+        This class represents a set of objects files, from which other 
+        component can depend to be built.
     """
     
     #
@@ -773,8 +782,8 @@ class ObjectComponent(SourcedComponent):
     def GetObjectsFiles(self):
         """
             Description:
-                This method looks for the objects files that this component needs
-                to be built.
+                This method looks for the objects files that this component 
+                needs to be built.
             Arguments:
                 None.
             Exceptions:
