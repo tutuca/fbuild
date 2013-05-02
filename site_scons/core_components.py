@@ -25,7 +25,6 @@
 
 
 import os
-import sys
 import abc
 
 from SCons import Node
@@ -98,8 +97,8 @@ class Component(object):
         self._component_graph = graph
         self._dir = dir
         self._dependencies = deps
-        self._includes = self._ParseList(inc)
-        self._external_includes = self._ParseList(ext_inc)
+        self._includes = self._FormatArgument(inc)
+        self._external_includes = self._FormatArgument(ext_inc)
         self._alias_groups = als if als is not None else []
     
     #
@@ -122,7 +121,7 @@ class Component(object):
                 instance of a Builder or an Alias) or None if the component 
                 does not need to be built.
         """
-        return abc.NotImplemented
+        return NotImplemented
     
     def GetLibs(self):
         """
@@ -181,7 +180,7 @@ class Component(object):
         else:
             self._include_paths = set()
         try:
-            self._include_paths = self._GetIncludePaths(set(), [])[0]
+            self._GetIncludePaths(self._include_paths, [])
         except CyclicDependencieError, error:
             msg = (' -> ').join(error[0])
             self._env.cerror('[error] A dependency cycle was found:\n  %s' % msg)
@@ -310,12 +309,14 @@ class Component(object):
             This method creates the aliases for the group.
         """
         for alias in self._alias_groups:
-            self._env.Alias(alias, install_builder, "Build group " + alias)
+            self._env.Alias(alias, None, "Build group %s" % alias)
 
-    def _ParseList(self, arg):
-        #if self.name == 'gmock_main':
-            #import ipdb; ipdb.set_trace()
-        if not isinstance(arg, list):
+    def _FormatArgument(self, arg):
+        """
+            This method takes an iterable object as argument, which can contain 
+            str, Dir or more iterable objects and returns a list with Dir objects.
+        """
+        if not isinstance(arg, (list,tuple,set)):
             arg = [arg]
         result = []
         for element in arg:
@@ -429,7 +430,7 @@ class HeaderOnlyComponent(Component):
         self._CreateDocTarget()
         # If the component doesnt have external headers, we dont process it 
         # since there is nothing to install
-        if len(self.extInc) > 0:
+        if len(self._external_includes) > 0:
             install_builder = utils.RecursiveInstall(
                 self._env,
                 self._dir, 
@@ -469,7 +470,7 @@ class HeaderOnlyComponent(Component):
         self._header_file_list = []
         # Look for the files in each include directory.
         for include_dir in self._includes:
-            files = FindFiles(self._env, include_dir, HEADERS_FILTER)
+            files = utils.FindFiles(self._env, include_dir, HEADERS_FILTER)
             self._header_file_list.extend(files)
         return self._header_file_list
     
@@ -492,7 +493,6 @@ class HeaderOnlyComponent(Component):
         sconscript = ('%s/SConscript' % self._dir.abspath).replace('/build/','/projects/')
         # Create an instance of the RunDoxygen() builder.
         doc_builder = self._env.RunDoxygen(target, [doxyfile,sconscript])
-        self._env.Clean(doc, targetDocDir)
         # Create the alias.
         name = '%s:doc' % self.name
         deps = [doc_builder]
@@ -536,7 +536,7 @@ class HeaderOnlyComponent(Component):
         # Create an instance of the RunCLOC() builder.
         cloc_builder = self._env.RunCLOC(target, sources)
         # cloc can always be build.
-        self._env.AlwaysBuild(cloc)
+        self._env.AlwaysBuild(cloc_builder)
         # Create the alias.
         name = "%s:cloc" % self.name
         deps = [cloc_builder]
@@ -555,13 +555,13 @@ class HeaderOnlyComponent(Component):
         target = target.Dir('cppcheck').Dir(self.name)
         target = os.path.join(target.abspath, 'CppcheckReport.txt')
         # Create an instance of the RunCppCheck() builder.
-        cppcheck_builder = self._env.RunCppCheck(target, sources)
+        cppcheck_builder = self._env.RunCppcheck(target, sources)
         # cppcheck can always be build.
-        self._env.AlwaysBuild(cppcheck)
+        self._env.AlwaysBuild(cppcheck_builder)
         # Create the alias.
         name = "%s:cppcheck" % self.name
         deps = [cppcheck_builder]
-        mas = 'Run cppcheck for %s' % self.name
+        msg = 'Run cppcheck for %s' % self.name
         self._env.Alias(name, deps, msg)
         # Save the builder into the builder dictionary.
         self._builders['cppcheck'] = cppcheck_builder
@@ -573,7 +573,7 @@ class HeaderOnlyComponent(Component):
             return self._builders['astyle-check']
         # The target is the .diff file.
         target = self._env.Dir(self._env['INSTALL_REPORTS_DIR'])
-        target = target.Dir('astyle-check').Dir(name)
+        target = target.Dir('astyle-check').Dir(self.name)
         target = os.path.join(target.abspath, 'AstyleCheckReport.diff')
         # Create an instance of the RunAStyleCheck() builder.
         astyle_check_builder = self._env.RunAStyleCheck(target, sources)
@@ -597,7 +597,7 @@ class HeaderOnlyComponent(Component):
         # Create an instance of the RunAStyle() builder.
         astyle_builder = self._env.RunAStyle(target, sources)
         # astyle can always be executed.
-        self._env.AlwaysBuild(astyle_check_builder)
+        self._env.AlwaysBuild(astyle_builder)
         # Create the alias.
         name = '%s:astyle' % self.name
         deps = [astyle_builder]
@@ -630,7 +630,7 @@ class SourcedComponent(HeaderOnlyComponent):
     def __init__(self, graph, env, name, dir, deps, inc, ext_inc, src, als=None):
         HeaderOnlyComponent.__init__(self,graph,env,name,dir,deps,ext_inc,als)
         # Because HeaderOnlyComponent doesn't have includes.
-        self._includes = inc
+        self._includes = self._FormatArgument(inc)
         # Check the 'src' argument.
         if not src:
             msg = "[ERROR] %s: None sources were specify for a" % self.name
@@ -695,47 +695,43 @@ class SourcedComponent(HeaderOnlyComponent):
         assert(self._sources_file_list is None)
         # Create the list.
         self._sources_file_list = []
+        self._InitSourcesFileRec(self._sources_file_list, src)
+    
+    def _InitSourcesFileRec(self, files, src):
+        """
+            This is a private method used by _InitSourcesFileList().
+            It looks for the file recursively.
+        """
         if isinstance(src, Node.FS.Dir):
             # If it's a Dir we read the files it contains.
-            self._sources_file_list.extend(utils.FindFiles(src, SOURCES_FILTER))
+            files.extend(utils.FindFiles(src, SOURCES_FILTER))
         elif isinstance(src, Node.FS.File):
             # If it's a File, we just add it.
-            self._sources_file_list.append(src)
+            files.append(src)
         elif isinstance(src, str):
-            self._GetSourcesFilesByStr(src)
+            files.extend(self._GetSourcesFilesByStr(src))
         else:
             # It must be an iterable object.
-            for s in src:
-                if isinstance(s, Node.FS.Dir):
-                    # If it's a Dir we read the files it contains.
-                    src_files = utils.FindFiles(s, SOURCES_FILTER)
-                    self._sources_file_list.extend(src_files)
-                elif isinstance(s, Node.FS.File):
-                    # If it's a File, we just add it.
-                    self._sources_file_list.append(s)
-                else:
-                    # Must be of type string.
-                    print self.name
-                    print '>>>>>>>>', s
-                    assert(isinstance(s,str))
-                    self._GetSourcesFilesByStr(s)
+            for source in src:
+                self._InitSourcesFileRec(files, source)
     
     def _GetSourcesFilesByStr(self, src):
         """
             Private method used by _InitSourcesFileList() method.
             It parses a string and load the sources files.
         """
-        assert(self._sources_file_list is not None)
+        result = []
         # Check if the string is a directory or a file.
         if os.path.isdir(src):
             # If it's a Dir we read the files it contains.
-            dir = self._env.Dir(src)
-            src_files = utils.FindFiles(dir, SOURCES_FILTER)
-            self._sources_file_list.extend(src_files)
+            directory = self._env.Dir(src)
+            src_files = utils.FindFiles(directory, SOURCES_FILTER)
+            result.extend(src_files)
         else:
             assert(os.path.isfile(src))
             # If it's a File, we just add it.
-            self._sources_file_list.append(self._env.File(src))
+            result.append(self._env.File(src))
+        return result
 
 
 class ObjectComponent(SourcedComponent):
@@ -791,7 +787,7 @@ class ObjectComponent(SourcedComponent):
             Return:
                 A list with instance of the SCons Object() class.
         """
-        return self.Process() + SourcedComponent.GetObjectsFiles()
+        return self.Process() + super(ObjectComponent, self).GetObjectsFiles()
     
     #
     # Private methods.
@@ -819,12 +815,12 @@ class ObjectComponent(SourcedComponent):
         # Return the builder instance.
         return object_builder
      
-    def _CreateInstallerBuilder(self, target, dir):
+    def _CreateInstallerBuilder(self, target, directory):
         """
             This method creates an installer builder.
         """
         # Create an instance of the Install() builder.
-        install_builder = self._env.Install(dir, target)
+        install_builder = self._env.Install(directory, target)
         # Create the all:install alias.
         self._env.Alias('all:install', install_builder, "Install all targets")
         return install_builder
@@ -853,7 +849,7 @@ class StaticLibraryComponent(ObjectComponent):
         # Create the list of the 'sources' files.
         sources = self.GetSourcesFiles() + self.GetIncludeFiles()
         # Intall directory.
-        dir = self._env['INSTALL_LIB_DIR']
+        directory = self._env['INSTALL_LIB_DIR']
         # Create targets.
         self._CreateAstyleCheckTarget(sources)
         self._CreateAstyleTarget(sources)
@@ -864,7 +860,7 @@ class StaticLibraryComponent(ObjectComponent):
         # Create a static library builder.
         slib_builder = self._CreateStaticLibraryBuilder(target)
         # Create an installer builder.
-        install_builder = self._CreateInstallerBuilder(slib_builder, dir)
+        install_builder = self._CreateInstallerBuilder(slib_builder, directory)
         # Create the alias.
         name = self.name
         deps = [install_builder]
@@ -915,7 +911,7 @@ class DynamicLibraryComponent(ObjectComponent):
         # Create the list of the 'sources' files.
         sources = self.GetSourcesFiles() + self.GetIncludeFiles()
         # Install directory.
-        dir = self._env['INSTALL_LIB_DIR']
+        directory = self._env['INSTALL_LIB_DIR']
         # Create targets.
         self._CreateAstyleCheckTarget(sources)
         self._CreateAstyleTarget(sources)
@@ -926,7 +922,7 @@ class DynamicLibraryComponent(ObjectComponent):
         # Create the shared library builder.
         dlib_builder = self._CreateSharedLibraryBuilder(target)
         # Create the installer builder.
-        install_builder = self._CreateInstallerBuilder(dlib_builder, dir)
+        install_builder = self._CreateInstallerBuilder(dlib_builder, directory)
         # Create the alias.
         name = self.name
         deps = [install_builder]
@@ -947,7 +943,7 @@ class DynamicLibraryComponent(ObjectComponent):
         dlib_builder = self._env.SharedLibrary(
             target,
             self.GetSourcesFiles(), 
-            CPPPATH = incpaths, 
+            CPPPATH = includes, 
             LIBPATH = libpaths,
             LIBS = libs
         )
@@ -978,7 +974,7 @@ class ProgramComponent(ObjectComponent):
         # Create the list of the 'sources' files.
         sources = self.GetSourcesFiles() + self.GetIncludeFiles()
         # Install directory.
-        dir = self._env['INSTALL_BIN_DIR']
+        directory = self._env['INSTALL_BIN_DIR']
         # Create targets.
         self._CreateAstyleCheckTarget(sources)
         self._CreateAstyleTarget(sources)
@@ -989,7 +985,7 @@ class ProgramComponent(ObjectComponent):
         # Create the program builder.
         program_builder = self._CreateProgramBuilder(target)
         # Create an instance of the Install() builder.
-        install_builder = self._env.Install(program_builder, dir)
+        install_builder = self._env.Install(program_builder, directory)
         # Create the aliases.
         self._env.Alias(
             self.name,
@@ -1009,11 +1005,12 @@ class ProgramComponent(ObjectComponent):
         includes = self.GetIncludePaths()
         # Get the libraries to link and their directories.
         (libs,libpaths) = self.GetLibs()
+        import ipdb; ipdb.set_trace()
         # Create an instance of the Program() builder.
         program_builder = self._env.Program(
             target,
             self.GetObjectsFiles(),
-            CPPPATH = incpaths,
+            CPPPATH = includes,
             LIBPATH = libpaths,
             LIBS = libs
         )
@@ -1061,7 +1058,7 @@ class UnitTestComponent(ProgramComponent):
         if self._env.GetOption('forcerun'):
             self._env.AlwaysBuild(run_test_builder)
         # Make the execution of test depends from files in 'ref' dir.
-        for refFile in utils.FindFiles(self._env, self.compDir.Dir('ref')):
+        for refFile in utils.FindFiles(self._env, self._dir.Dir('ref')):
             self._env.Depends(run_test_builder, refFile)
         # Create the alias for 'project:test'.
         name = '%s:test' % self._project_name
@@ -1082,9 +1079,9 @@ class UnitTestComponent(ProgramComponent):
 
     def _CheckForFlags(self):
         # Flags for check the calling targets.
-        jenkins = utils.wasTargetInvoked('%s:jenkins' % self._project_name)
-        coverage = utils.wasTargetInvoked('%s:coverage' % self._project_name)
-        rtc = utils.wasTargetInvoked('%s:ready-to-commit' % self._project_name)
+        jenkins = utils.WasTargetInvoked('%s:jenkins' % self._project_name)
+        coverage = utils.WasTargetInvoked('%s:coverage' % self._project_name)
+        rtc = utils.WasTargetInvoked('%s:ready-to-commit' % self._project_name)
         # Create the dictionary of flags.
         result = {'jenkins':jenkins, 'coverage':coverage, 'ready-to-commit':rtc}
         # Check for needed reports.
@@ -1110,7 +1107,6 @@ class UnitTestComponent(ProgramComponent):
         # Check if we need the uotput of cloc in xml file.
         if need_cloc_xml:
             self._env.Replace(CLOC_OUTPUT_FORMAT='xml')
-            self._env.Depends(self.jenkins_target,cloc)
         # Check if we need to create an xml report for valgrind.
         if need_valgrind_report:
             # Create the directory to store the valgrind report.
@@ -1155,7 +1151,7 @@ class UnitTestComponent(ProgramComponent):
         # Create an instance of the RunUnittest() builder.
         run_test_builder = self._env.RunUnittest(target, program_builder)
         # Make the test depends from files in 'ref' dir.
-        for refFile in utils.FindFiles(self._env, self.compDir.Dir('ref')):
+        for refFile in utils.FindFiles(self._env, self._dir.Dir('ref')):
             self._env.Depends(run_test_builder, refFile)
         # Targets and sources for RunLcov() builder.
         reports_dir = self._env['INSTALL_REPORTS_DIR']

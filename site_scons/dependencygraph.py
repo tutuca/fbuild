@@ -226,7 +226,7 @@ def WalkDirsForSconscripts(env, topdir, ignore=None):
                 # check if we know how to download this component
                 downloadedDependencies = env.CheckoutDependencyNow(component,env)
             else:
-                for dep in c.deps:
+                for dep in c._dependencies:
                     cdep = componentGraph.get(dep)
                     if cdep == None:
                         downloadedDependencies = c.env.CheckoutDependencyNow(dep,env)
