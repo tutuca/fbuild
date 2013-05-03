@@ -229,7 +229,7 @@ def WalkDirsForSconscripts(env, topdir, ignore=None):
                 for dep in c._dependencies:
                     cdep = componentGraph.get(dep)
                     if cdep == None:
-                        downloadedDependencies = c.env.CheckoutDependencyNow(dep,env)
+                        downloadedDependencies = c._env.CheckoutDependencyNow(dep,env)
                         break
             # If a dependency was downloaded we need to re-parse all the
             # SConscripts to assurance not to try to download something that

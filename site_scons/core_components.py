@@ -176,7 +176,7 @@ class Component(object):
                 A set of paths.
         """
         if self._include_paths is not None:
-            return self._include_paths
+            return list(self._include_paths)
         else:
             self._include_paths = set()
         try:
@@ -184,7 +184,7 @@ class Component(object):
         except CyclicDependencieError, error:
             msg = (' -> ').join(error[0])
             self._env.cerror('[error] A dependency cycle was found:\n  %s' % msg)
-        return set(self._include_paths)
+        return list(self._include_paths)
 
     def GetIncludeFiles(self):
         """
@@ -230,6 +230,20 @@ class Component(object):
             component = self._component_graph.get(dependency)
             object_files.extend(component.GetObjectsFiles())
         return object_files
+    
+    def GetDependencied(self):
+        """
+            Description:
+                This method return the builders of the components that this 
+                component depends on.
+            Arguments:
+                None.
+            Exceptions:
+                None.
+            Return:
+                A list of builder instances.
+        """
+        return []
 
     #
     # Private methods.
@@ -255,7 +269,7 @@ class Component(object):
         else:
             # If we enter here is because someone else is looking for my 
             # includes.
-            path = self._env.Dir('INSTALL_HEADERS_DIR').Dir(self.name).abspath
+            path = self._env.Dir('$INSTALL_HEADERS_DIR').Dir(self.name).abspath
             include_paths.add(path)
         # We always add external includes.
         for path in self._external_includes:
@@ -395,6 +409,7 @@ class HeaderOnlyComponent(Component):
             'coverage':None,
             'cppcheck':None,
             'doc':None,
+            'install':None,
             'jenkins':None,
             'ready-to-commit':None,
             'test':None,
@@ -420,7 +435,7 @@ class HeaderOnlyComponent(Component):
         """
         # Look for the sources of this component.
         filters = HEADERS_FILTER + SOURCES_FILTER
-        sources = utils.FilesFlatten(self._env, self._dir, filters)
+        sources = utils.FindFiles(self._env, self._dir, filters)
         # Create targets.
         self._CreateAstyleCheckTarget(sources)
         self._CreateAstyleTarget(sources)
@@ -428,7 +443,7 @@ class HeaderOnlyComponent(Component):
         self._CreateClocTarget(sources)
         self._CreateCppcheckTarget(sources)
         self._CreateDocTarget()
-        # If the component doesnt have external headers, we dont process it 
+        # If the component doesn't have external headers, we don't process it 
         # since there is nothing to install
         if len(self._external_includes) > 0:
             install_builder = utils.RecursiveInstall(
@@ -447,6 +462,7 @@ class HeaderOnlyComponent(Component):
             self._env.Clean(self.name, install_builder)
             self._env.Alias('all:install', install_builder, "Install all targets")
             self._CreateGroupAliases()
+            self._builders['install'] = install_builder
             return install_builder
         else:
             return None
@@ -473,6 +489,9 @@ class HeaderOnlyComponent(Component):
             files = utils.FindFiles(self._env, include_dir, HEADERS_FILTER)
             self._header_file_list.extend(files)
         return self._header_file_list
+    
+    def GetDependencied(self):
+        pass
     
     #
     # Private methods.
@@ -665,6 +684,8 @@ class SourcedComponent(HeaderOnlyComponent):
         self._CreateClocTarget(sources)
         self._CreateCppcheckTarget(sources)
         self._CreateDocTarget()
+        # Nothing to be built here.
+        return None
     
     def GetSourcesFiles(self):
         """
@@ -769,10 +790,8 @@ class ObjectComponent(SourcedComponent):
         self._CreateClocTarget(sources)
         self._CreateCppcheckTarget(sources)
         self._CreateDocTarget()
-        # If the objects are not compiled, we compile them.
-        if not self._objects:
-            for source in self.GetSourcesFiles():
-                self._objects.append(self._CreateObjectBuilder(source))
+        # Initialize the object file list.
+        self._CreateObjectFiles()
         return self._objects
     
     def GetObjectsFiles(self):
@@ -787,11 +806,20 @@ class ObjectComponent(SourcedComponent):
             Return:
                 A list with instance of the SCons Object() class.
         """
-        return self.Process() + super(ObjectComponent, self).GetObjectsFiles()
+        self._CreateObjectFiles()
+        return self._objects + super(ObjectComponent, self).GetObjectsFiles()
     
     #
     # Private methods.
     #
+    
+    def _CreateObjectFiles(self):
+        """
+            Initialize the list of object files.
+        """
+        if not self._objects:
+            for source in self.GetSourcesFiles():
+                self._objects.append(self._CreateObjectBuilder(source))
     
     def _CreateObjectBuilder(self, source):
         """
@@ -943,9 +971,9 @@ class DynamicLibraryComponent(ObjectComponent):
         dlib_builder = self._env.SharedLibrary(
             target,
             self.GetSourcesFiles(), 
-            CPPPATH = includes, 
-            LIBPATH = libpaths,
-            LIBS = libs
+            CPPPATH=includes, 
+            LIBPATH=libpaths,
+            LIBS=libs
         )
         # Create the all:build alias.
         self._env.Alias('all:build', dlib_builder, "Build all targets")
@@ -985,7 +1013,7 @@ class ProgramComponent(ObjectComponent):
         # Create the program builder.
         program_builder = self._CreateProgramBuilder(target)
         # Create an instance of the Install() builder.
-        install_builder = self._env.Install(program_builder, directory)
+        install_builder = self._env.Install(directory, program_builder)
         # Create the aliases.
         self._env.Alias(
             self.name,
@@ -1005,7 +1033,6 @@ class ProgramComponent(ObjectComponent):
         includes = self.GetIncludePaths()
         # Get the libraries to link and their directories.
         (libs,libpaths) = self.GetLibs()
-        import ipdb; ipdb.set_trace()
         # Create an instance of the Program() builder.
         program_builder = self._env.Program(
             target,
@@ -1091,7 +1118,7 @@ class UnitTestComponent(ProgramComponent):
         need_valgrind_report = jenkins or rtc
         # Add flags to the environment for gtest and gmock.
         aux = [f for f in self._env['CXXFLAGS'] if f not in ['-ansi','-pedantic']]
-        CXXFLAGS = aux.append('-Wno-sign-compare')
+        aux.append('-Wno-sign-compare'); CXXFLAGS=aux
         if not '-ggdb3' in CXXFLAGS:
             CXXFLAGS.append('-ggdb3')
         self._env.Replace(CXXFLAGS=CXXFLAGS, CFLAGS=CXXFLAGS)
@@ -1130,7 +1157,7 @@ class UnitTestComponent(ProgramComponent):
         # Create the alias.
         name = target
         deps = [run_valgrind_builder]
-        msg = 'Run valgrind for %s test' % name._project_name
+        msg = 'Run valgrind for %s test' % self._project_name
         self._env.Alias(name, deps, msg)
         self._builders['valgrind'] = run_valgrind_builder
         return run_valgrind_builder
@@ -1178,7 +1205,7 @@ class UnitTestComponent(ProgramComponent):
         # Get the component of the project.
         project_component = self._component_graph.get(self._project_name)
         # Create the alias.
-        jenkins = self._env.Alias('%s:jenkins' % self._project_name)
+        jenkins = self._env.Alias('%s:jenkins' % self._project_name, None)
         # If the target 'jenkins' was invoked...
         if flags['jenkins']:
             # Get the builders from which the jenkins target will depend on.
@@ -1209,7 +1236,7 @@ class UnitTestComponent(ProgramComponent):
         # Get the component of the project.
         project_component = self._component_graph.get(self._project_name)
         # Create the alias.
-        ready_to_commit = self._env.Alias('%s:ready-to-commit' % self._project_name)
+        ready_to_commit = self._env.Alias('%s:ready-to-commit' % self._project_name, None)
         # If the target 'ready-to-commit' was invoked...
         if flags['ready-to-commit']:
             # Get the builders from which the ready-to-commit target will depend on.
