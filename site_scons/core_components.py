@@ -304,6 +304,22 @@ class Component(object):
         # We remove the component name from the stack.
         if self.name in stack:
             stack.pop()
+     
+    def _CreateInstallerBuilder(self, targets, directory):
+        """
+            This method creates an installer builder.
+        """
+        # Create the all:install alias.
+        installer = self._env.Alias('all:install', None, "Install all targets")
+        # Create an instance of the Install() builder for each target.
+        for target in targets:
+            install_builder = self._env.Install(directory, target)
+            self._env.Depends(installer, install_builder)
+        # Make the installer depends on the installers of its dependencies.
+        for dependency in self._dependencies:
+            dependency = self._component_graph[dependency]
+            self._env.Depends(installer, dependency.Process())
+        return installer
     
     def _CreateGroupAliases(self):
         """
@@ -436,6 +452,7 @@ class HeaderOnlyComponent(Component):
         # If the component doesn't have external headers, we don't process it 
         # since there is nothing to install
         if len(self._external_includes) > 0:
+	    #path = self._env.Dir('$INSTALL_HEADERS_DIR').Dir(self.name).abspath
             install_builder = utils.RecursiveInstall(
                 self._env,
                 self._dir, 
@@ -454,8 +471,6 @@ class HeaderOnlyComponent(Component):
             self._CreateGroupAliases()
             self._builders['install'] = install_builder
             return install_builder
-        else:
-            return None
     
     def GetIncludeFiles(self):
         """
@@ -822,22 +837,6 @@ class ObjectComponent(SourcedComponent):
         )
         # Return the builder instance.
         return object_builder
-     
-    def _CreateInstallerBuilder(self, targets, directory):
-        """
-            This method creates an installer builder.
-        """
-        # Create the all:install alias.
-        installer = self._env.Alias('all:install', None, "Install all targets")
-        # Create an instance of the Install() builder for each target.
-        for target in targets:
-            install_builder = self._env.Install(directory, target)
-            self._env.Depends(installer, install_builder)
-        # Make the installer depends on the installers of its dependencies.
-        for dependency in self._dependencies:
-            dependency = self._component_graph[dependency]
-            self._env.Depends(installer, dependency.Process())
-        return installer
 
 
 class StaticLibraryComponent(ObjectComponent):
