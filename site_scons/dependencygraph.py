@@ -66,8 +66,7 @@ class ComponentDictionary(dict):
 componentGraph = ComponentDictionary()
 
 def CreateExternalComponent(env, name, ext_inc, libPath, deps, shouldBeLinked, aliasGroups=None):
-    if aliasGroups == None:
-        aliasGroups = []
+    aliasGroups = aliasGroups if aliasGroups is not None else []
     return componentGraph.Add(ExternalComponent(componentGraph,
                                                 env,
                                                 name,
@@ -78,20 +77,18 @@ def CreateExternalComponent(env, name, ext_inc, libPath, deps, shouldBeLinked, a
                                                 aliasGroups),
                                False)
 
-def CreateHeaderOnlyLibrary(env, name, ext_inc, deps, aliasGroups=None):
-    if aliasGroups == None:
-        aliasGroups = []
+def CreateHeaderOnlyLibrary(env, name, inc, deps, aliasGroups=None):
+    aliasGroups = aliasGroups if aliasGroups is not None else []
     return componentGraph.Add(HeaderOnlyComponent(componentGraph,
                                            env,
                                            name,
                                            env.Dir('.'),
                                            deps,
-                                           ext_inc,
+                                           inc,
                                            aliasGroups))
 
 def CreateStaticLibrary(env, name, inc, ext_inc, src, deps, aliasGroups=None):
-    if aliasGroups == None:
-        aliasGroups = []
+    aliasGroups = aliasGroups if aliasGroups is not None else []
     return componentGraph.Add(StaticLibraryComponent(componentGraph,
                                               env,
                                               name,
@@ -103,8 +100,7 @@ def CreateStaticLibrary(env, name, inc, ext_inc, src, deps, aliasGroups=None):
                                               aliasGroups))
 
 def CreateSharedLibrary(env, name, inc, ext_inc, src, deps, aliasGroups=None):
-    if aliasGroups == None:
-        aliasGroups = []
+    aliasGroups = aliasGroups if aliasGroups is not None else []
     return componentGraph.Add(DynamicLibraryComponent(componentGraph,
                                                env,
                                                name,
@@ -116,8 +112,7 @@ def CreateSharedLibrary(env, name, inc, ext_inc, src, deps, aliasGroups=None):
                                                aliasGroups))
 
 def CreateObject(env, name, inc, src, deps, aliasGroups=None):
-    if aliasGroups == None:
-        aliasGroups = []
+    aliasGroups = aliasGroups if aliasGroups is not None else []
     return componentGraph.Add(ObjectComponent(componentGraph,
                                        env,
                                        name,
@@ -128,8 +123,7 @@ def CreateObject(env, name, inc, src, deps, aliasGroups=None):
                                        aliasGroups))
 
 def CreateProgram(env, name, inc, src, deps, aliasGroups=None):
-    if aliasGroups == None:
-        aliasGroups = []
+    aliasGroups = aliasGroups if aliasGroups is not None else []
     return componentGraph.Add(ProgramComponent(componentGraph,
                                         env,
                                         name,
@@ -161,8 +155,7 @@ def CreateTest(env, name, inc, src, deps, aliasGroups=None):
                                          aliasGroups))
 
 def CreatePdfLaTeX(env, name, latexfile = '', options='', aliasGroups=None):
-    if aliasGroups == None:
-        aliasGroups = []
+    aliasGroups = aliasGroups if aliasGroups is not None else []
     docName = name + ':pdf:' + latexfile
     latexfile = env['INSTALL_DOC_DIR'] + "/" + name + ":doc/latex/" + latexfile
     env['PDFLATEX_OPTIONS'] = options
@@ -188,8 +181,7 @@ def CreatePdfLaTeX(env, name, latexfile = '', options='', aliasGroups=None):
 def WalkDirsForSconscripts(env, topdir, ignore=None):
     global componentGraph
 
-    if ignore == None:
-        ignore = []
+    ignore = ignore if ignore is not None else []
     
     # Step 1: load all the components in the dependency graph
     # if we find a download dependency, we download it and re-process everything
