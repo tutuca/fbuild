@@ -59,8 +59,7 @@ def FindFiles(env, fromDir, filters=None):
 
 
 def RecursiveInstall(env, sourceDir, sourcesRel, targetName, fileFilter=None):
-    if fileFilter == None:
-        fileFilter = ['*.*']
+    fileFilter = fileFilter if fileFilter is not None else ['*.*']
     nodes = []
     for s in sourcesRel:
         nodes.extend(FindFiles(env, s, fileFilter))

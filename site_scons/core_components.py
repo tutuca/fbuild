@@ -26,6 +26,7 @@
 
 import os
 import abc
+import sys
 
 from SCons import Node
 
@@ -230,20 +231,6 @@ class Component(object):
             component = self._component_graph.get(dependency)
             object_files.extend(component.GetObjectsFiles())
         return object_files
-    
-    def GetDependencied(self):
-        """
-            Description:
-                This method return the builders of the components that this 
-                component depends on.
-            Arguments:
-                None.
-            Exceptions:
-                None.
-            Return:
-                A list of builder instances.
-        """
-        return []
 
     #
     # Private methods.
@@ -433,6 +420,9 @@ class HeaderOnlyComponent(Component):
                 An instance of a builder which tell how to install the 
                 component.
         """
+        # Check if the component was already processed.
+        if self._builders['install'] is not None:
+            return self._builders['install']
         # Look for the sources of this component.
         filters = HEADERS_FILTER + SOURCES_FILTER
         sources = utils.FindFiles(self._env, self._dir, filters)
@@ -654,8 +644,7 @@ class SourcedComponent(HeaderOnlyComponent):
         if not src:
             msg = "[ERROR] %s: None sources were specify for a" % self.name
             self._env.Cprint("%s SourcedComponent object." % msg, 'red')
-            #raise ValueError("HeaderOnlyComponent.__init__(): Argument 'src' " +
-                             #"cannot be None or empty.")
+            sys.exit(1)
         # Initialize the source files.
         self._InitSourcesFileList(src)
     
@@ -675,17 +664,18 @@ class SourcedComponent(HeaderOnlyComponent):
             Return:
                 None. (A sourced component can't be built nor installed.)
         """
-        # Create the list of the 'sources' files.
-        sources = self.GetSourcesFiles() + self.GetIncludeFiles()
-        # Create targets.
-        self._CreateAstyleCheckTarget(sources)
-        self._CreateAstyleTarget(sources)
-        self._CreateCCCCTarget(sources)
-        self._CreateClocTarget(sources)
-        self._CreateCppcheckTarget(sources)
-        self._CreateDocTarget()
-        # Nothing to be built here.
-        return None
+        # Check if the component was already processed.
+        if self._builders['install'] is None:
+            # Create the list of the 'sources' files.
+            sources = self.GetSourcesFiles() + self.GetIncludeFiles()
+            # Create targets.
+            self._CreateAstyleCheckTarget(sources)
+            self._CreateAstyleTarget(sources)
+            self._CreateCCCCTarget(sources)
+            self._CreateClocTarget(sources)
+            self._CreateCppcheckTarget(sources)
+            self._CreateDocTarget()
+            self._builders['install'] = True
     
     def GetSourcesFiles(self):
         """
@@ -730,29 +720,12 @@ class SourcedComponent(HeaderOnlyComponent):
             # If it's a File, we just add it.
             files.append(src)
         elif isinstance(src, str):
-            files.extend(self._GetSourcesFilesByStr(src))
+            # If it's a string it must be a file.
+            files.append(self._env.File(src))
         else:
             # It must be an iterable object.
             for source in src:
                 self._InitSourcesFileRec(files, source)
-    
-    def _GetSourcesFilesByStr(self, src):
-        """
-            Private method used by _InitSourcesFileList() method.
-            It parses a string and load the sources files.
-        """
-        result = []
-        # Check if the string is a directory or a file.
-        if os.path.isdir(src):
-            # If it's a Dir we read the files it contains.
-            directory = self._env.Dir(src)
-            src_files = utils.FindFiles(directory, SOURCES_FILTER)
-            result.extend(src_files)
-        else:
-            assert(os.path.isfile(src))
-            # If it's a File, we just add it.
-            result.append(self._env.File(src))
-        return result
 
 
 class ObjectComponent(SourcedComponent):
@@ -781,6 +754,11 @@ class ObjectComponent(SourcedComponent):
     #
 
     def Process(self):
+        # Check if the component was already processed.
+        if self._builders['install'] is not None:
+            return self._builders['install']
+        # Intall directory.
+        directory = self._env['INSTALL_LIB_DIR']
         # Create the list of the 'sources' files.
         sources = self.GetSourcesFiles() + self.GetIncludeFiles()
         # Create targets.
@@ -792,7 +770,9 @@ class ObjectComponent(SourcedComponent):
         self._CreateDocTarget()
         # Initialize the object file list.
         self._CreateObjectFiles()
-        return self._objects
+        installer = self._CreateInstallerBuilder(self._objects, directory)
+        self._builders['install'] = installer
+        return installer
     
     def GetObjectsFiles(self):
         """
@@ -843,15 +823,21 @@ class ObjectComponent(SourcedComponent):
         # Return the builder instance.
         return object_builder
      
-    def _CreateInstallerBuilder(self, target, directory):
+    def _CreateInstallerBuilder(self, targets, directory):
         """
             This method creates an installer builder.
         """
-        # Create an instance of the Install() builder.
-        install_builder = self._env.Install(directory, target)
         # Create the all:install alias.
-        self._env.Alias('all:install', install_builder, "Install all targets")
-        return install_builder
+        installer = self._env.Alias('all:install', None, "Install all targets")
+        # Create an instance of the Install() builder for each target.
+        for target in targets:
+            install_builder = self._env.Install(directory, target)
+            self._env.Depends(installer, install_builder)
+        # Make the installer depends on the installers of its dependencies.
+        for dependency in self._dependencies:
+            dependency = self._component_graph[dependency]
+            self._env.Depends(installer, dependency.Process())
+        return installer
 
 
 class StaticLibraryComponent(ObjectComponent):
@@ -872,6 +858,9 @@ class StaticLibraryComponent(ObjectComponent):
     #
 
     def Process(self):
+        # Check if the component was already processed.
+        if self._builders['install'] is not None:
+            return self._builders['install']
         # The target is the name of library to be created.
         target = os.path.join(self._dir.abspath, self.name)
         # Create the list of the 'sources' files.
@@ -888,7 +877,7 @@ class StaticLibraryComponent(ObjectComponent):
         # Create a static library builder.
         slib_builder = self._CreateStaticLibraryBuilder(target)
         # Create an installer builder.
-        install_builder = self._CreateInstallerBuilder(slib_builder, directory)
+        install_builder=self._CreateInstallerBuilder([slib_builder],directory)
         # Create the alias.
         name = self.name
         deps = [install_builder]
@@ -896,6 +885,7 @@ class StaticLibraryComponent(ObjectComponent):
         self._env.Alias(name, deps, msg)
         # Create the group aliases.
         self._CreateGroupAliases()
+        self._builders['install'] = install_builder
         return install_builder
     
     #
@@ -908,7 +898,7 @@ class StaticLibraryComponent(ObjectComponent):
         # Create an instance of th StaticLibrary() builder.
         slib_builder = self._env.StaticLibrary(
             target,
-            self.GetSourcesFiles(),
+            self.GetObjectsFiles(),
             CPPPATH = includes
         )
         # Create the all:buil alias.
@@ -934,6 +924,9 @@ class DynamicLibraryComponent(ObjectComponent):
     #
     
     def Process(self):
+        # Check if the component was already processed.
+        if self._builders['install'] is not None:
+            return self._builders['install']
         # The target is the name of library to be created.
         target = os.path.join(self._dir.abspath, self.name)
         # Create the list of the 'sources' files.
@@ -950,12 +943,13 @@ class DynamicLibraryComponent(ObjectComponent):
         # Create the shared library builder.
         dlib_builder = self._CreateSharedLibraryBuilder(target)
         # Create the installer builder.
-        install_builder = self._CreateInstallerBuilder(dlib_builder, directory)
+        install_builder=self._CreateInstallerBuilder([dlib_builder],directory)
         # Create the alias.
         name = self.name
         deps = [install_builder]
         msg = "Build and install %s" % self.name
         self._env.Alias(name, deps, msg)
+        self._builders['install'] = install_builder
         return install_builder
     
     #
@@ -970,7 +964,7 @@ class DynamicLibraryComponent(ObjectComponent):
         # Create an instance of the SharedLibrary() builder.
         dlib_builder = self._env.SharedLibrary(
             target,
-            self.GetSourcesFiles(), 
+            self.GetObjectsFiles(), 
             CPPPATH=includes, 
             LIBPATH=libpaths,
             LIBS=libs
@@ -997,6 +991,9 @@ class ProgramComponent(ObjectComponent):
     #
 
     def Process(self):
+        # Check if the component was already processed.
+        if self._builders['install'] is not None:
+            return self._builders['install']
         # The target is the name of program to be created.
         target = os.path.join(self._env['INSTALL_LIB_DIR'], self.name)
         # Create the list of the 'sources' files.
@@ -1022,6 +1019,7 @@ class ProgramComponent(ObjectComponent):
         )
         # Create the group aliases.
         self._CreateGroupAliases()
+        self._builders['install'] = install_builder
         return install_builder
     
     #
@@ -1070,6 +1068,9 @@ class UnitTestComponent(ProgramComponent):
     #
     
     def Process(self):
+        # Check if the component was already processed.
+        if self._builders['install'] is not None:
+            return self._builders['install']
         # Create the target.
         target = os.path.join(self._dir.abspath, '%s_test' % self._project_name)
         # File to store the test results.
@@ -1101,6 +1102,7 @@ class UnitTestComponent(ProgramComponent):
         self._CreateCoverageTarget(run_test_target, program_builder)
         self._CreateJenkinsTarget(flags, run_test_target, program_builder)
         self._CreateReadyToCommitTtarget(flags, program_builder)
+        self._builders['install'] = run_test_builder
         # Return the builder that execute the test.
         return run_test_builder
 
