@@ -253,11 +253,26 @@ class Component(object):
             # this component.
             for path in self._includes:
                 include_paths.add(path)
+            # If this is a test we need the include directories from its component.
+            if isinstance(self, UnitTestComponent):
+                component = self._component_graph.get(self._project_name)
+                for path in component._includes:
+                    include_paths.add(path)
+            # We also add fbuild include paths.
+            include_paths.add(self._env.Dir('$INSTALL_HEADERS_DIR').abspath)
         else:
             # If we enter here is because someone else is looking for my 
             # includes.
-            path = self._env.Dir('$INSTALL_HEADERS_DIR').Dir(self.name).abspath
-            include_paths.add(path)
+            if isinstance(self, ExternalComponent):
+                # If this is an external component we use the _includes list.
+                for path in self._includes:
+                    include_paths.add(path)
+            else:
+                # If this is not an external component then its includes ate in 
+                # the install/ directory.
+                path = self._env.Dir('$INSTALL_HEADERS_DIR')
+                path = path.Dir(self.name).abspath
+                include_paths.add(path)
         # We always add external includes.
         for path in self._external_includes:
             include_paths.add(path)
@@ -314,11 +329,14 @@ class Component(object):
         # Create an instance of the Install() builder for each target.
         for target in targets:
             install_builder = self._env.Install(directory, target)
+            self._env.Depends(install_builder, target)
             self._env.Depends(installer, install_builder)
-        # Make the installer depends on the installers of its dependencies.
-        for dependency in self._dependencies:
-            dependency = self._component_graph[dependency]
-            self._env.Depends(installer, dependency.Process())
+            # Make the target depends on the installers of its dependencies.
+            for dependency in self._dependencies:
+                #import ipdb; ipdb.set_trace()
+                dependency = self._component_graph[dependency]
+                b = dependency.Process()
+                self._env.Depends(target, b)
         return installer
     
     def _CreateGroupAliases(self):
@@ -586,7 +604,7 @@ class HeaderOnlyComponent(Component):
         # The target is the .diff file.
         target = self._env.Dir(self._env['INSTALL_REPORTS_DIR'])
         target = target.Dir('astyle-check').Dir(self.name)
-        target = os.path.join(target.abspath, 'AstyleCheckReport.diff')
+        target = target.File('AstyleCheckReport.diff')
         # Create an instance of the RunAStyleCheck() builder.
         astyle_check_builder = self._env.RunAStyleCheck(target, sources)
         # astyle-check can always be build.
@@ -881,7 +899,7 @@ class StaticLibraryComponent(ObjectComponent):
         # Create an instance of th StaticLibrary() builder.
         slib_builder = self._env.StaticLibrary(
             target,
-            self.GetObjectsFiles(),
+            self.GetSourcesFiles(),
             CPPPATH = includes
         )
         # Create the all:buil alias.
@@ -942,7 +960,7 @@ class DynamicLibraryComponent(ObjectComponent):
         # Create an instance of the SharedLibrary() builder.
         dlib_builder = self._env.SharedLibrary(
             target,
-            self.GetObjectsFiles(), 
+            self.GetSourcesFiles(), 
             CPPPATH=includes, 
             LIBPATH=libpaths,
             LIBS=libs

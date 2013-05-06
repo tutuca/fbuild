@@ -141,10 +141,8 @@ def CreateTest(env, name, inc, src, deps, aliasGroups=None):
     if name not in deps:
         deps.append(name)
     else:
-        env.Cprint(
-            '[WARNING] %s: Project added as a dependency of its test.' % name,
-            'yellow'
-        )
+        msg = '[WARNING] %s: In SConscript - Project added as a dependency of its test.' % name
+        env.Cprint(msg, 'yellow')
     return componentGraph.Add(UnitTestComponent(componentGraph,
                                          env,
                                          testName,

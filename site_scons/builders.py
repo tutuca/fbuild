@@ -98,7 +98,8 @@ def RunUnittest(env, target, source):
         # Check if the builder was called for jenkins or ready to commit.
         tmp = target[tindex].abspath.split('.')[0]
         project = os.path.split(tmp)[1]
-        if utils.wasTargetInvoked('%s:jenkins' % project[:-5]) or utils.wasTargetInvoked('%s:ready-to-commit' % project[:-5]):
+        if (utils.WasTargetInvoked('%s:jenkins' % project[:-5]) or 
+            utils.WasTargetInvoked('%s:ready-to-commit' % project[:-5]):
             os.environ['GTEST_OUTPUT'] = env.test_report
         cmd = "cd %s; ./%s > %s" % (dir, appbin, t)
         rc = subprocess.call(cmd, shell=True)
@@ -189,14 +190,14 @@ def RunDoxygen(env, target, source):
 
 def AStyleCheck(env, target, source):
     # Get the report file.
-    report_file = targte[0]
+    report_file = target[0].abspath
     # Get the output directory.
-    output_directory = os.path.split(targte[0])[0]
+    output_directory = os.path.split(report_file)[0]
     # Check if the directory exists.
     if not os.path.exists(output_directory):
         os.makedirs(output_directory)
     # Check if some file need astyle.
-    check_astyle_result = _CheckAstyle(evn, source, output_directory)
+    check_astyle_result = _CheckAstyle(env, source, output_directory)
     # Check if _CheckAstyle() fails.
     if check_astyle_result is None:
         return 1
@@ -214,7 +215,7 @@ def AStyleCheck(env, target, source):
         # Print a warning message.
         env.Cprint('[WARNING] The following files need astyle:', 'red')
         # Print what need to be astyled.
-        for file, info in check_astyle_result['need_astyle_list']:
+        for f, info in check_astyle_result['need_astyle_list']:
             # Write into hte report file.
             report.write(info+'\n\n')
             # Print on the screen.
@@ -292,16 +293,16 @@ def RunCCCC(env, target, source):
     # Print message on the screen.
     env.Cprint('Running cccc...', 'green')
     # Get the report file name.
-    report_file_name = target[0]
+    report_file_name = target[0].abspath
     # Tell cccc the name of the output file.
-    self.env.Append(CCCC_OPTIONS='--html_outfile=%s' % report_file_name)
+    env.Append(CCCC_OPTIONS='--html_outfile=%s' % report_file_name)
     # Get the output directory.
-    output_directory = os.path.split(target[0])[0]
+    output_directory = os.path.split(report_file_name)[0]
     # Tell cccc the name of the output directory.
     env.Append(CCCC_OPTIONS = '--outdir=%s' % output_directory)
     # Check if the output directory directory already exists.
-    if not os.path.exists(target):
-        os.makedirs(target)
+    if not os.path.exists(output_directory):
+        os.makedirs(output_directory)
     # Create a string with the options for cccc.
     options = ' '.join([opt for opt in env['CCCC_OPTIONS']])
     # Create a string with the file names for cccc.
@@ -315,22 +316,22 @@ def RunCLOC(env, target, source):
     # Print message on the screen.
     env.Cprint('Running cloc...', 'green')
     # Get the report file name.
-    report_file = target[0]
+    report_file = target[0].abspath
     # Check the type of the report file.
-    if self.env['CLOC_OUTPUT_FORMAT'] == 'txt':
+    if env['CLOC_OUTPUT_FORMAT'] == 'txt':
         output_option = '--out=%s.txt' % report_file
-    elif self.env['CLOC_OUTPUT_FORMAT'] == 'sql':
+    elif env['CLOC_OUTPUT_FORMAT'] == 'sql':
         output_option = '--sql=%s.sql' % report_file
-    elif self.env['CLOC_OUTPUT_FORMAT'] == 'xml':
+    elif env['CLOC_OUTPUT_FORMAT'] == 'xml':
         output_option = '--xml --out=%s.xml' % report_file
     else:
         error_msg = "Invalid value for the CLOC_OUTPUT_FORMAT flag"
-        value = self.env['CLOC_OUTPUT_FORMAT']
+        value = env['CLOC_OUTPUT_FORMAT']
         env.Cprint('[ERROR] %s : %s' % (error_msg,value))
     # Set the type of the report file.
-    self.env.Append(CLOC_OPTIONS = output_option)
+    env.Append(CLOC_OPTIONS = output_option)
     # Get the output directory.
-    output_directory = os.path.split(target[0])[0]
+    output_directory = os.path.split(report_file)[0]
     # Check if the output directory directory already exists.
     if not os.path.exists(output_directory):
         os.makedirs(output_directory)
@@ -390,7 +391,7 @@ def RunReadyToCommit(env, target, source):
     return 0
 
 
-def _CheckAstyle(evn, source, output_directory):
+def _CheckAstyle(env, source, output_directory):
     # Create a temporary directory.
     tmp_dir = os.path.join(output_directory, 'tmp')
     if not os.path.exists(tmp_dir):
@@ -399,7 +400,7 @@ def _CheckAstyle(evn, source, output_directory):
     for file in source:
         os.system('cp %s %s' % (file.abspath, tmp_dir))
     # Get the list of copied files.
-    files_list = utils.FindFiles(env, tmp_dir)
+    files_list = utils.FindFiles(env, env.Dir(tmp_dir))
     files_str = ' '.join([x.abspath for x in files_list])
     # This variable holds if some file needs astyle.
     need_astyle = False
