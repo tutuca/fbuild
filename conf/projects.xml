@@ -1,5 +1,8 @@
 <projects>
     <!-- IMPORTANT: Please maintain alphabetical order based on name to ease maintenance -->
+    <project name="ana"
+             repository_type="SVN" 
+             repository_url="ssh://fudepan@192.168.1.111//home/fudepan/Documents/repositorio/ana" />
     <project name="aso"
              repository_type="HG"
              repository_url="ssh://fudepan@192.168.1.111//home/fudepan/Documents/repositorio/aso" />
@@ -24,6 +27,9 @@
     <project name="fideo"
              repository_type="HG"
              repository_url="ssh://fudepan@192.168.1.111//home/fudepan/Documents/repositorio/fideo" />
+    <project name="fud"
+             repository_type="HG"
+             repository_url="ssh://fudepan@192.168.1.111//home/fudepan/Documents/repositorio/fud" />
     <project name="fudepan-sandbox"
              repository_type="HG"
              repository_url="ssh://fudepan@192.168.1.111//home/fudepan/Documents/repositorio/fudepan-sandbox" />
