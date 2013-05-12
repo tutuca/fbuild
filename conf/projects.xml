@@ -1,8 +1,8 @@
 <projects>
     <!-- IMPORTANT: Please maintain alphabetical order based on name to ease maintenance -->
     <project name="ana"
-             repository_type="SVN" 
-             repository_url="ssh://fudepan@192.168.1.111//home/fudepan/Documents/repositorio/ana" />
+             repository_type="HG" 
+             repository_url="ssh://fudepan@192.168.1.111//home/fudepan/Documents/repositorio/ana-net" />
     <project name="aso"
              repository_type="HG"
              repository_url="ssh://fudepan@192.168.1.111//home/fudepan/Documents/repositorio/aso" />
