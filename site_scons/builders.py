@@ -99,7 +99,7 @@ def RunUnittest(env, target, source):
         tmp = target[tindex].abspath.split('.')[0]
         project = os.path.split(tmp)[1]
         if (utils.WasTargetInvoked('%s:jenkins' % project[:-5]) or 
-            utils.WasTargetInvoked('%s:ready-to-commit' % project[:-5]):
+            utils.WasTargetInvoked('%s:ready-to-commit' % project[:-5])):
             os.environ['GTEST_OUTPUT'] = env.test_report
         cmd = "cd %s; ./%s > %s" % (dir, appbin, t)
         rc = subprocess.call(cmd, shell=True)
@@ -123,7 +123,7 @@ def InitLcov(env, target, source):
     }
     r = ChainCalls(env, [
         'lcov --zerocounters --directory %(project_dir)s -b .' % data,
-        'lcov --cproject = os.path.split(target)[1]apture --initial --directory %(project_dir)s -b . --output-file %(coverage_file)s' % data,
+        'lcov --capture --initial --directory %(project_dir)s -b . --output-file %(coverage_file)s' % data,
     ])
     return r
 
@@ -243,7 +243,7 @@ def AStyle(env, target, source):
     # Create the command for subprocess.call().
     cmd = "astyle -k1 --options=none --convert-tabs -bSKpUH %s" % file_list
     # Run astyle.
-    result = subprocess.call(cmd % fileList, shell=True)
+    result = subprocess.call(cmd, shell=True)
     if result != 0:
         env.cerror('[astyle] ERROR running astyle on: %s' % project_dir)
     else:
@@ -348,9 +348,9 @@ def RunCppcheck(env, target, source):
     # Print message on the screen.
     env.Cprint('Running cppcheck...', 'green')
     # Get the report file name.
-    report_file = target[0]
+    report_file = target[0].abspath
     # Get the output directory.
-    output_directory = os.path.split(target[0])[0]
+    output_directory = os.path.split(report_file)[0]
     # Check if the output directory for the cppcheck report already exists.
     if not os.path.exists(output_directory):
         os.makedirs(output_directory)
