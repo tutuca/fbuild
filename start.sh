@@ -36,7 +36,7 @@ if [[ "$(which hg)" && -z $FBUILD_NO_UPDATE ]]; then
             echo -e "\e[0;31m[error] fbuild does not work with mercurial version 2.1.\e[0m"
         else
             echo -e "\e[0;35mChecking for updates in the environment\e[0m"
-            hg pull -u
+#            hg pull -u
         fi
     else
         echo -e "\e[0;33m[warn] FuDePan environment not updated since there is no internet connection\e[0m"
