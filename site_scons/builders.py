@@ -231,16 +231,16 @@ def AStyleCheck(env, source, target):
     # Path to the report file.
     report_path = os.path.join(report_dir, report_file)
     # Check if the builder was called for jenkins.
-    if utils.WasTargetInvoked('%s:jenkins' % project):
-        # Open the report file.
-        try:
-            report = open(report_path, 'w')
-        except IOError:
-            env.Cprint('No such file or directory:', report_path)
-            return 1
-        else:
-            # If we can open it we truncate it.
-            report.truncate(0)
+    #if utils.WasTargetInvoked('%s:jenkins' % project):
+    # Open the report file.
+    try:
+        report = open(report_path, 'w')
+    except IOError:
+        env.Cprint('No such file or directory:', report_path)
+        return 1
+    else:
+        # If we can open it we truncate it.
+        report.truncate(0)
     # If some file needs astyle we print info.
     if need_astyle:
         # Print a warning message.
@@ -248,15 +248,18 @@ def AStyleCheck(env, source, target):
         # Print what need to be astyled.
         for f,info in need_astyle_list:
             # If it was called for jenkins we write the diff into the report file.
-            if utils.WasTargetInvoked('%s:jenkins' % project):
-                report.write(info+'\n\n')
+            #if utils.WasTargetInvoked('%s:jenkins' % project):
+            report.write(info+'\n\n')
             env.Cprint('====> %s' % f, 'red')
             env.Cprint(info,'yellow')
     else:
         env.Cprint('[OK] No file needs astyle.', 'green')
     # Close the report file.
-    if utils.WasTargetInvoked('%s:jenkins' % project):
-        report.close()
+    #if utils.WasTargetInvoked('%s:jenkins' % project):
+    report.close()
+    cmd = 'grep %s %s | grep %s | grep %s | grep %s' % \
+          ('-v "^[+-].*for.*:"',report_path,'-v "^---"','-v "^+++"','"^[+-]"')
+    return subprocess.call(cmd, shell=True)
 
 
 def AStyle(env, source, target):
