@@ -185,6 +185,8 @@ def RunDoxygen(env, source, target):
 
 
 def AStyleCheck(env, source, target):
+    # The return value.
+    result = 0
     # We use the target as a temporary directory.
     targetDir = target[0]
     target = str(target[0].abspath)
@@ -243,6 +245,7 @@ def AStyleCheck(env, source, target):
         report.truncate(0)
     # If some file needs astyle we print info.
     if need_astyle:
+        result = 1
         # Print a warning message.
         env.Cprint('[WARNING] The following files need astyle:', 'red')
         # Print what need to be astyled.
@@ -257,9 +260,12 @@ def AStyleCheck(env, source, target):
     # Close the report file.
     #if utils.WasTargetInvoked('%s:jenkins' % project):
     report.close()
-    cmd = 'grep %s %s | grep %s | grep %s | grep %s' % \
-          ('-v "^[+-].*for.*:"',report_path,'-v "^---"','-v "^+++"','"^[+-]"')
-    return subprocess.call(cmd, shell=True)
+    if need_astyle:
+        cmd = 'grep %s %s | grep %s | grep %s | grep %s > /dev/null' % \
+            ('-v "^[+-].*for.*:"',report_path,'-v "^---"','-v "^+++"','"^[+-]"')
+        if subprocess.call(cmd, shell=True) > 0:
+            result = 0
+    return result
 
 
 def AStyle(env, source, target):
