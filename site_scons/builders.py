@@ -185,6 +185,8 @@ def RunDoxygen(env, source, target):
 
 
 def AStyleCheck(env, source, target):
+    # The return value.
+    result = 0
     # We use the target as a temporary directory.
     targetDir = target[0]
     target = str(target[0].abspath)
@@ -231,32 +233,39 @@ def AStyleCheck(env, source, target):
     # Path to the report file.
     report_path = os.path.join(report_dir, report_file)
     # Check if the builder was called for jenkins.
-    if utils.WasTargetInvoked('%s:jenkins' % project):
-        # Open the report file.
-        try:
-            report = open(report_path, 'w')
-        except IOError:
-            env.Cprint('No such file or directory:', report_path)
-            return 1
-        else:
-            # If we can open it we truncate it.
-            report.truncate(0)
+    #if utils.WasTargetInvoked('%s:jenkins' % project):
+    # Open the report file.
+    try:
+        report = open(report_path, 'w')
+    except IOError:
+        env.Cprint('No such file or directory:', report_path)
+        return 1
+    else:
+        # If we can open it we truncate it.
+        report.truncate(0)
     # If some file needs astyle we print info.
     if need_astyle:
+        result = 1
         # Print a warning message.
         env.Cprint('[WARNING] The following files need astyle:', 'red')
         # Print what need to be astyled.
         for f,info in need_astyle_list:
             # If it was called for jenkins we write the diff into the report file.
-            if utils.WasTargetInvoked('%s:jenkins' % project):
-                report.write(info+'\n\n')
+            #if utils.WasTargetInvoked('%s:jenkins' % project):
+            report.write(info+'\n\n')
             env.Cprint('====> %s' % f, 'red')
             env.Cprint(info,'yellow')
     else:
         env.Cprint('[OK] No file needs astyle.', 'green')
     # Close the report file.
-    if utils.WasTargetInvoked('%s:jenkins' % project):
-        report.close()
+    #if utils.WasTargetInvoked('%s:jenkins' % project):
+    report.close()
+    if need_astyle:
+        cmd = 'grep %s %s | grep %s | grep %s | grep %s > /dev/null' % \
+            ('-v "^[+-].*for.*:"',report_path,'-v "^---"','-v "^+++"','"^[+-]"')
+        if subprocess.call(cmd, shell=True) > 0:
+            result = 0
+    return result
 
 
 def AStyle(env, source, target):
