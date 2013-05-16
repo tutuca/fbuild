@@ -196,7 +196,8 @@ class Component(object):
             Exceptions:
                 None.
             Return:
-                A list of files. Each file is an instance of the SCons File class.
+                A list of files. Each file is an instance of the SCons File 
+                class.
         """
         return []
 
@@ -209,16 +210,16 @@ class Component(object):
             Exceptions:
                 None.
             Return:
-                A list with the source files, each element is an instance of the
-                SCons File class.
+                A list with the source files, each element is an instance 
+                of the SCons File class.
         """
         return []
     
     def GetObjectsFiles(self):
         """
             Description:
-                This method looks for the objects files that this component needs
-                to be built.
+                This method looks for the objects files that this component 
+                needs to be built.
             Arguments:
                 None.
             Exceptions:
@@ -242,7 +243,8 @@ class Component(object):
             method.
         """
         if self.name in stack:
-            # If the component name is within the stack then there is a cycle.
+            # If the component name is within the stack then there is a 
+            # cycle.
             stack.append(self.name)
             raise CyclicDependencieError(stack)
         else:
@@ -253,7 +255,8 @@ class Component(object):
             # this component.
             for path in self._includes:
                 include_paths.add(path)
-            # If this is a test we need the include directories from its component.
+            # If this is a test we need the include directories from its 
+            # component.
             if isinstance(self, UnitTestComponent):
                 component = self._component_graph.get(self._project_name)
                 for path in component._includes:
@@ -268,8 +271,8 @@ class Component(object):
                 for path in self._includes:
                     include_paths.add(path)
             else:
-                # If this is not an external component then its includes ate in 
-                # the install/ directory.
+                # If this is not an external component then its includes 
+                # goes into the install/ directory.
                 path = self._env.Dir('$INSTALL_HEADERS_DIR')
                 path = path.Dir(self.name).abspath
                 include_paths.add(path)
@@ -325,17 +328,20 @@ class Component(object):
             This method creates an installer builder.
         """
         bin_dir = self._env.Dir('$INSTALL_BIN_DIR')
-        inc_dir = self._env.Dir('$INSTALL_HEADERS_DIR')
-        dependencies = []
-        for dependency in self._dependencies:
-                dependency = self._component_graph[dependency]
-                dependencies.extend(dependency.Process())
+        inc_dir = self._env.Dir('$INSTALL_HEADERS_DIR').Dir(self.name)
+        #dependencies = []
+        #for dependency in self._dependencies:
+                #dependency = self._component_graph[dependency]
+                #dependencies.extend(dependency.Process())
         bin_installer = self._env.Install(bin_dir, binaries)
         inc_installer = self._env.Install(inc_dir, headers)
         installers = bin_installer + inc_installer
-        self._env.Depends(installers, dependencies)
-        self._env.Depends(binaries, dependencies)
+        #self._env.Depends(installers, dependencies)
+        #self._env.Depends(binaries, dependencies)
         self._env.Alias(self.name, installers, 'Install %s.' % self.name)
+        print self.name
+        for x in installers:
+            print '  ' + x.abspath
         return installers
     
     def _CreateGroupAliases(self):
