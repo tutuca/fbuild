@@ -65,7 +65,7 @@ def init(env):
     bldValgrind = Builder(action = SCons.Action.Action(RunValgrind, PrintDummy))
     env.Append(BUILDERS = {'RunValgrind':  bldValgrind})
     env['VALGRIND_OPTIONS'] = ' --leak-check=full --show-reachable=yes ' + \
-                              '--error-limit=no '
+                              '--error-limit=no --track-origins=yes'
     #-
     bldCCCC = Builder(action = SCons.Action.Action(RunCCCC, PrintDummy))
     env.Append(BUILDERS = {'RunCCCC':  bldCCCC})
@@ -305,7 +305,7 @@ def RunValgrind(env, source, target):
     cwd = env.Dir('#').abspath
     test_dir = source[0].dir.abspath
     os.chdir(test_dir)
-    cmd = 'valgrind %s %s' % (env['VALGRIND_OPTIONS'], source[0].abspath)
+    cmd = 'GTEST_DEATH_TEST_USE_FORK=1 valgrind %s %s' % (env['VALGRIND_OPTIONS'], source[0].abspath)
     ret_val = subprocess.call(cmd, shell=True)
     os.chdir(cwd)
     return ret_val
