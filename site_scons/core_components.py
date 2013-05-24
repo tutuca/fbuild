@@ -250,32 +250,21 @@ class Component(object):
         else:
             # We add the component name to the stack.
             stack.append(self.name)
-        if len(stack) == 1:
-            # If we enter here is because we are looking for the includes of 
-            # this component.
-            for path in self._includes:
-                include_paths.add(path)
+        if isinstance(self, UnitTestComponent):
             # If this is a test we need the include directories from its 
             # component.
-            if isinstance(self, UnitTestComponent):
-                component = self._component_graph.get(self._project_name)
-                for path in component._includes:
-                    include_paths.add(path)
-            # We also add fbuild include paths.
-            include_paths.add(self._env.Dir('$INSTALL_HEADERS_DIR').abspath)
-        else:
-            # If we enter here is because someone else is looking for my 
-            # includes.
-            if isinstance(self, ExternalComponent):
-                # If this is an external component we use the _includes list.
-                for path in self._includes:
-                    include_paths.add(path)
-            else:
-                # If this is not an external component then its includes 
-                # goes into the install/ directory.
-                path = self._env.Dir('$INSTALL_HEADERS_DIR')
-                path = path.Dir(self.name).abspath
+            component = self._component_graph.get(self._project_name)
+            for path in component._includes:
                 include_paths.add(path)
+        elif isinstance(self, ExternalComponent):
+            # If this is an external component we use the _includes list.
+            for path in self._includes:
+                include_paths.add(path)
+        else:
+            include_paths.add(self._env.Dir('$INSTALL_HEADERS_DIR').abspath)
+            path = self._env.Dir('$INSTALL_HEADERS_DIR')
+            path = path.Dir(self.name).abspath
+            include_paths.add(path)
         # We always add external includes.
         for path in self._external_includes:
             include_paths.add(path)
@@ -327,21 +316,29 @@ class Component(object):
         """
             This method creates an installer builder.
         """
-        bin_dir = self._env.Dir('$INSTALL_BIN_DIR')
+        # The directory where the hedaders are going to be indtlled.
         inc_dir = self._env.Dir('$INSTALL_HEADERS_DIR').Dir(self.name)
-        #dependencies = []
-        #for dependency in self._dependencies:
-                #dependency = self._component_graph[dependency]
-                #dependencies.extend(dependency.Process())
-        bin_installer = self._env.Install(bin_dir, binaries)
+        # The directory where the binaries are going to be installed.
+        if isinstance(self, ProgramComponent):
+            bin_dir = self._env.Dir('$INSTALL_BIN_DIR')
+        else:
+            bin_dir = self._env.Dir('$INSTALL_LIB_DIR')
+
+        for x in headers:
+            print x
+        
+        # Creante the installer builders.
         inc_installer = self._env.Install(inc_dir, headers)
+        bin_installer = self._env.Install(bin_dir, binaries)
+        
+        print '\n======================================\n'
+
+        for x in inc_installer:
+            print x
+        
         installers = bin_installer + inc_installer
-        #self._env.Depends(installers, dependencies)
-        #self._env.Depends(binaries, dependencies)
+        # Create the alias for for install the component.
         self._env.Alias(self.name, installers, 'Install %s.' % self.name)
-        print self.name
-        for x in installers:
-            print '  ' + x.abspath
         return installers
     
     def _CreateGroupAliases(self):
@@ -470,7 +467,7 @@ class HeaderOnlyComponent(Component):
         self._CreateCCCCTarget(headers)
         self._CreateClocTarget(headers)
         self._CreateCppcheckTarget(headers)
-        self._CreateDocTarget()
+        self._CreateDocTarget()        
         # Create the installer.
         installer = self._CreateInstallerBuilder([], headers)
         # Create the alias group.

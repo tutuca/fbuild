@@ -57,7 +57,7 @@ def init(env,vars):
         PathVariable(
             'INSTALL_BIN_DIR',
             'install bin directory',
-            INSTALL_DIR,
+            os.path.join(INSTALL_DIR, "bin"),
             PathVariable.PathIsDirCreate))
     vars.AddVariables(
         PathVariable(
