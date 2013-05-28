@@ -359,3 +359,4 @@ def RunCppCheck(env, source, target):
     # Create the command to be pass to subprocess.call()
     cmd = "cppcheck %s %s 2> %s.xml > %s.txt" % (options,files,outfile,outfile)
     return subprocess.call(cmd, shell=True)
+
