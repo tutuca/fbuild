@@ -45,6 +45,9 @@
     <project name="mili"
              repository_type="HG" 
              repository_url="https://mili.googlecode.com/hg" />
+    <project name="mocko"
+             repository_type="HG" 
+             repository_url="https://mocko.googlecode.com/hg" />
     <project name="nuca"
              repository_type="HG" 
              repository_url="https://code.google.com/p/nuca" />
