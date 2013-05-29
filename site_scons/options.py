@@ -38,3 +38,10 @@ def init(env):
         help='Display a more detailed output.',
         default=True
     )
+    AddOption(
+        '--mocko',
+        dest='verbose',
+        action='store_false',
+        help='Run the tests using mocko.',
+        default=True
+    )
