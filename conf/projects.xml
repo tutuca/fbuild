@@ -1,5 +1,8 @@
 <projects>
     <!-- IMPORTANT: Please maintain alphabetical order based on name to ease maintenance -->
+	<project name="acuoso"
+             repository_type="HG" 
+             repository_url="https://acuoso.googlecode.com/hg" />
     <project name="aso"
              repository_type="HG" 
              repository_url="https://aso.googlecode.com/hg" />
@@ -18,6 +21,9 @@
     <project name="colo"
              repository_type="HG" 
              repository_url="https://colo.googlecode.com/hg" />
+    <project name="etilico"
+             repository_type="HG" 
+             repository_url="https://etilico.googlecode.com/hg" />
     <project name="feca"
              repository_type="HG" 
              repository_url="https://feca.googlecode.com/hg" />

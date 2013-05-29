@@ -65,7 +65,7 @@ def init(env):
     bldValgrind = Builder(action = SCons.Action.Action(RunValgrind, PrintDummy))
     env.Append(BUILDERS = {'RunValgrind':  bldValgrind})
     env['VALGRIND_OPTIONS'] = ' --leak-check=full --show-reachable=yes ' + \
-                              '--error-limit=no '
+                              '--error-limit=no --track-origins=yes'
     #-
     bldCCCC = Builder(action = SCons.Action.Action(RunCCCC, PrintDummy))
     env.Append(BUILDERS = {'RunCCCC':  bldCCCC})
@@ -185,6 +185,8 @@ def RunDoxygen(env, source, target):
 
 
 def AStyleCheck(env, source, target):
+    # The return value.
+    result = 0
     # We use the target as a temporary directory.
     targetDir = target[0]
     target = str(target[0].abspath)
@@ -231,32 +233,39 @@ def AStyleCheck(env, source, target):
     # Path to the report file.
     report_path = os.path.join(report_dir, report_file)
     # Check if the builder was called for jenkins.
-    if utils.WasTargetInvoked('%s:jenkins' % project):
-        # Open the report file.
-        try:
-            report = open(report_path, 'w')
-        except IOError:
-            env.Cprint('No such file or directory:', report_path)
-            return 1
-        else:
-            # If we can open it we truncate it.
-            report.truncate(0)
+    #if utils.WasTargetInvoked('%s:jenkins' % project):
+    # Open the report file.
+    try:
+        report = open(report_path, 'w')
+    except IOError:
+        env.Cprint('No such file or directory:', report_path)
+        return 1
+    else:
+        # If we can open it we truncate it.
+        report.truncate(0)
     # If some file needs astyle we print info.
     if need_astyle:
+        result = 1
         # Print a warning message.
         env.Cprint('[WARNING] The following files need astyle:', 'red')
         # Print what need to be astyled.
         for f,info in need_astyle_list:
             # If it was called for jenkins we write the diff into the report file.
-            if utils.WasTargetInvoked('%s:jenkins' % project):
-                report.write(info+'\n\n')
+            #if utils.WasTargetInvoked('%s:jenkins' % project):
+            report.write(info+'\n\n')
             env.Cprint('====> %s' % f, 'red')
             env.Cprint(info,'yellow')
     else:
         env.Cprint('[OK] No file needs astyle.', 'green')
     # Close the report file.
-    if utils.WasTargetInvoked('%s:jenkins' % project):
-        report.close()
+    #if utils.WasTargetInvoked('%s:jenkins' % project):
+    report.close()
+    if need_astyle:
+        cmd = 'grep %s %s | grep %s | grep %s | grep %s > /dev/null' % \
+            ('-v "^[+-].*for.*:"',report_path,'-v "^---"','-v "^+++"','"^[+-]"')
+        if subprocess.call(cmd, shell=True) > 0:
+            result = 0
+    return result
 
 
 def AStyle(env, source, target):
@@ -296,7 +305,7 @@ def RunValgrind(env, source, target):
     cwd = env.Dir('#').abspath
     test_dir = source[0].dir.abspath
     os.chdir(test_dir)
-    cmd = 'valgrind %s %s' % (env['VALGRIND_OPTIONS'], source[0].abspath)
+    cmd = 'GTEST_DEATH_TEST_USE_FORK=1 valgrind %s %s' % (env['VALGRIND_OPTIONS'], source[0].abspath)
     ret_val = subprocess.call(cmd, shell=True)
     os.chdir(cwd)
     return ret_val
@@ -346,7 +355,7 @@ def RunCppCheck(env, source, target):
     # We create a string with the files for cppcheck.
     files = ' '.join([f.abspath for f in source])
     # Set the name of the report file.
-    outfile = "%s/CppCheckReport.txt" % target
+    outfile = "%s/CppCheckReport" % target
     # Create the command to be pass to subprocess.call()
-    cmd = "cppcheck %s %s | sed '/files checked /d' > %s" % (options, files, outfile)
+    cmd = "cppcheck %s %s 2> %s.xml > %s.txt" % (options,files,outfile,outfile)
     return subprocess.call(cmd, shell=True)
