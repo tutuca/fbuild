@@ -52,7 +52,7 @@ else
         fi
     }
 fi
-# We need to check if build essential its installed
+# We need to check if build essential is installed
 check_build_essential
 if [ "$?" -ne "0" ]; then return $?; fi
 # three parameters: 
