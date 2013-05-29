@@ -52,6 +52,9 @@ else
         fi
     }
 fi
+# We need to check if build essential is installed
+check_build_essential
+if [ "$?" -ne "0" ]; then return $?; fi
 # three parameters: 
 # 1) binary to check for existance
 # 2) required?
@@ -60,6 +63,8 @@ if [ "$?" -ne "0" ]; then return $?; fi
 check_install python true
 if [ "$?" -ne "0" ]; then return $?; fi
 check_install scons true
+if [ "$?" -ne "0" ]; then return $?; fi
+check_install g++ true
 if [ "$?" -ne "0" ]; then return $?; fi
 check_install moc
 if [ "$?" -ne "0" ]; then return $?; fi
@@ -80,6 +85,8 @@ if [ "$?" -ne "0" ]; then return $?; fi
 check_install valgrind false
 if [ "$?" -ne "0" ]; then return $?; fi
 check_install cppcheck false
+if [ "$?" -ne "0" ]; then return $?; fi
+check_install lcov false
 if [ "$?" -ne "0" ]; then return $?; fi
 
 if [ "$(astyle -V 2>&1 | cut -f4 -d' ' | sed 's/\..*//' | bc)" -lt "2" ]; then
