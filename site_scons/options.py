@@ -40,8 +40,8 @@ def init(env):
     )
     AddOption(
         '--mocko',
-        dest='verbose',
-        action='store_false',
+        dest='mocko',
+        action='store_true',
         help='Run the tests using mocko.',
-        default=True
+        default=False
     )

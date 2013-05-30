@@ -521,13 +521,28 @@ class UnitTestComponent(ProgramComponent):
         # We not call directly to the supper class ProgramComponent.Process() 
         # since it generates a problem when running the test executable.
         SourcedComponent.Process(self)
-        # So, we have to call the Program() builder.
+        # So, we have to call the Program() builde
+        mocko_builder = None
+        sources = self.findSources()
+        if self.env.GetOption('mocko'):
+            sources.append(self.env.File('./tests/mocko_bind.cpp'))
+            mocko_list = self.env.File('./tests/list.mocko')
+            mocko_header = self.env.File('./tests/mocko_bind.h')
+            mocko_builder = self.env.RunMocko(mocko_header, mocko_list)
+            for src_file in sources:
+                self.env.Depends(src_file, mocko_builder)
+        
+        print ''
+        for x in sources:
+            print '>>>>>', x
+        print '=====', mocko_builder
+        print ''
+        
         incpaths = self.GetIncludePaths()
         (libs,libpaths) = self.GetLibs()
         target = os.path.join(self.dir, self.name)
         self.prog = self.env.Program(target, self.findSources(), CPPPATH=incpaths, LIBS=libs, LIBPATH=libpaths)
-        self.env.Alias(self.name, self.prog, "Build and install " + self.name)
-        self.env.Alias('all:build', self.prog, "Build all targets")
+        self.env.Alias('all:build', self.prog, "Build alltargets")
         # Flags for gtest and gmock.
         CXXFLAGS = [f for f in self.env['CXXFLAGS'] if f not in ['-ansi', '-pedantic']]
         CXXFLAGS.append('-Wno-sign-compare')
@@ -541,6 +556,7 @@ class UnitTestComponent(ProgramComponent):
         # File to store the test results.
         target = os.path.join(self.dir, self.name + '.passed')
         tTest = self.env.RunUnittest(target, self.prog)
+        self.env.Alias(self.name, tTest, "Build and install " + self.name)
         # Check if the user want to run the tests anyway.
         if self.env.GetOption('forcerun'):
             self.env.AlwaysBuild(tTest)
@@ -548,6 +564,7 @@ class UnitTestComponent(ProgramComponent):
         self.env.Alias(self.name, tTest, "Run test for " + self.name)
         # Make the test depends from files in 'ref' dir.
         for refFile in utils.FindFiles(self.env, self.compDir.Dir('ref')):
+            print refFile
             self.env.Depends(tTest, refFile)
         # Alias target for 'all'.
         self.env.Alias('all:test', tTest, "Run all tests")
