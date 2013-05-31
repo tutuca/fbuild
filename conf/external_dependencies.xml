@@ -86,7 +86,7 @@
         
     
     <component name="bison" type="PRO">
-        <installer distro="*" target="bison" manager="*"/>
+        <installer distro="*" target="bison" manager="APT-GET"/>
     </component>
     
     <component name="boost_thread" type="LIB">
@@ -105,7 +105,7 @@
     </component>
     
     <component name="flex" type="PRO">
-        <installer distro="*" target="flex" manager="*"/>
+        <installer distro="*" target="flex" manager="APT-GET"/>
     </component>
     
     <component name="gmock" type="LIB" deps="gtest,pthread">

@@ -306,6 +306,9 @@ class HeaderOnlyComponent(Component):
     def _CreateCppcheckTarget(self, sources):
         # Create the 'target', it is the directory where the result will be put.
         target = self.env.Dir(self.env['INSTALL_REPORTS_DIR']).Dir('cppcheck').Dir(self.name)
+        # Check if we need to create an xml report.
+        if utils.WasTargetInvoked('%s:jenkins' % self.name.split(':')[0]):
+            self.env.Append(CPPCHECK_OPTIONS=['--xml'])
         # Call RunCppCheck().
         cppcheck = self.env.RunCppCheck(target, sources)
         self.env.AlwaysBuild(cppcheck)

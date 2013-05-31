@@ -64,3 +64,31 @@ function check_install {
     unset mappings
     return 0
 }
+
+function check_build_essential {
+    if [ ! "$(dpkg -s build-essential | grep -e 'Status: install ok installed')" ]; then
+        echo -e "\e[0;33m[warn] A problem with 'build-essential' had been found.\e[0m"
+        echo "info: 'sudo apt-get install build-essential' should solve this, do you want"
+        echo "       me to do it? (your password could be required)"
+        
+        REPLY="extremelyLongStringUnlikelyToBeUsed"
+        
+        while [[ "$REPLY" != "y" && "$REPLY" != "n" && "$REPLY" != "" ]]; do
+            read -p "Install (y/[n])?" REPLY
+            if [[ "$REPLY" != "y" && "$REPLY" != "n" && "$REPLY" != "" ]]; then
+                echo -e "\e[0;31mID-10-T Error: please insert 'y' or 'n' or nothing. \e[0m"
+            fi
+        done
+        if [ "$REPLY" = "y" ]; then
+            sudo apt-get install build-essential
+            if [ "$?" -ne "0" ]; then
+                echo -e "\e[0;31m[error] 'build-essential' it is required and could not be installed, exiting\e[0m"
+                return 1
+            fi
+        else
+            echo -e "\e[0;31m[error] 'build-essential' required, exiting\e[0m"
+            return 1
+        fi
+    fi
+    return 0
+}
