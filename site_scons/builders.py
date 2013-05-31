@@ -100,7 +100,7 @@ def RunUnittest(env, source, target):
         project = os.path.split(tmp)[1]
         if utils.WasTargetInvoked('%s:jenkins' % project[:-5]):
             os.environ['GTEST_OUTPUT'] = env.gtest_report
-        if self.env.GetOption('mocko'):
+        if env.GetOption('mocko'):
             cmd = "cd %s; gdb -x mocko_bind.gdb %s > %s" % (dir, appbin, t)
         else:
             cmd = "cd %s; ./%s > %s" % (dir, appbin, t)
@@ -369,11 +369,11 @@ def RunCppCheck(env, source, target):
 
 def RunMocko(env, source, target):
     # Get the file list.mocko.
-    mocko_list = source[0]
+    mocko_list = source[0].abspath
     # Get the tests directory.
     directory = os.path.split(mocko_list)[0]
     # The mocko executable file.
-    mocko = env.Dir('INSTALL_BIN_DIR').File('mocko').abspath
+    mocko = env.Dir('$INSTALL_BIN_DIR').File('mocko').abspath
     # Exccute mocko.
     cwd = env.Dir('#').abspath
     os.chdir(directory)

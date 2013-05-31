@@ -522,21 +522,34 @@ class UnitTestComponent(ProgramComponent):
         # since it generates a problem when running the test executable.
         SourcedComponent.Process(self)
         # So, we have to call the Program() builde
+        
         mocko_builder = None
         sources = self.findSources()
-        if self.env.GetOption('mocko'):
-            sources.append(self.env.File('./tests/mocko_bind.cpp'))
-            mocko_list = self.env.File('./tests/list.mocko')
-            mocko_header = self.env.File('./tests/mocko_bind.h')
-            mocko_builder = self.env.RunMocko(mocko_header, mocko_list)
-            for src_file in sources:
-                self.env.Depends(src_file, mocko_builder)
         
-        print ''
-        for x in sources:
-            print '>>>>>', x
-        print '=====', mocko_builder
-        print ''
+        if self.env.GetOption('mocko'):
+            # Path to the tests directory.
+            aux_path = os.path.join(self.env['BUILD_DIR'], self.name[:-5])
+            tests_dir = os.path.join(aux_path, 'tests')
+            # Path to the list.mocko file.
+            mocko_list = os.path.join(tests_dir, 'list.mocko')
+            mocko_list = self.env.File(mocko_list)
+            # Path to the mocko_bind.cpp file.
+            mocko_bind_cpp = os.path.join(tests_dir, 'mocko_bind.cpp')
+            mocko_bind_cpp = self.env.File(mocko_bind_cpp)
+            # Path to the mocko_bind.h file.
+            mocko_bind_h = os.path.join(tests_dir, 'mocko_bind.h')
+            mocko_bind_h = self.env.File(mocko_bind_h)
+            # Path to the mocko_bind.gdb file.
+            mocko_bind_gdb = os.path.join(tests_dir, 'mocko_bind.gdb')
+            mocko_bind_gdb = self.env.File(mocko_bind_gdb)
+            # Create an instance of the RunMocko() builder.
+            targets = [mocko_bind_h, mocko_bind_cpp, mocko_bind_gdb]
+            mocko_builder = self.env.RunMocko(targets, mocko_list)
+            # Make the sources depends on the mocko generated files.
+            #for src_file in sources:
+                #self.env.Depends(src_file, mocko_builder)
+            # Add mocko_bind.cpp to the sources.
+            sources.append(mocko_bind_cpp)
         
         incpaths = self.GetIncludePaths()
         (libs,libpaths) = self.GetLibs()
@@ -564,7 +577,6 @@ class UnitTestComponent(ProgramComponent):
         self.env.Alias(self.name, tTest, "Run test for " + self.name)
         # Make the test depends from files in 'ref' dir.
         for refFile in utils.FindFiles(self.env, self.compDir.Dir('ref')):
-            print refFile
             self.env.Depends(tTest, refFile)
         # Alias target for 'all'.
         self.env.Alias('all:test', tTest, "Run all tests")
