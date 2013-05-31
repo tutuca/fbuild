@@ -185,6 +185,11 @@ class HeaderOnlyComponent(Component):
         filters.extend(headersFilter)
         filters.extend(sourceFilters)
         sources = utils.FilesFlatten(self.env, self.projDir, filters)
+        # Check if the coverage is needed.
+        if (utils.WasTargetInvoked('%s:jenkins' % self.name.split(':')[0]) or 
+           utils.WasTargetInvoked('%s:coverage' % self.name.split(':')[0])):
+            gprofFlags = ['--coverage']
+            self.env.Append(CXXFLAGS=gprofFlags, CFLAGS=gprofFlags, LINKFLAGS=gprofFlags)
         # Create target for jenkins.
         self._CreateJenkinsTarget()
         if not self.name.endswith(':test'):
@@ -301,6 +306,9 @@ class HeaderOnlyComponent(Component):
     def _CreateCppcheckTarget(self, sources):
         # Create the 'target', it is the directory where the result will be put.
         target = self.env.Dir(self.env['INSTALL_REPORTS_DIR']).Dir('cppcheck').Dir(self.name)
+        # Check if we need to create an xml report.
+        if utils.WasTargetInvoked('%s:jenkins' % self.name.split(':')[0]):
+            self.env.Append(CPPCHECK_OPTIONS=['--xml'])
         # Call RunCppCheck().
         cppcheck = self.env.RunCppCheck(target, sources)
         self.env.AlwaysBuild(cppcheck)
@@ -594,12 +602,7 @@ class UnitTestComponent(ProgramComponent):
     def _CreateCoverageTarget(self, target):
         # Get the path directory to the project.
         project = self.componentGraph.get(self.name.split(':')[0])
-        self.env['PROJECT_DIR'] = project.dir
-        # Check if the coverage is needed.
-        if (utils.WasTargetInvoked('%s:jenkins' % self.name.split(':')[0]) or 
-           utils.WasTargetInvoked('%s:coverage' % self.name.split(':')[0])) :
-            gprofFlags = ['--coverage']
-            self.env.Append(CXXFLAGS=gprofFlags, CFLAGS=gprofFlags, LINKFLAGS=gprofFlags)
+        self.env['PROJECT_DIR'] = project.dir        
         # Targets and sources for builder InitLcov.
         initLcovTarget = os.path.join(self.dir, 'coverage_data')
         initLcovSoureces = [self.prog]
