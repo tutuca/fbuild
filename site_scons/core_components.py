@@ -316,26 +316,22 @@ class Component(object):
         """
             This method creates an installer builder.
         """
-        # The directory where the hedaders are going to be indtlled.
-        inc_dir = self._env.Dir('$INSTALL_HEADERS_DIR').Dir(self.name)
         # The directory where the binaries are going to be installed.
         if isinstance(self, ProgramComponent):
             bin_dir = self._env.Dir('$INSTALL_BIN_DIR')
         else:
             bin_dir = self._env.Dir('$INSTALL_LIB_DIR')
-
-        for x in headers:
-            print x
-        
-        # Creante the installer builders.
-        inc_installer = self._env.Install(inc_dir, headers)
+        # A function for substring replacement.
+        old = '/build/%s' % self.name
+        new = '/install/include'
+        replace = lambda s : self._env.File(s.abspath.replace(old,new))
+        # This list tells how to install each header file.
+        install_headers = map(replace, headers)
+        # Create the installer builders.
+        inc_installer = []
+        for x,y in zip(headers,install_headers):
+            inc_installer.extend(self._env.InstallAs(y, x))
         bin_installer = self._env.Install(bin_dir, binaries)
-        
-        print '\n======================================\n'
-
-        for x in inc_installer:
-            print x
-        
         installers = bin_installer + inc_installer
         # Create the alias for for install the component.
         self._env.Alias(self.name, installers, 'Install %s.' % self.name)
@@ -961,9 +957,9 @@ class DynamicLibraryComponent(ObjectComponent):
         dlib_builder = self._env.SharedLibrary(
             target,
             self.GetSourcesFiles(), 
-            CPPPATH=includes, 
-            LIBPATH=libpaths,
-            LIBS=libs
+            CPPPATH = includes, 
+            LIBPATH = libpaths,
+            LIBS = libs
         )
         # Create the all:build alias.
         self._env.Alias('all:build', dlib_builder, "Build all targets")
