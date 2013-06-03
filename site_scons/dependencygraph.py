@@ -30,6 +30,8 @@ from SCons.Script.SConscript import SConsEnvironment
 
 from core_components import *
 from components import *
+import utils
+import fbuild_exceptions
 
 
 downloadedDependencies = False
@@ -216,21 +218,12 @@ def WalkDirsForSconscripts(env, topdir, ignore=None):
                     env = env2
         # Check if there is a component that we dont know how to build
         for component in componentGraph.GetComponentsNames():
-            c = componentGraph.get(component)
-            if c is None:
-                # check if we know how to download this component
-                downloadedDependencies = env.CheckoutDependencyNow(component,env)
-            else:
-                for dep in c.deps:
-                    cdep = componentGraph.get(dep)
-                    if cdep == None:
-                        downloadedDependencies = c.env.CheckoutDependencyNow(dep,env)
-                        break
+            downloadedDependencies = _InstallComponentAndDep(env, component, [])
+            if downloadedDependencies:
+                break
             # If a dependency was downloaded we need to re-parse all the
             # SConscripts to assurance not to try to download something that
             # is added by another component (i.e.: gtest_main is added by gmock)
-            if downloadedDependencies:
-                break
         if downloadedDependencies:
             # Reset this to allow it to reparse those that were already added
             componentGraph.clear()
@@ -245,3 +238,36 @@ def WalkDirsForSconscripts(env, topdir, ignore=None):
     for componentName in componentGraph.GetComponentsNames():
         component = componentGraph.get(componentName)
         component.Process()
+
+def _InstallComponentAndDep(env, component_name, depsToInstall):
+    """
+        This method search recursively for dependencies to install.
+    """
+    global componentGraph
+    downloadedDependencies = False
+    component = componentGraph.get(component_name)
+    # Get dependency list for component.
+    if component is not None:
+        dep_list_comp = component.deps
+    else:
+        dep_list_comp = env.GetComponentDeps(component_name)
+    # We remove from the list dependencies already installed.
+    dep_list_comp = [dep for dep in dep_list_comp if componentGraph.get(dep) is None]
+    # If dependency list is empty, then we can download the component.
+    if not dep_list_comp and component is None:
+        downloadedDependencies = env.CheckoutDependencyNow(component_name,env)
+    # Else we need to continue installing others dependencies.
+    elif dep_list_comp:
+        try:
+            _CheckCircularDependencies(component_name, dep_list_comp, depsToInstall)
+        except fbuild_exceptions.CircularDependencyError as Dep:
+            env.Cprint('[err] Circular Dependency Error in %s found between %s and %s.' %(component_name, dep_list_comp, depsToInstall), 'red')
+        comp_to_download = dep_list_comp.pop()
+        depsToInstall = list(set(depsToInstall + [comp_to_download]))
+        downloadedDependencies = _InstallComponentAndDep(env, comp_to_download, depsToInstall)
+    return downloadedDependencies
+
+def _CheckCircularDependencies(component, deps_installing, deps_to_install):
+    for dep in deps_installing:
+        if dep in deps_to_install:
+            raise fbuild_exceptions.CircularDependencyError(component, dep)

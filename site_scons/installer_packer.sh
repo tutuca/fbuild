@@ -64,3 +64,13 @@ function check_install {
     unset mappings
     return 0
 }
+
+function check_build_essential {
+    # TODO: Check if the distro has installed:
+    #                   -> gcc
+    #                   -> g++
+    #                   -> libc6-dev
+    #                   -> make
+    #                   -> dpkg-dev
+    return 0
+}

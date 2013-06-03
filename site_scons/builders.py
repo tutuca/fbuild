@@ -78,7 +78,7 @@ def init(env):
     #-
     bldCppCheck = Builder(action = SCons.Action.Action(RunCppCheck, PrintDummy))
     env.Append(BUILDERS = {'RunCppCheck':bldCppCheck})
-    env['CPPCHECK_OPTIONS'] = []
+    env['CPPCHECK_OPTIONS'] = [' --enable=all ']
     #-
     bldMocko = Builder(action = SCons.Action.Action(RunMocko, PrintDummy))
     env.Append(BUILDERS = {'RunMocko':bldMocko})
