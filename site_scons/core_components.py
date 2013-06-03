@@ -250,21 +250,35 @@ class Component(object):
         else:
             # We add the component name to the stack.
             stack.append(self.name)
-        if isinstance(self, UnitTestComponent):
-            # If this is a test we need the include directories from its 
+        if len(stack) == 1:
+            # If we're here is because we are looking for the include of this 
             # component.
-            component = self._component_graph.get(self._project_name)
-            for path in component._includes:
-                include_paths.add(path)
-        elif isinstance(self, ExternalComponent):
-            # If this is an external component we use the _includes list.
-            for path in self._includes:
-                include_paths.add(path)
-        else:
+            if isinstance(self, UnitTestComponent):
+                # If this is a UnitTestComponent we need the include directories 
+                # from its component.
+                component = self._component_graph.get(self._project_name)
+                for path in component._includes:
+                    include_paths.add(path)
+            else:
+                # For any other component we use the _includes list.
+                for path in self._includes:
+                    include_paths.add(path)
+            # We also add the install/include/ and the build/project/ directories.
             include_paths.add(self._env.Dir('$INSTALL_HEADERS_DIR').abspath)
-            path = self._env.Dir('$INSTALL_HEADERS_DIR')
-            path = path.Dir(self.name).abspath
-            include_paths.add(path)
+            include_paths.add(self._dir.abspath)
+        else:
+            # If we're here is because we're looking for the include of the 
+            # dependency of a component.
+            # 'self' can not be a UnitTestComponent. Because a UnitTestComponent 
+            # should never be a dependency of other component.
+            assert(not isinstance(self, UnitTestComponent))
+            if isinstance(self, ExternalComponent):
+                for path in self._includes:
+                    include_paths.add(path)
+            else:
+                path = self._env.Dir('$INSTALL_HEADERS_DIR')
+                path = path.Dir(self.name).abspath
+                include_paths.add(path)
         # We always add external includes.
         for path in self._external_includes:
             include_paths.add(path)
@@ -316,22 +330,20 @@ class Component(object):
         """
             This method creates an installer builder.
         """
+        
+        #for x in headers:
+            #print x
+        #print ''
+        
         # The directory where the binaries are going to be installed.
         if isinstance(self, ProgramComponent):
-            bin_dir = self._env.Dir('$INSTALL_BIN_DIR')
+            binaries_dir = self._env.Dir('$INSTALL_BIN_DIR')
         else:
-            bin_dir = self._env.Dir('$INSTALL_LIB_DIR')
-        # A function for substring replacement.
-        old = '/build/%s' % self.name
-        new = '/install/include'
-        replace = lambda s : self._env.File(s.abspath.replace(old,new))
-        # This list tells how to install each header file.
-        install_headers = map(replace, headers)
-        # Create the installer builders.
-        inc_installer = []
-        for x,y in zip(headers,install_headers):
-            inc_installer.extend(self._env.InstallAs(y, x))
-        bin_installer = self._env.Install(bin_dir, binaries)
+            binaries_dir = self._env.Dir('$INSTALL_LIB_DIR')
+        # The directory where the headers will be installed.
+        headers_dir = self._env.Dir('$INSTALL_HEADERS_DIR').Dir(self.name)
+        inc_installer = self._env.Install(headers_dir, headers)
+        bin_installer = self._env.Install(binaries_dir, binaries)
         installers = bin_installer + inc_installer
         # Create the alias for for install the component.
         self._env.Alias(self.name, installers, 'Install %s.' % self.name)

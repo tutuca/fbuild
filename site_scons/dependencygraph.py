@@ -243,7 +243,7 @@ def _InstallComponentAndDep(env, component_name, depsToInstall):
     component = componentGraph.get(component_name)
     # Get dependency list for component.
     if component is not None:
-        dep_list_comp = component.deps
+        dep_list_comp = component._dependencies
     else:
         dep_list_comp = env.GetComponentDeps(component_name)
     # We remove from the list dependencies already installed.
