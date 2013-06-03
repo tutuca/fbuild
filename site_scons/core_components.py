@@ -54,6 +54,7 @@ class Component(object):
         self.componentGraph = componentGraph
         self.projDir = os.path.join(env['WS_DIR'], os.path.relpath(self.dir, env['BUILD_DIR']))
         self.shouldBeLinked = False
+        self.env.USE_MOCKO = 'mocko' in deps
 
     def Process(self):
         return None
@@ -521,13 +522,17 @@ class UnitTestComponent(ProgramComponent):
         # We not call directly to the supper class ProgramComponent.Process() 
         # since it generates a problem when running the test executable.
         SourcedComponent.Process(self)
-        # So, we have to call the Program() builder.
+        # So, we have to call the Program() builde
+        # Check fo use 'mocko'.
+        mocko_builder = None
+        sources = self.findSources()
+        if self.env.USE_MOCKO:
+            mocko_builder = self._CheckMocko(sources)
         incpaths = self.GetIncludePaths()
         (libs,libpaths) = self.GetLibs()
         target = os.path.join(self.dir, self.name)
-        self.prog = self.env.Program(target, self.findSources(), CPPPATH=incpaths, LIBS=libs, LIBPATH=libpaths)
-        self.env.Alias(self.name, self.prog, "Build and install " + self.name)
-        self.env.Alias('all:build', self.prog, "Build all targets")
+        self.prog = self.env.Program(target, sources, CPPPATH=incpaths, LIBS=libs, LIBPATH=libpaths)
+        self.env.Alias('all:build', self.prog, "Build alltargets")
         # Flags for gtest and gmock.
         CXXFLAGS = [f for f in self.env['CXXFLAGS'] if f not in ['-ansi', '-pedantic']]
         CXXFLAGS.append('-Wno-sign-compare')
@@ -541,6 +546,7 @@ class UnitTestComponent(ProgramComponent):
         # File to store the test results.
         target = os.path.join(self.dir, self.name + '.passed')
         tTest = self.env.RunUnittest(target, self.prog)
+        self.env.Alias(self.name, tTest, "Build and install " + self.name)
         # Check if the user want to run the tests anyway.
         if self.env.GetOption('forcerun'):
             self.env.AlwaysBuild(tTest)
@@ -630,3 +636,29 @@ class UnitTestComponent(ProgramComponent):
         self.env.AlwaysBuild(cov)
         self.env.AlwaysBuild(covTest)
         return cov
+    
+    def _CheckMocko(self, sources):
+        # Path to the tests directory.
+        aux_path = os.path.join(self.env['BUILD_DIR'], self.name[:-5])
+        tests_dir = os.path.join(aux_path, 'tests')
+        # Path to the list.mocko file.
+        mocko_list = os.path.join(tests_dir, 'list.mocko')
+        mocko_list = self.env.File(mocko_list)
+        # Path to the mocko_bind.cpp file.
+        mocko_bind_cpp = os.path.join(tests_dir, 'mocko_bind.cpp')
+        mocko_bind_cpp = self.env.File(mocko_bind_cpp)
+        # Path to the mocko_bind.h file.
+        mocko_bind_h = os.path.join(tests_dir, 'mocko_bind.h')
+        mocko_bind_h = self.env.File(mocko_bind_h)
+        # Path to the mocko_bind.gdb file.
+        mocko_bind_gdb = os.path.join(tests_dir, 'mocko_bind.gdb')
+        mocko_bind_gdb = self.env.File(mocko_bind_gdb)
+        # The 'mocko' executable.
+        mocko_exe = self.env.Dir('$INSTALL_BIN_DIR').File('mocko')
+        # Create an instance of the RunMocko() builder.
+        targets = [mocko_bind_h, mocko_bind_cpp, mocko_bind_gdb]
+        src = [mocko_list, mocko_exe]
+        mocko_builder = self.env.RunMocko(targets, src)
+        # Add mocko_bind.cpp to the sources.
+        sources.append(mocko_bind_cpp)
+        return mocko_builder
