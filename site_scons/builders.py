@@ -200,7 +200,8 @@ def AStyleCheck(env, source, target):
     if not os.path.exists(target):
         os.makedirs(target)
     for f in source:
-        os.system('cp %s %s' % (f.abspath,target))
+        if "tests/ref/" not in f.abspath:
+            os.system('cp %s %s' % (f.abspath,target))
     # Get the list of copied files.
     files_lis = utils.FindFiles(env,targetDir)
     files_str = ' '.join([x.abspath for x in files_lis])
@@ -278,7 +279,7 @@ def AStyle(env, source, target):
     rc = 0
     t = target[0].abspath
     cmd = "astyle -k1 --options=none --convert-tabs -bSKpUH %s"
-    fileList = ' '.join(s.abspath for s in source)
+    fileList = ' '.join(s.abspath for s in source if "tests/ref/" not in s.abspath)
     rc = subprocess.call(cmd % fileList, shell=True)
     if rc:
         env.cerror('[error] %s, error: %s' % (t, rc))
