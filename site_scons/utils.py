@@ -47,8 +47,8 @@ def FindFiles(env, fromDir, filters=None):
             files.extend(FindFiles(env, s, filters))
         else:
             if any([fnmatch.fnmatch(s.abspath, filter) for filter in filters]):
-            #if os.path.isfile(s.abspath):
-                files.append(s)
+                if os.path.isfile(s.abspath.replace('/build/', '/projects/')):
+                    files.append(s)
     return files
 
 

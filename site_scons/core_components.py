@@ -330,11 +330,6 @@ class Component(object):
         """
             This method creates an installer builder.
         """
-        
-        #for x in headers:
-            #print x
-        #print ''
-        
         # The directory where the binaries are going to be installed.
         if isinstance(self, ProgramComponent):
             binaries_dir = self._env.Dir('$INSTALL_BIN_DIR')
