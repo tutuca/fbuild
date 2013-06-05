@@ -383,4 +383,3 @@ def RunMocko(env, source, target):
     ret_val = subprocess.call('%s %s' % (mocko, mocko_list), shell=True)
     os.chdir(cwd)
     return ret_val
-
