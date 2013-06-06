@@ -401,7 +401,7 @@ def _CheckAstyle(env, source, output_directory):
         os.makedirs(tmp_dir)
     # Copy all sources into the temporary directory.
     for file in source:
-        if "tests/ref/" not in f.abspath: # TODO: Remove this line.
+        if "tests/ref/" not in file.abspath: # TODO: Remove this line.
             os.system('cp %s %s' % (file.abspath, tmp_dir))
     # Get the list of copied files.
     files_list = utils.FindFiles(env, env.Dir(tmp_dir))
