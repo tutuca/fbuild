@@ -76,9 +76,12 @@ def init(env):
     env['CLOC_OUTPUT_FORMAT'] = 'txt' # txt | sql | xml
     env['CLOC_OPTIONS'] = []
     #-
-    bldCppCheck = Builder(action = SCons.Action.Action(RunCppcheck, PrintDummy))
-    env.Append(BUILDERS = {'RunCppcheck':bldCppCheck})
-    env['CPPCHECK_OPTIONS'] = []
+    bldCppCheck = Builder(action = SCons.Action.Action(RunCppCheck, PrintDummy))
+    env.Append(BUILDERS = {'RunCppCheck':bldCppCheck})
+    env['CPPCHECK_OPTIONS'] = [' --enable=all ']
+    #-
+    bldMocko = Builder(action = SCons.Action.Action(RunMocko, PrintDummy))
+    env.Append(BUILDERS = {'RunMocko':bldMocko})
     #-
     bldReadyToCommit = Builder(action = SCons.Action.Action(RunReadyToCommit, PrintDummy))
     env.Append(BUILDERS = {'RunReadyToCommit':bldReadyToCommit})
@@ -98,10 +101,14 @@ def RunUnittest(env, target, source):
         # Check if the builder was called for jenkins or ready to commit.
         tmp = target[tindex].abspath.split('.')[0]
         project = os.path.split(tmp)[1]
+        testsuit = env.GetOption('testsuit')
         if (utils.WasTargetInvoked('%s:jenkins' % project[:-5]) or 
             utils.WasTargetInvoked('%s:ready-to-commit' % project[:-5])):
             os.environ['GTEST_OUTPUT'] = env.test_report
-        cmd = "cd %s; ./%s > %s" % (dir, appbin, t)
+        if env.USE_MOCKO:
+            cmd = "cd %s; gdb -x mocko_bind.gdb %s > %s" % (dir, appbin, t)
+        else:
+            cmd = "cd %s; ./%s --gtest_filter=%s > %s" % (dir, appbin, testsuit, t)
         rc = subprocess.call(cmd, shell=True)
         if env.GetOption('printresults'):
             subprocess.call("cat %s" % t, shell=True)
@@ -225,8 +232,12 @@ def AStyleCheck(env, target, source):
         env.Cprint('[OK] No file needs astyle.', 'green')
     # Close the report file.
     report.close()
-    # Return OK.
-    return 0
+    if check_astyle_result['need_astyle']:
+        cmd = 'grep %s %s | grep %s | grep %s | grep %s > /dev/null' % \
+            ('-v "^[+-].*for.*:"',report_file,'-v "^---"','-v "^+++"','"^[+-]"')
+        if subprocess.call(cmd, shell=True) > 0:
+            result = 0
+    return result
 
 
 def AStyle(env, target, source):
@@ -239,7 +250,7 @@ def AStyle(env, target, source):
     #   instead of the projects/ directory.
     build_dir = env['BUILD_DIR']
     ws_dir = env['WS_DIR']
-    file_list = ' '.join([f.abspath.replace(build_dir,ws_dir) for f in source])
+    file_list = ' '.join([f.abspath.replace(build_dir,ws_dir) for f in source if "tests/ref/" not in f.abspath])
     # Create the command for subprocess.call().
     cmd = "astyle -k1 --options=none --convert-tabs -bSKpUH %s" % file_list
     # Run astyle.
@@ -281,7 +292,11 @@ def RunValgrind(env, target, source):
     # Change to the test directory.
     os.chdir(test_dir)
     # Command to execute valgrind.
-    cmd = 'GTEST_DEATH_TEST_USE_FORK=1 valgrind %s %s' % (env['VALGRIND_OPTIONS'], test)
+    env_var = 'GTEST_DEATH_TEST_USE_FORK=1'
+    val_opt = env['VALGRIND_OPTIONS']
+    testsuit = env.GetOption('testsuit')
+    rep = (env_var, val_opt, test, testsuit)
+    cmd = '%s valgrind %s %s --gtest_filter=%s' % rep
     # Execute the command.
     ret_val = subprocess.call(cmd, shell=True)
     # Get back to the previous directory.
@@ -344,7 +359,7 @@ def RunCLOC(env, target, source):
     return subprocess.call(cmd, shell=True)
 
 
-def RunCppcheck(env, target, source):
+def RunCppCheck(env, target, source):
     # Print message on the screen.
     env.Cprint('Running cppcheck...', 'green')
     # Get the report file name.
@@ -361,6 +376,23 @@ def RunCppcheck(env, target, source):
     # Create the command to be pass to subprocess.call()
     cmd = "cppcheck %s %s | sed '/files checked /d' > %s" % (options, files, report_file)
     return subprocess.call(cmd, shell=True)
+
+
+def RunMocko(env, target, source):
+    # Get the file list.mocko.
+    mocko_list = source[0].abspath
+    # Get mocko executable file.
+    mocko_exe = source[1].abspath
+    # Get the tests directory.
+    directory = os.path.split(mocko_list)[0]
+    # The mocko executable file.
+    mocko = env.Dir('$INSTALL_BIN_DIR').File('mocko').abspath
+    # Exccute mocko.
+    cwd = env.Dir('#').abspath
+    os.chdir(directory)
+    ret_val = subprocess.call('%s %s' % (mocko, mocko_list), shell=True)
+    os.chdir(cwd)
+    return ret_val
 
 
 def RunReadyToCommit(env, target, source):
@@ -398,7 +430,8 @@ def _CheckAstyle(env, source, output_directory):
         os.makedirs(tmp_dir)
     # Copy all sources into the temporary directory.
     for file in source:
-        os.system('cp %s %s' % (file.abspath, tmp_dir))
+        if "tests/ref/" not in f.abspath:
+            os.system('cp %s %s' % (file.abspath, tmp_dir))
     # Get the list of copied files.
     files_list = utils.FindFiles(env, env.Dir(tmp_dir))
     files_str = ' '.join([x.abspath for x in files_list])
@@ -428,3 +461,4 @@ def _CheckAstyle(env, source, output_directory):
     os.system('rm -rf %s' % tmp_dir)
     # Return a dictionary.
     return {'need_astyle':need_astyle, 'need_astyle_list':need_astyle_list}
+

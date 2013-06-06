@@ -25,16 +25,17 @@ from SCons.Script import AddOption
 
 def init(env):
     AddOption(
-        '--jenkins',
-        dest='jenkins',
-        action='store_true',
-        help='Switch the run mode to jenkins.',
-        default=False
-    )
-    AddOption(
         '--verbose',
         dest='verbose',
         action='store_false',
         help='Display a more detailed output.',
         default=True
+    )
+    AddOption(
+        '--testsuit',
+        dest='testsuit',
+        action='store',
+        type='string',
+        default="",
+        help='Specifies the test suit that will be run. Default is all tests suit.'
     )

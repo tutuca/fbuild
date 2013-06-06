@@ -1069,6 +1069,14 @@ class UnitTestComponent(ProgramComponent):
         run_test_target = os.path.join(self._dir.abspath, passed_file_name)
         # Check for the flags we need to set in the environment.
         flags = self._CheckForFlags()
+        #--------------------------------------------------------------------
+        # TODO: Add use of mocko!!!!!!!!!!!!
+        # Check for use 'mocko'.
+        #mocko_builder = None
+        #sources = self.findSources()
+        #if self.env.USE_MOCKO:
+        #    mocko_builder = self._CheckMocko(sources)
+        #--------------------------------------------------------------------
         # Create the builder that creates the test executable.
         program_builder = self._CreateProgramBuilder(target)
         # Creante an instance of the RunUnittest() builder.
@@ -1245,3 +1253,29 @@ class UnitTestComponent(ProgramComponent):
             self._env.Depends(ready_to_commit, valgrind)
         self._builders['ready-to-commit'] = ready_to_commit
         return ready_to_commit
+    
+    def _CheckMocko(self, sources):
+        # Path to the tests directory.
+        aux_path = os.path.join(self.env['BUILD_DIR'], self.name)
+        tests_dir = os.path.join(aux_path, 'tests')
+        # Path to the list.mocko file.
+        mocko_list = os.path.join(tests_dir, 'list.mocko')
+        mocko_list = self.env.File(mocko_list)
+        # Path to the mocko_bind.cpp file.
+        mocko_bind_cpp = os.path.join(tests_dir, 'mocko_bind.cpp')
+        mocko_bind_cpp = self.env.File(mocko_bind_cpp)
+        # Path to the mocko_bind.h file.
+        mocko_bind_h = os.path.join(tests_dir, 'mocko_bind.h')
+        mocko_bind_h = self.env.File(mocko_bind_h)
+        # Path to the mocko_bind.gdb file.
+        mocko_bind_gdb = os.path.join(tests_dir, 'mocko_bind.gdb')
+        mocko_bind_gdb = self.env.File(mocko_bind_gdb)
+        # The 'mocko' executable.
+        mocko_exe = self.env.Dir('$INSTALL_BIN_DIR').File('mocko')
+        # Create an instance of the RunMocko() builder.
+        targets = [mocko_bind_h, mocko_bind_cpp, mocko_bind_gdb]
+        src = [mocko_list, mocko_exe]
+        mocko_builder = self.env.RunMocko(targets, src)
+        # Add mocko_bind.cpp to the sources.
+        sources.append(mocko_bind_cpp)
+        return mocko_builder
