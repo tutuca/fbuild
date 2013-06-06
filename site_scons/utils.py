@@ -39,8 +39,7 @@ DISRTO_ARCH = 'ARCH'
 _DISRTO_FILE = '/etc/issue'
 
 def FindFiles(env, fromDir, filters=None):
-    if filters == None:
-        filters = ['*']
+    filters = filters if filters is not None else ['*']
     path = fromDir.abspath
     files = []
     for s in env.Glob(path + '/*'):
@@ -48,13 +47,13 @@ def FindFiles(env, fromDir, filters=None):
             files.extend(FindFiles(env, s, filters))
         else:
             if any([fnmatch.fnmatch(s.abspath, filter) for filter in filters]):
-                files.append(s)
+                if os.path.isfile(s.abspath.replace('/build/', '/projects/')):
+                    files.append(s)
     return files
 
 
 def RecursiveInstall(env, sourceDir, sourcesRel, targetName, fileFilter=None):
-    if fileFilter == None:
-        fileFilter = ['*.*']
+    fileFilter = fileFilter if fileFilter is not None else ['*.*']
     nodes = []
     for s in sourcesRel:
         nodes.extend(FindFiles(env, s, fileFilter))

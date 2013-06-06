@@ -25,13 +25,6 @@ from SCons.Script import AddOption
 
 def init(env):
     AddOption(
-        '--jenkins',
-        dest='jenkins',
-        action='store_true',
-        help='Switch the run mode to jenkins.',
-        default=False
-    )
-    AddOption(
         '--verbose',
         dest='verbose',
         action='store_false',
