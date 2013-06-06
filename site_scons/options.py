@@ -38,3 +38,11 @@ def init(env):
         help='Display a more detailed output.',
         default=True
     )
+    AddOption(
+        '--testsuit',
+        dest='testsuit',
+        action='store',
+        type='string',
+        default="",
+        help='Specifies the test suit that will be run. Default is all tests suit.'
+    )
