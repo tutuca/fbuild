@@ -192,6 +192,8 @@ def RunDoxygen(env, target, source):
 
 
 def AStyleCheck(env, target, source):
+    # The return value.
+    result = 0
     # Get the report file.
     report_file = target[0].abspath
     # Get the output directory.
@@ -224,6 +226,7 @@ def AStyleCheck(env, target, source):
             # Print on the screen.
             env.Cprint('====> %s' % f, 'red')
             env.Cprint(info,'yellow')
+        result = 1
     else:
         env.Cprint('[OK] No file needs astyle.', 'green')
     # Close the report file.
