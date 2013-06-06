@@ -313,7 +313,12 @@ def RunValgrind(env, source, target):
     cwd = env.Dir('#').abspath
     test_dir = source[0].dir.abspath
     os.chdir(test_dir)
-    cmd = 'GTEST_DEATH_TEST_USE_FORK=1 valgrind %s %s' % (env['VALGRIND_OPTIONS'], source[0].abspath)
+    env_var = 'GTEST_DEATH_TEST_USE_FORK=1'
+    val_opt = env['VALGRIND_OPTIONS']
+    testsuit = env.GetOption('testsuit')
+    test = source[0].abspath
+    rep = (env_var, val_opt, test, testsuit)
+    cmd = '%s valgrind %s %s --gtest_filter=%s' % rep
     ret_val = subprocess.call(cmd, shell=True)
     os.chdir(cwd)
     return ret_val
