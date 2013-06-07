@@ -98,13 +98,13 @@ def RunUnittest(env, source, target):
         # Check if the builder was called for jenkins.
         tmp = target[tindex].abspath.split('.')[0]
         project = os.path.split(tmp)[1]
-        testsuit = env.GetOption('testsuit')
+        testsuite = env.GetOption('testsuite')
         if utils.WasTargetInvoked('%s:jenkins' % project[:-5]):
             os.environ['GTEST_OUTPUT'] = env.gtest_report
         if env.USE_MOCKO:
             cmd = "cd %s; gdb -x mocko_bind.gdb %s > %s" % (dir, appbin, t)
         else:
-            cmd = "cd %s; ./%s --gtest_filter=%s > %s" % (dir, appbin, testsuit, t)
+            cmd = "cd %s; ./%s --gtest_filter=%s > %s" % (dir, appbin, testsuite, t)
         rc = subprocess.call(cmd, shell=True)
         if env.GetOption('printresults'):
             subprocess.call("cat %s" % t, shell=True)
@@ -315,9 +315,9 @@ def RunValgrind(env, source, target):
     os.chdir(test_dir)
     env_var = 'GTEST_DEATH_TEST_USE_FORK=1'
     val_opt = env['VALGRIND_OPTIONS']
-    testsuit = env.GetOption('testsuit')
+    testsuite = env.GetOption('testsuite')
     test = source[0].abspath
-    rep = (env_var, val_opt, test, testsuit)
+    rep = (env_var, val_opt, test, testsuite)
     cmd = '%s valgrind %s %s --gtest_filter=%s' % rep
     ret_val = subprocess.call(cmd, shell=True)
     os.chdir(cwd)
