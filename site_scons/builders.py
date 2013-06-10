@@ -1,7 +1,7 @@
 # fudepan-build: The build system for FuDePAN projects
 #
 # Copyright (C) 2011 Esteban Papp, Hugo Arregui, Alejandro Kondrasky,
-#               2013 Gonzalo Bonigo, Gustavo Ojeda, FuDePAN
+#               2013 Gonzalo Bonigo, Gustavo Ojeda, FuDePAN.
 #
 # This file is part of the fudepan-build build system.
 #
@@ -84,11 +84,11 @@ def init(env):
     env.Append(BUILDERS = {'RunMocko':bldMocko})
 
 
-def PrintDummy(env, source, target):
+def PrintDummy(env, target, source):
     return ""
 
 
-def RunUnittest(env, source, target):
+def RunUnittest(env, target, source):
     rc = 0
     tindex = 0
     for s in source:
@@ -116,7 +116,7 @@ def RunUnittest(env, source, target):
     return rc
 
 
-def InitLcov(env, source, target):
+def InitLcov(env, target, source):
     test_executable = source[0].abspath
     indexFile = target[0].abspath
     data = {
@@ -131,7 +131,7 @@ def InitLcov(env, source, target):
     return r
 
 
-def RunLcov(env, source, target):
+def RunLcov(env, target, source):
     test_executable = source[0].abspath
     indexFile = target[0].abspath
     data = {
@@ -156,7 +156,7 @@ def RunLcov(env, source, target):
     return r
 
 
-def RunDoxygen(env, source, target):
+def RunDoxygen(env, target, source):
     # Path to the doxygen template file.
     doxyTamplate = source[0].abspath
     # Path to the doc/project directory.
@@ -191,105 +191,77 @@ def RunDoxygen(env, source, target):
     return rc
 
 
-def AStyleCheck(env, source, target):
+def AStyleCheck(env, target, source):
     # The return value.
     result = 0
-    # We use the target as a temporary directory.
-    targetDir = target[0]
-    target = str(target[0].abspath)
-    # If it doesn't exist we create it.
-    if not os.path.exists(target):
-        os.makedirs(target)
-    for f in source:
-        if "tests/ref/" not in f.abspath:
-            os.system('cp %s %s' % (f.abspath,target))
-    # Get the list of copied files.
-    files_lis = utils.FindFiles(env,targetDir)
-    files_str = ' '.join([x.abspath for x in files_lis])
-    # Create the command for subprocess.call().
-    cmd = 'astyle -k1 --options=none --convert-tabs -bSKpUH %s' % files_str
-    # This variable holds if some file needs to be astyled.
-    need_astyle = False
-    # A list for the files that needs astyle.
-    need_astyle_list = []
-    # Apply astyle to those files.
-    rc = subprocess.call(cmd, shell=True, stdout=subprocess.PIPE)
-    if rc != 0:
-        return rc
-    # Check if astyle did some modifications.
-    for f in files_lis:
-        # If the '.orig' file exists for the file 'f' then it was modify for 
-        # astyle.
-        if os.path.exists('%s.orig' % f.abspath):
-            # Print the differences between files.
-            cmd = 'diff -Nau %s.orig %s' % (f.abspath,f.abspath)
-            diff = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
-            diff_stdout = diff.stdout.read()
-            diff.wait()
-            need_astyle_list.append((os.path.split(f.abspath)[1],diff_stdout))
-            need_astyle = True
-    # Remove the '*.orig' files.
-    os.system('rm -rf %s/*.orig' % target)
-    # Get the name of the project.
-    project = os.path.split(target)[1]
-    # Create the report directory.
-    report_dir = os.path.join(env['INSTALL_REPORTS_DIR'], 'astyle-check', project)
-    if not os.path.exists(report_dir):
-        os.makedirs(report_dir)
-    # Report file name.
-    report_file = 'astyle-check-report.diff'
-    # Path to the report file.
-    report_path = os.path.join(report_dir, report_file)
-    # Check if the builder was called for jenkins.
-    #if utils.WasTargetInvoked('%s:jenkins' % project):
+    # Get the report file.
+    report_file = target[0].abspath
+    # Get the output directory.
+    output_directory = os.path.split(report_file)[0]
+    # Check if the directory exists.
+    if not os.path.exists(output_directory):
+        os.makedirs(output_directory)
+    # Check if some file need astyle.
+    check_astyle_result = _CheckAstyle(env, source, output_directory)
+    # Check if _CheckAstyle() fails.
+    if check_astyle_result is None:
+        return 1
     # Open the report file.
     try:
-        report = open(report_path, 'w')
+        report = open(report_file, 'w')
     except IOError:
-        env.Cprint('No such file or directory:', report_path)
+        env.Cprint('No such file or directory:', report_file)
         return 1
     else:
         # If we can open it we truncate it.
         report.truncate(0)
     # If some file needs astyle we print info.
-    if need_astyle:
-        result = 1
+    if check_astyle_result['need_astyle']:
         # Print a warning message.
         env.Cprint('[WARNING] The following files need astyle:', 'red')
         # Print what need to be astyled.
-        for f,info in need_astyle_list:
-            # If it was called for jenkins we write the diff into the report file.
-            #if utils.WasTargetInvoked('%s:jenkins' % project):
+        for f, info in check_astyle_result['need_astyle_list']:
+            # Write into hte report file.
             report.write(info+'\n\n')
+            # Print on the screen.
             env.Cprint('====> %s' % f, 'red')
             env.Cprint(info,'yellow')
+        result = 1
     else:
         env.Cprint('[OK] No file needs astyle.', 'green')
     # Close the report file.
-    #if utils.WasTargetInvoked('%s:jenkins' % project):
     report.close()
-    if need_astyle:
+    if check_astyle_result['need_astyle']:
         cmd = 'grep %s %s | grep %s | grep %s | grep %s > /dev/null' % \
-            ('-v "^[+-].*for.*:"',report_path,'-v "^---"','-v "^+++"','"^[+-]"')
+            ('-v "^[+-].*for.*:"',report_file,'-v "^---"','-v "^+++"','"^[+-]"')
         if subprocess.call(cmd, shell=True) > 0:
             result = 0
     return result
 
 
-def AStyle(env, source, target):
-    rc = 0
-    t = target[0].abspath
-    cmd = "astyle -k1 --options=none --convert-tabs -bSKpUH %s"
-    fileList = ' '.join(s.abspath for s in source if "tests/ref/" not in s.abspath)
-    rc = subprocess.call(cmd % fileList, shell=True)
-    if rc:
-        env.cerror('[error] %s, error: %s' % (t, rc))
+def AStyle(env, target, source):
+    # Print message on the screen.
+    env.Cprint('Running astyle...', 'green')
+    # Get the project directory.
+    project_dir = target[0].abspath
+    # Generate the list of files to apply astyle.
+    #   This is because the files in 'source' point to the build/ directory 
+    #   instead of the projects/ directory.
+    build_dir = env['BUILD_DIR']
+    ws_dir = env['WS_DIR']
+    file_list = ' '.join([f.abspath.replace(build_dir,ws_dir) for f in source if "tests/ref/" not in f.abspath])
+    # Create the command for subprocess.call().
+    cmd = "astyle -k1 --options=none --convert-tabs -bSKpUH %s" % file_list
+    # Run astyle.
+    result = subprocess.call(cmd, shell=True)
+    if result != 0:
+        env.cerror('[astyle] ERROR running astyle on: %s' % project_dir)
     else:
-        env.Cprint('[astyle] %s' % t, 'green')
-    return rc
+        env.Cprint('[astyle] OK on: %s' % project_dir, 'green')
+    return result
 
 
-def RunPdfLatex(env, source, target):
+def RunPdfLatex(env, target, source):
     #Deberiamos usar las env.{operation} ya que son crossplatform.
     (pathHead, pathTail) = os.path.split(source[0].abspath)
     tmpPdf2TexDir = pathHead + '/tmp_Pdf2Texfile/'
@@ -309,72 +281,103 @@ def RunPdfLatex(env, source, target):
     #env.Execute(env.Delete(tmpPdf2TexDir))
 
 
-def RunValgrind(env, source, target):
-    cwd = env.Dir('#').abspath
+def RunValgrind(env, target, source):
+    # Get the current directory.
+    cwd = os.getcwd()
+    # Get the test executable file.
+    test = source[0].abspath
+    # Get the test executable directory.
     test_dir = source[0].dir.abspath
+    # Change to the test directory.
     os.chdir(test_dir)
+    # Command to execute valgrind.
     env_var = 'GTEST_DEATH_TEST_USE_FORK=1'
     val_opt = env['VALGRIND_OPTIONS']
     testsuite = env.GetOption('testsuite')
-    test = source[0].abspath
     rep = (env_var, val_opt, test, testsuite)
     cmd = '%s valgrind %s %s --gtest_filter=%s' % rep
+    # Execute the command.
     ret_val = subprocess.call(cmd, shell=True)
+    # Get back to the previous directory.
     os.chdir(cwd)
     return ret_val
 
 
-def RunCCCC(env, source, target):
+def RunCCCC(env, target, source):
+    # Print message on the screen.
     env.Cprint('Running cccc...', 'green')
-    target = target[0].abspath
-    # It tells to cccc the name of the directory that will contain the result.
-    env.Append(CCCC_OPTIONS = '--outdir=%s' % target)
-    # Check if the install directory for the cccc results already exists.
-    if not os.path.exists(target):
-        os.makedirs(target)
-    # From the env['CCCC_OPTIONS'] we create a string with the options for cccc.
+    # Get the report file name.
+    report_file_name = target[0].abspath
+    # Tell cccc the name of the output file.
+    env.Append(CCCC_OPTIONS='--html_outfile=%s' % report_file_name)
+    # Get the output directory.
+    output_directory = os.path.split(report_file_name)[0]
+    # Tell cccc the name of the output directory.
+    env.Append(CCCC_OPTIONS = '--outdir=%s' % output_directory)
+    # Check if the output directory directory already exists.
+    if not os.path.exists(output_directory):
+        os.makedirs(output_directory)
+    # Create a string with the options for cccc.
     options = ' '.join([opt for opt in env['CCCC_OPTIONS']])
-    # From the 'source' we create a string with the file names for cccc.
+    # Create a string with the file names for cccc.
     files = ' '.join([f.abspath for f in source])
     # Create the command to be pass to subprocess.call()
     cmd = 'cccc %s %s' % (options, files)
-    ret_val = subprocess.call(cmd, shell=True)
-    return ret_val
+    return subprocess.call(cmd, shell=True)
 
 
-def RunCLOC(env, source, target):
+def RunCLOC(env, target, source):
+    # Print message on the screen.
     env.Cprint('Running cloc...', 'green')
-    target = target[0].abspath
-    # Check if the install directory for the cloc results already exists.
-    if not os.path.exists(target):
-        os.makedirs(target)
-    # From the env['CLOC_OPTIONS'] we create a string with the options for cloc.
+    # Get the report file name.
+    report_file = target[0].abspath
+    # Check the type of the report file.
+    if env['CLOC_OUTPUT_FORMAT'] == 'txt':
+        output_option = '--out=%s.txt' % report_file
+    elif env['CLOC_OUTPUT_FORMAT'] == 'sql':
+        output_option = '--sql=%s.sql' % report_file
+    elif env['CLOC_OUTPUT_FORMAT'] == 'xml':
+        output_option = '--xml --out=%s.xml' % report_file
+    else:
+        error_msg = "Invalid value for the CLOC_OUTPUT_FORMAT flag"
+        value = env['CLOC_OUTPUT_FORMAT']
+        env.Cprint('[ERROR] %s : %s' % (error_msg,value))
+    # Set the type of the report file.
+    env.Append(CLOC_OPTIONS = output_option)
+    # Get the output directory.
+    output_directory = os.path.split(report_file)[0]
+    # Check if the output directory directory already exists.
+    if not os.path.exists(output_directory):
+        os.makedirs(output_directory)
+    # Create a string with the options for cloc.
     options = ' '.join([opt for opt in env['CLOC_OPTIONS']])
-    # From the 'source' we create a string with the file names for cloc.
+    # Create a string with the file names for cloc.
     files = ' '.join([f.abspath for f in source])
     # Create the command to be pass to subprocess.call()
     cmd = 'cloc %s %s' % (options, files)
     return subprocess.call(cmd, shell=True)
 
 
-def RunCppCheck(env, source, target):
+def RunCppCheck(env, target, source):
+    # Print message on the screen.
     env.Cprint('Running cppcheck...', 'green')
-    target = target[0].abspath
-    # Check if the install directory for the cppcheck results already exists.
-    if not os.path.exists(target):
-        os.makedirs(target)
-    # We create a string with the options for cppcheck.
+    # Get the report file name.
+    report_file = target[0].abspath
+    # Get the output directory.
+    output_directory = os.path.split(report_file)[0]
+    # Check if the output directory for the cppcheck report already exists.
+    if not os.path.exists(output_directory):
+        os.makedirs(output_directory)
+    # Create a string with the options for cppcheck.
     options = ' '.join([opt for opt in env['CPPCHECK_OPTIONS']])
     # We create a string with the files for cppcheck.
     files = ' '.join([f.abspath for f in source])
-    # Set the name of the report file.
-    outfile = "%s/CppCheckReport" % target
     # Create the command to be pass to subprocess.call()
-    cmd = "cppcheck %s %s 2> %s.xml > %s.txt" % (options,files,outfile,outfile)
+    cmd = "cppcheck %s %s | sed '/files checked /d' > %s" % (options, files, report_file)
     return subprocess.call(cmd, shell=True)
 
 
-def RunMocko(env, source, target):
+def RunMocko(env, target, source):
     # Get the file list.mocko.
     mocko_list = source[0].abspath
     # Get mocko executable file.
@@ -389,4 +392,46 @@ def RunMocko(env, source, target):
     ret_val = subprocess.call('%s %s' % (mocko, mocko_list), shell=True)
     os.chdir(cwd)
     return ret_val
+
+
+def _CheckAstyle(env, source, output_directory):
+    # Create a temporary directory.
+    tmp_dir = os.path.join(output_directory, 'tmp')
+    if not os.path.exists(tmp_dir):
+        os.makedirs(tmp_dir)
+    # The list of copied files.
+    files_list = []
+    # Copy all sources into the temporary directory.
+    for file in source:
+        if "tests/ref/" not in file.abspath: # TODO: Remove this line.
+            os.system('cp %s %s' % (file.abspath, tmp_dir))
+            f = env.Dir(tmp_dir).File(os.path.split(file.abspath)[1])
+            files_list.append(f)
+    files_str = ' '.join([x.abspath for x in files_list])
+    # This variable holds if some file needs astyle.
+    need_astyle = False
+    # A list for the files that needs astyle.
+    need_astyle_list = []
+    # Create the command for subprocess.call().
+    cmd = 'astyle -k1 --options=none --convert-tabs -bSKpUH %s' % files_str
+    # To see if a file needs astyle we first apply astyle to the file and
+    # check if it suffer some change.
+    if subprocess.call(cmd, shell=True, stdout=subprocess.PIPE) != 0:
+        # If astyle fails, we fail.
+        return None
+    # Check if astyle did some modifications.
+    for file in files_list:
+        # If the '.orig' file exists for the file then it was modify by astyle.
+        if os.path.exists('%s.orig' % file.abspath):
+            # Print the differences between files.
+            cmd = 'diff -Nau %s.orig %s' % (file.abspath,file.abspath)
+            diff = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
+            diff_stdout = diff.stdout.read()
+            diff.wait()
+            need_astyle_list.append((os.path.split(file.abspath)[1],diff_stdout))
+            need_astyle = True
+    # Remove the temporary directory.
+    os.system('rm -rf %s' % tmp_dir)
+    # Return a dictionary.
+    return {'need_astyle':need_astyle, 'need_astyle_list':need_astyle_list}
 
