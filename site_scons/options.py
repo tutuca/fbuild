@@ -32,10 +32,10 @@ def init(env):
         default=True
     )
     AddOption(
-        '--testsuit',
-        dest='testsuit',
+        '--testsuite',
+        dest='testsuite',
         action='store',
         type='string',
-        default="",
-        help='Specifies the test suit that will be run. Default is all tests suit.'
+        default="*",
+        help='Specifies the test suite that will be run. Default is all tests suit.'
     )
