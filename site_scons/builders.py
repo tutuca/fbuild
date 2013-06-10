@@ -431,12 +431,15 @@ def _CheckAstyle(env, source, output_directory):
     tmp_dir = os.path.join(output_directory, 'tmp')
     if not os.path.exists(tmp_dir):
         os.makedirs(tmp_dir)
+    # The list of copied files.
+    files_list = []
     # Copy all sources into the temporary directory.
     for file in source:
         if "tests/ref/" not in f.abspath:
             os.system('cp %s %s' % (file.abspath, tmp_dir))
-    # Get the list of copied files.
-    files_list = utils.FindFiles(env, env.Dir(tmp_dir))
+            f = env.Dir(tmp_dir).File(os.path.split(file.abspath)[1])
+            files_list.append(f)
+            print f.abspath
     files_str = ' '.join([x.abspath for x in files_list])
     # This variable holds if some file needs astyle.
     need_astyle = False
