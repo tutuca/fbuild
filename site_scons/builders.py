@@ -407,7 +407,6 @@ def _CheckAstyle(env, source, output_directory):
             os.system('cp %s %s' % (file.abspath, tmp_dir))
             f = env.Dir(tmp_dir).File(os.path.split(file.abspath)[1])
             files_list.append(f)
-            print f.abspath
     files_str = ' '.join([x.abspath for x in files_list])
     # This variable holds if some file needs astyle.
     need_astyle = False
