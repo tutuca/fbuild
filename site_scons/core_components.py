@@ -332,7 +332,7 @@ class HeaderOnlyComponent(Component):
     
     def _CreateAstyleCheckTarget(self, sources):
         # Create the target.
-        target = self.env.Dir(self.env['BUILD_DIR']).Dir('astyle-check').Dir(self.name)
+        target = self.env.Dir(self.env['INSTALL_REPORTS_DIR']).Dir('astyle-check').Dir(self.name)
         # Call RunAStyleCheck().
         astyle_check = self.env.RunAStyleCheck(target, sources)
         self.env.AlwaysBuild(astyle_check)
