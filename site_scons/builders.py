@@ -101,14 +101,14 @@ def RunUnittest(env, target, source):
         # Check if the builder was called for jenkins or ready to commit.
         tmp = target[tindex].abspath.split('.')[0]
         project = os.path.split(tmp)[1]
-        testsuit = env.GetOption('testsuit')
+        testsuite = env.GetOption('testsuite')
         if (utils.WasTargetInvoked('%s:jenkins' % project[:-5]) or 
             utils.WasTargetInvoked('%s:ready-to-commit' % project[:-5])):
             os.environ['GTEST_OUTPUT'] = env.test_report
         if env.USE_MOCKO:
             cmd = "cd %s; gdb -x mocko_bind.gdb %s > %s" % (dir, appbin, t)
         else:
-            cmd = "cd %s; ./%s --gtest_filter=%s > %s" % (dir, appbin, testsuit, t)
+            cmd = "cd %s; ./%s --gtest_filter=%s > %s" % (dir, appbin, testsuite, t)
         rc = subprocess.call(cmd, shell=True)
         if env.GetOption('printresults'):
             subprocess.call("cat %s" % t, shell=True)
@@ -297,8 +297,8 @@ def RunValgrind(env, target, source):
     # Command to execute valgrind.
     env_var = 'GTEST_DEATH_TEST_USE_FORK=1'
     val_opt = env['VALGRIND_OPTIONS']
-    testsuit = env.GetOption('testsuit')
-    rep = (env_var, val_opt, test, testsuit)
+    testsuite = env.GetOption('testsuite')
+    rep = (env_var, val_opt, test, testsuite)
     cmd = '%s valgrind %s %s --gtest_filter=%s' % rep
     # Execute the command.
     ret_val = subprocess.call(cmd, shell=True)
@@ -435,11 +435,10 @@ def _CheckAstyle(env, source, output_directory):
     files_list = []
     # Copy all sources into the temporary directory.
     for file in source:
-        if "tests/ref/" not in f.abspath:
+        if "tests/ref/" not in file.abspath: # TODO: Remove this line.
             os.system('cp %s %s' % (file.abspath, tmp_dir))
             f = env.Dir(tmp_dir).File(os.path.split(file.abspath)[1])
             files_list.append(f)
-            print f.abspath
     files_str = ' '.join([x.abspath for x in files_list])
     # This variable holds if some file needs astyle.
     need_astyle = False
