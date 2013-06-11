@@ -101,6 +101,7 @@ class Component(object):
         self._includes = self._FormatArgument(inc)
         self._external_includes = self._FormatArgument(ext_inc)
         self._alias_groups = als if als is not None else []
+        self._env.USE_MOCKO = 'mocko' in deps
     
     #
     # Public methods.
