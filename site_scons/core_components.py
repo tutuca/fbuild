@@ -331,14 +331,17 @@ class Component(object):
         """
             This method creates an installer builder.
         """
-        # The directory where the binaries are going to be installed.
         if isinstance(self, ProgramComponent):
             binaries_dir = self._env.Dir('$INSTALL_BIN_DIR')
         else:
             binaries_dir = self._env.Dir('$INSTALL_LIB_DIR')
-        # The directory where the headers will be installed.
-        headers_dir = self._env.Dir('$INSTALL_HEADERS_DIR').Dir(self.name)
-        inc_installer = self._env.Install(headers_dir, headers)
+        inc_installer = utils.RecursiveInstall(
+            self._env,
+            self._dir,
+            self._includes,
+            self.name,
+            HEADERS_FILTER
+        )
         bin_installer = self._env.Install(binaries_dir, binaries)
         installers = bin_installer + inc_installer
         # Create the alias for for install the component.

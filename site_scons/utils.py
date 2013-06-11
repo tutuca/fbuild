@@ -51,7 +51,9 @@ def FindFiles(env, fromDir, filters=None):
                     files.append(s)
     return files
 
-
+#
+# TODO: Rewrite this method!!!!
+#
 def RecursiveInstall(env, sourceDir, sourcesRel, targetName, fileFilter=None):
     fileFilter = fileFilter if fileFilter is not None else ['*.*']
     nodes = []
@@ -59,7 +61,7 @@ def RecursiveInstall(env, sourceDir, sourcesRel, targetName, fileFilter=None):
         nodes.extend(FindFiles(env, s, fileFilter))
     l = len(sourceDir.abspath) + 1
     relnodes = [ n.abspath[l:] for n in nodes ]
-    targetHeaderDir = env.Dir(env['INSTALL_HEADERS_DIR']).Dir(targetName).abspath
+    targetHeaderDir = env.Dir(env['INSTALL_HEADERS_DIR']).abspath
     targets = []
     sources = []
     for n in relnodes:
