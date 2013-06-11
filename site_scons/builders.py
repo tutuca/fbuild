@@ -123,6 +123,7 @@ def RunUnittest(env, target, source):
 def InitLcov(env, target, source):
     test_executable = source[0].abspath
     indexFile = target[0].abspath
+    silent = env.GetOption('verbose')
     data = {
         'coverage_file': os.path.join(os.path.dirname(os.path.dirname(indexFile)), 'coverage_output.dat'),
         'output_dir'   : env.Dir('INSTALL_METRICS_DIR'),
@@ -131,13 +132,14 @@ def InitLcov(env, target, source):
     r = ChainCalls(env, [
         'lcov --zerocounters --directory %(project_dir)s -b .' % data,
         'lcov --capture --initial --directory %(project_dir)s -b . --output-file %(coverage_file)s' % data,
-    ])
+    ], silent)
     return r
 
 
 def RunLcov(env, target, source):
     test_executable = source[0].abspath
     indexFile = target[0].abspath
+    silent = env.GetOption('verbose')
     data = {
         'coverage_file': os.path.join(os.path.dirname(os.path.dirname(indexFile)), 'coverage_output.dat'),
         'output_dir'   : os.path.dirname(indexFile),
@@ -154,7 +156,7 @@ def RunLcov(env, target, source):
         'lcov --remove %(coverage_file)s "*install/*" -o %(coverage_file)s' % data,
         'lcov --remove %(coverage_file)s "*/tests/*" -o %(coverage_file)s' % data,
         'genhtml --highlight --legend --output-directory %(output_dir)s %(coverage_file)s' % data,
-    ])
+    ], silent)
     if r == 0:
         env.Cprint('lcov report in: %s' % indexFile, 'green')
     return r
