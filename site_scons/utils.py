@@ -164,6 +164,8 @@ def ChainCalls(env, cmds, silent=True):
         cmd = cmds[0]
         with open(os.devnull, "w") as fnull:
             stdout = fnull if silent else None
+            if not silent:
+                print '>>', cmd
             rc = subprocess.call(cmd, stdout=stdout, shell=True) #errors always shows
         if rc:
             env.cerror('error executing: %s' % cmd)
