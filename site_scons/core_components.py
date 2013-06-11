@@ -583,7 +583,7 @@ class HeaderOnlyComponent(Component):
         target = target.Dir('cppcheck').Dir(self.name)
         target = os.path.join(target.abspath, 'CppcheckReport.txt')
         # Create an instance of the RunCppCheck() builder.
-        cppcheck_builder = self._env.RunCppcheck(target, sources)
+        cppcheck_builder = self._env.RunCppCheck(target, sources)
         # cppcheck can always be build.
         self._env.AlwaysBuild(cppcheck_builder)
         # Create the alias.
