@@ -145,6 +145,10 @@ def RunLcov(env, target, source):
         'output_dir'   : os.path.dirname(indexFile),
         'project_dir'  : env['PROJECT_DIR']
     }
+    #
+    # TODO: Create a new list of prjects to remove from coverage based on the
+    # variable env['PROJECT_DEPS'].
+    #
     r = ChainCalls(env, [
         'rm -f %(coverage_file)s' % data,
         'lcov --no-checksum --directory %(project_dir)s -b . --capture --output-file %(coverage_file)s' % data,

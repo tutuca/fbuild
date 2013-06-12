@@ -1175,6 +1175,8 @@ class UnitTestComponent(ProgramComponent):
         # Get the path directory to the project.
         project_component = self._component_graph.get(self._project_name)
         self._env['PROJECT_DIR'] = project_component._dir.abspath
+        deps = list(set(self._dependencies+project_component._dependencies))
+        self._env['PROJECT_DEPS'] = deps
         # Targets and sources for builder InitLcov().
         init_lcov_target = os.path.join(self._dir.abspath, 'coverage_data')
         init_lcov_soureces = [program_builder]
