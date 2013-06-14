@@ -1136,7 +1136,7 @@ class UnitTestComponent(ProgramComponent):
         if need_coverage:
             flags = ['--coverage']
             self._env.Append(CXXFLAGS=flags, CFLAGS=flags, LINKFLAGS=flags)
-        # Check if we need the uotput of cloc in xml file.
+        # Check if we need the output of cloc in xml file.
         if need_cloc_xml:
             self._env.Replace(CLOC_OUTPUT_FORMAT='xml')
         # Check if we need to create an xml report for valgrind.
@@ -1175,8 +1175,10 @@ class UnitTestComponent(ProgramComponent):
         # Get the path directory to the project.
         project_component = self._component_graph.get(self._project_name)
         self._env['PROJECT_DIR'] = project_component._dir.abspath
-        deps = list(set(self._dependencies+project_component._dependencies))
-        self._env['PROJECT_DEPS'] = deps
+        project_deps = self._dependencies + project_component._dependencies
+        project_deps = utils.RemoveDuplicates(project_deps)
+        project_deps.remove(self._project_name)
+        self._env['PROJECT_DEPS'] = project_deps
         # Targets and sources for builder InitLcov().
         init_lcov_target = os.path.join(self._dir.abspath, 'coverage_data')
         init_lcov_soureces = [program_builder]

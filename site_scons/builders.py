@@ -139,31 +139,27 @@ def InitLcov(env, target, source):
 def RunLcov(env, target, source):
     test_executable = source[0].abspath
     indexFile = target[0].abspath
-    silent = env.GetOption('verbose')
     data = {
         'coverage_file': os.path.join(os.path.dirname(os.path.dirname(indexFile)), 'coverage_output.dat'),
         'output_dir'   : os.path.dirname(indexFile),
         'project_dir'  : env['PROJECT_DIR']
     }
-    #
-    # TODO: Create a new list of prjects to remove from coverage based on the
-    # variable env['PROJECT_DEPS'].
-    #
-    r = ChainCalls(env, [
+    commands_list = [
         'rm -f %(coverage_file)s' % data,
         'lcov --no-checksum --directory %(project_dir)s -b . --capture --output-file %(coverage_file)s' % data,
         'lcov --no-checksum --directory %(project_dir)s -b . --capture --output-file %(coverage_file)s' % data,
-        'lcov --remove %(coverage_file)s "*usr/include*" -o %(coverage_file)s' % data,
-        'lcov --remove %(coverage_file)s "*boost*" -o %(coverage_file)s' % data,
-        'lcov --remove %(coverage_file)s "*gtest*" -o %(coverage_file)s' % data,
-        'lcov --remove %(coverage_file)s "*gmock*" -o %(coverage_file)s' % data,
-        'lcov --remove %(coverage_file)s "*install/*" -o %(coverage_file)s' % data,
         'lcov --remove %(coverage_file)s "*/tests/*" -o %(coverage_file)s' % data,
-        'genhtml --highlight --legend --output-directory %(output_dir)s %(coverage_file)s' % data,
-    ], silent)
-    if r == 0:
+        'lcov --remove %(coverage_file)s "*usr/include*" -o %(coverage_file)s' % data
+    ]
+    for dep in env['PROJECT_DEPS']:
+        data['project_dep'] = dep
+        cmd = 'lcov --remove %(coverage_file)s "*%(project_dep)s*" -o %(coverage_file)s' % data
+        commands_list.append(cmd)
+    commands_list.append('genhtml --highlight --legend --output-directory %(output_dir)s %(coverage_file)s' % data)
+    result = ChainCalls(env, commands_list, env.GetOption('verbose'))
+    if result == 0:
         env.Cprint('lcov report in: %s' % indexFile, 'green')
-    return r
+    return result
 
 
 def RunDoxygen(env, target, source):
