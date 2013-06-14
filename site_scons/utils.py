@@ -61,7 +61,7 @@ def RecursiveInstall(env, sourceDir, sourcesRel, targetName, fileFilter=None):
         nodes.extend(FindFiles(env, s, fileFilter))
     l = len(sourceDir.abspath) + 1
     relnodes = [ n.abspath[l:] for n in nodes ]
-    targetHeaderDir = env.Dir(env['INSTALL_HEADERS_DIR']).abspath
+    targetHeaderDir = env.Dir(env['INSTALL_HEADERS_DIR']).Dir(targetName).abspath
     targets = []
     sources = []
     for n in relnodes:
