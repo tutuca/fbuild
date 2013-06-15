@@ -1021,15 +1021,20 @@ class ProgramComponent(ObjectComponent):
     # Private methods.
     #
     
-    def _CreateProgramBuilder(self, target):
+    def _CreateProgramBuilder(self, target, sources=None):
         # Get include paths.
         includes = self.GetIncludePaths()
         # Get the libraries to link and their directories.
         (libs,libpaths) = self.GetLibs()
+        # Get the sources.
+        if sources is not None:
+            sources += self.GetObjectsFiles()
+        else:
+            sources = self.GetObjectsFiles()
         # Create an instance of the Program() builder.
         program_builder = self._env.Program(
             target,
-            self.GetObjectsFiles(),
+            sources,
             CPPPATH = includes,
             LIBPATH = libpaths,
             LIBS = libs
@@ -1073,16 +1078,12 @@ class UnitTestComponent(ProgramComponent):
         run_test_target = os.path.join(self._dir.abspath, passed_file_name)
         # Check for the flags we need to set in the environment.
         flags = self._CheckForFlags()
-        #--------------------------------------------------------------------
-        # TODO: Add use of mocko!!!!!!!!!!!!
         # Check for use 'mocko'.
-        #mocko_builder = None
-        #sources = self.findSources()
-        #if self.env.USE_MOCKO:
-        #    mocko_builder = self._CheckMocko(sources)
-        #--------------------------------------------------------------------
+        sources = []
+        if self._env.USE_MOCKO:
+            self._UseMocko(sources)
         # Create the builder that creates the test executable.
-        program_builder = self._CreateProgramBuilder(target)
+        program_builder = self._CreateProgramBuilder(target, sources)
         # Creante an instance of the RunUnittest() builder.
         run_test_builder = self._env.RunUnittest(run_test_target, program_builder)
         # Check if the user want to run the tests anyway.
@@ -1262,7 +1263,7 @@ class UnitTestComponent(ProgramComponent):
         self._builders['ready-to-commit'] = ready_to_commit
         return ready_to_commit
     
-    def _CheckMocko(self, sources):
+    def _UseMocko(self, sources):
         # Path to the tests directory.
         aux_path = os.path.join(self.env['BUILD_DIR'], self.name)
         tests_dir = os.path.join(aux_path, 'tests')
