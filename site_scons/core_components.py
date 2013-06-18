@@ -355,6 +355,7 @@ class Component(object):
         for alias in self._alias_groups:
             self._env.Alias(alias, None, "Build group %s" % alias)
 
+    #TODO: Move thos out of here! Could be into utils.py.
     def _FormatArgument(self, arg):
         """
             This method takes an iterable object as argument, which can contain 
@@ -1114,7 +1115,8 @@ class UnitTestComponent(ProgramComponent):
         # Flags for check the calling targets.
         jenkins = utils.WasTargetInvoked('%s:jenkins' % self._project_name)
         coverage = utils.WasTargetInvoked('%s:coverage' % self._project_name)
-        rtc = utils.WasTargetInvoked('%s:ready-to-commit' % self._project_name)
+        rtc = (utils.WasTargetInvoked('%s:rtc' % self._project_name) or
+              utils.WasTargetInvoked('%s:ready-to-commit' % self._project_name))
         # Create the dictionary of flags.
         result = {'jenkins':jenkins, 'coverage':coverage, 'ready-to-commit':rtc}
         # Check for needed reports.
@@ -1246,10 +1248,21 @@ class UnitTestComponent(ProgramComponent):
         # Get the component of the project.
         project_component = self._component_graph.get(self._project_name)
         # Create the alias.
-        ready_to_commit = self._env.Alias('%s:ready-to-commit' % self._project_name, None)
+        ready_to_commit = self._env.Alias(
+            '%s:ready-to-commit' % self._project_name, 
+            None
+        )
+        # Create a shorter alias.
+        self._env.Alias('%s:rtc' % self._project_name, ready_to_commit)
         # If the target 'ready-to-commit' was invoked...
         if flags['ready-to-commit']:
-            # Get the builders from which the ready-to-commit target will depend on.
+            # Create an instance of the RunReadyToCommit() builder.
+            target = self._env.Dir('$INSTALL_REPORTS_DIR')
+            target = target.Dir('ready-to-commit')
+            target = target.File('%s.txt' % self._project_name)
+            rtc_builder = self._env.RunReadyToCommit(target, None)
+            # Get the builders from which the ready-to-commit target will 
+            # depend on.
             sources = project_component.GetSourcesFiles()
             includes = project_component.GetIncludeFiles()
             source = sources + includes
@@ -1257,9 +1270,10 @@ class UnitTestComponent(ProgramComponent):
             cppcheck = project_component._CreateCppcheckTarget(source)
             valgrind = self._CreateValgrindTarget(program_builder)
             # Create dependencies.
-            self._env.Depends(ready_to_commit, astyle_check)
-            self._env.Depends(ready_to_commit, cppcheck)
-            self._env.Depends(ready_to_commit, valgrind)
+            self._env.Depends(rtc_builder, astyle_check)
+            self._env.Depends(rtc_builder, cppcheck)
+            self._env.Depends(rtc_builder, valgrind)
+            self._env.Depends(ready_to_commit, rtc_builder)
         self._builders['ready-to-commit'] = ready_to_commit
         return ready_to_commit
     

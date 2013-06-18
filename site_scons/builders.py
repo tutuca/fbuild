@@ -401,31 +401,39 @@ def RunMocko(env, target, source):
 
 
 def RunReadyToCommit(env, target, source):
-    targetDir = os.path.join(env['INSTALL_REPORTS_DIR'])
-    project = target[0].abspath.split('/')[-1].split(':')[0]
+    # Print message on the screen.
     env.Cprint('\nRunning ready-to-commit...\n', 'green')
-    # Create path to files generated
-    OutputFiles = {
-        'CPPCHECK': os.path.join(targetDir, 'cppcheck', project, 'CppCheckReport.txt'),
-        '-ASTYLE-': os.path.join(targetDir, 'astyle-check', project, 'astyle-check-report.diff'),
-        'VALGRIND': os.path.join(targetDir, 'valgrind', project + ':test', 'valgrind-report.xml'),
-        }
-    # Check for each file if there is any error
-    for f in OutputFiles:
-        if os.path.exists(OutputFiles[f]):
-            cmd = "cat %s | grep -E '(<error>|.orig|error:)'" % (OutputFiles[f])
-            cmd_result = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
-            cmd_stdout = cmd_result.stdout.read()
-            cmd_result.wait()
-            if cmd_stdout:
-                env.Cprint('[%s] ERROR FOUND - please see: %s' % (f, OutputFiles[f]), 'yellow')
-            else:
-                env.Cprint('[%s] OK' % f, 'green')
-        else:
-            env.Cprint('[%s] ERROR FOUND - Cant Find file %s' % (f, OutputFiles[f]), 'red')
+    env.Cprint('\nRunning ready-to-commit 1\n', 'green')
+    env.Cprint('\nRunning ready-to-commit 2\n', 'green')
+    env.Cprint('\nRunning ready-to-commit 3\n', 'green')
+    env.Cprint('\nRunning ready-to-commit 4\n', 'green')
+    env.Cprint('\nRunning ready-to-commit 5\n', 'green')
+    
     # We return 0 since we want this builder always run ok. If something fails it 
     # will be tell to the user.
     return 0
+
+    #targetDir = os.path.join(env['INSTALL_REPORTS_DIR'])
+    ## Create path to files generated
+    #OutputFiles = {
+        #'CPPCHECK': os.path.join(targetDir, 'cppcheck', project, 'CppCheckReport.txt'),
+        #'-ASTYLE-': os.path.join(targetDir, 'astyle-check', project, 'astyle-check-report.diff'),
+        #'VALGRIND': os.path.join(targetDir, 'valgrind', project + ':test', 'valgrind-report.xml'),
+    #}
+    # Check for each file if there is any error
+    #for f in OutputFiles:
+        #if os.path.exists(OutputFiles[f]):
+            #cmd = "cat %s | grep -E '(<error>|.orig|error:)'" % (OutputFiles[f])
+            #cmd_result = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
+            #cmd_stdout = cmd_result.stdout.read()
+            #cmd_result.wait()
+            #if cmd_stdout:
+                #env.Cprint('[%s] ERROR FOUND - please see: %s' % (f, OutputFiles[f]), 'yellow')
+            #else:
+                #env.Cprint('[%s] OK' % f, 'green')
+        #else:
+            #env.Cprint('[%s] ERROR FOUND - Cant Find file %s' % (f, OutputFiles[f]), 'red')
+    
 
 
 def _CheckAstyle(env, source, output_directory):
@@ -469,3 +477,18 @@ def _CheckAstyle(env, source, output_directory):
     # Return a dictionary.
     return {'need_astyle':need_astyle, 'need_astyle_list':need_astyle_list}
 
+
+def _RTCCheckAstyle():
+    pass
+
+
+def _RTCCheckValgrind():
+    pass
+
+
+def _RTCCheckCppcheck():
+    pass
+
+
+def _RTCCheckTests():
+    pass
