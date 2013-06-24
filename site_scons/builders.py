@@ -491,9 +491,6 @@ def _RTCCheckAstyle(env):
     cmd = "cat %s | grep -E '^\+' | grep -v +++ | grep -v 'for (auto'" % report_file
     return subprocess.call(cmd, shell=True, stdout=subprocess.PIPE) != 0
 
-def _RTCCheckValgrind(env):
-    return True
-
 
 def _RTCCheckCppcheck(env):
     return True
@@ -501,6 +498,16 @@ def _RTCCheckCppcheck(env):
 
 def _RTCCheckTests(env):
     return True
+
+
+def _RTCCheckValgrind(env):
+    # Get valgrind report file name.
+    report_file = os.path.join(env['INSTALL_REPORTS_DIR'], 'valgrind')
+    report_file = os.path.join(report_file, env['PROJECT_NAME'])
+    report_file = os.path.join(report_file, 'valgrind-report.xml')
+    # Check if the project needs astyle.
+    cmd = "cat %s | grep '<error>'" % report_file
+    return subprocess.call(cmd, shell=True, stdout=subprocess.PIPE) != 0
 
 
 #targetDir = os.path.join(env['INSTALL_REPORTS_DIR'])
