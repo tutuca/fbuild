@@ -92,6 +92,8 @@ def PrintDummy(env, target, source):
 
 
 def RunUnittest(env, target, source):
+    # Print message on the screen.
+    env.Cprint('\n=== Running TESTS ===\n', 'green')
     rc = 0
     tindex = 0
     for s in source:
@@ -137,6 +139,8 @@ def InitLcov(env, target, source):
 
 
 def RunLcov(env, target, source):
+    # Print message on the screen.
+    env.Cprint('\n=== Running COVERAGE ===\n', 'green')
     test_executable = source[0].abspath
     indexFile = target[0].abspath
     data = {
@@ -163,6 +167,8 @@ def RunLcov(env, target, source):
 
 
 def RunDoxygen(env, target, source):
+    # Print message on the screen.
+    env.Cprint('\n=== Running DOXYGEN ===\n', 'green')
     # Path to the doxygen template file.
     doxyTamplate = source[0].abspath
     # Path to the doc/project directory.
@@ -198,6 +204,8 @@ def RunDoxygen(env, target, source):
 
 
 def AStyleCheck(env, target, source):
+    # Print message on the screen.
+    env.Cprint('\n=== Running ASTYLE-CHECK ===\n', 'green')
     # The return value.
     result = 0
     # Get the report file.
@@ -247,7 +255,7 @@ def AStyleCheck(env, target, source):
 
 def AStyle(env, target, source):
     # Print message on the screen.
-    env.Cprint('Running astyle...', 'green')
+    env.Cprint('\n=== Running ASTYLE ===\n', 'green')
     # Get the project directory.
     project_dir = target[0].abspath
     # Generate the list of files to apply astyle.
@@ -288,6 +296,8 @@ def RunPdfLatex(env, target, source):
 
 
 def RunValgrind(env, target, source):
+    # Print message on the screen.
+    env.Cprint('\n=== Running VALGRIND ===\n', 'green')
     # Get the current directory.
     cwd = os.getcwd()
     # Get the test executable file.
@@ -311,7 +321,7 @@ def RunValgrind(env, target, source):
 
 def RunCCCC(env, target, source):
     # Print message on the screen.
-    env.Cprint('Running cccc...', 'green')
+    env.Cprint('\n=== Running CCCC ===\n', 'green')
     # Get the report file name.
     report_file_name = target[0].abspath
     # Tell cccc the name of the output file.
@@ -334,7 +344,7 @@ def RunCCCC(env, target, source):
 
 def RunCLOC(env, target, source):
     # Print message on the screen.
-    env.Cprint('Running cloc...', 'green')
+    env.Cprint('\n=== Running CLOC ===\n', 'green')
     # Get the report file name.
     report_file = target[0].abspath
     # Check the type of the report file.
@@ -366,7 +376,7 @@ def RunCLOC(env, target, source):
 
 def RunCppCheck(env, target, source):
     # Print message on the screen.
-    env.Cprint('Running cppcheck...', 'green')
+    env.Cprint('\n=== Running CPPCHECK ===\n', 'green')
     # Get the report file name.
     report_file = target[0].abspath
     # Get the output directory.
@@ -402,38 +412,32 @@ def RunMocko(env, target, source):
 
 def RunReadyToCommit(env, target, source):
     # Print message on the screen.
-    env.Cprint('\nRunning ready-to-commit...\n', 'green')
-    env.Cprint('\nRunning ready-to-commit 1\n', 'green')
-    env.Cprint('\nRunning ready-to-commit 2\n', 'green')
-    env.Cprint('\nRunning ready-to-commit 3\n', 'green')
-    env.Cprint('\nRunning ready-to-commit 4\n', 'green')
-    env.Cprint('\nRunning ready-to-commit 5\n', 'green')
-    
-    # We return 0 since we want this builder always run ok. If something fails it 
-    # will be tell to the user.
+    env.Cprint(
+        '\n===== Checking if the project is Ready To be Commited =====\n',
+        'green'
+    )
+    # Check for astyle.
+    if _RTCCheckAstyle():
+        env.Cprint('ASTYLE   : [OK]', 'green')
+    else:
+        env.Cprint('ASTYLE   : [ERROR]', 'red')
+    # Cheeck for cppcheck.
+    if _RTCCheckCppcheck():
+        env.Cprint('CPPCHECK : [OK]', 'green')
+    else:
+        env.Cprint('CPPCHECK : [ERROR]', 'red')
+    # Check for tests.
+    if _RTCCheckTests():
+        env.Cprint('TESTS    : [OK]', 'green')
+    else:
+        env.Cprint('TESTE    : [ERROR]', 'red')
+    # Check for valgrind.
+    if _RTCCheckValgrind():
+        env.Cprint('VALGRIND : [OK]', 'green')
+    else:
+        env.Cprint('VALGRIND : [ERROR]', 'red')
+    print "" # Just an empty line.
     return 0
-
-    #targetDir = os.path.join(env['INSTALL_REPORTS_DIR'])
-    ## Create path to files generated
-    #OutputFiles = {
-        #'CPPCHECK': os.path.join(targetDir, 'cppcheck', project, 'CppCheckReport.txt'),
-        #'-ASTYLE-': os.path.join(targetDir, 'astyle-check', project, 'astyle-check-report.diff'),
-        #'VALGRIND': os.path.join(targetDir, 'valgrind', project + ':test', 'valgrind-report.xml'),
-    #}
-    # Check for each file if there is any error
-    #for f in OutputFiles:
-        #if os.path.exists(OutputFiles[f]):
-            #cmd = "cat %s | grep -E '(<error>|.orig|error:)'" % (OutputFiles[f])
-            #cmd_result = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
-            #cmd_stdout = cmd_result.stdout.read()
-            #cmd_result.wait()
-            #if cmd_stdout:
-                #env.Cprint('[%s] ERROR FOUND - please see: %s' % (f, OutputFiles[f]), 'yellow')
-            #else:
-                #env.Cprint('[%s] OK' % f, 'green')
-        #else:
-            #env.Cprint('[%s] ERROR FOUND - Cant Find file %s' % (f, OutputFiles[f]), 'red')
-    
 
 
 def _CheckAstyle(env, source, output_directory):
@@ -479,16 +483,39 @@ def _CheckAstyle(env, source, output_directory):
 
 
 def _RTCCheckAstyle():
-    pass
+    return False
 
 
 def _RTCCheckValgrind():
-    pass
+    return True
 
 
 def _RTCCheckCppcheck():
-    pass
+    return True
 
 
 def _RTCCheckTests():
-    pass
+    return True
+
+
+#targetDir = os.path.join(env['INSTALL_REPORTS_DIR'])
+    ## Create path to files generated
+    #OutputFiles = {
+        #'CPPCHECK': os.path.join(targetDir, 'cppcheck', project, 'CppCheckReport.txt'),
+        #'-ASTYLE-': os.path.join(targetDir, 'astyle-check', project, 'astyle-check-report.diff'),
+        #'VALGRIND': os.path.join(targetDir, 'valgrind', project + ':test', 'valgrind-report.xml'),
+    #}
+    # Check for each file if there is any error
+    #for f in OutputFiles:
+        #if os.path.exists(OutputFiles[f]):
+            #cmd = "cat %s | grep -E '(<error>|.orig|error:)'" % (OutputFiles[f])
+            #cmd_result = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
+            #cmd_stdout = cmd_result.stdout.read()
+            #cmd_result.wait()
+            #if cmd_stdout:
+                #env.Cprint('[%s] ERROR FOUND - please see: %s' % (f, OutputFiles[f]), 'yellow')
+            #else:
+                #env.Cprint('[%s] OK' % f, 'green')
+        #else:
+            #env.Cprint('[%s] ERROR FOUND - Cant Find file %s' % (f, OutputFiles[f]), 'red')
+    
