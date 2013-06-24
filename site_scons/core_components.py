@@ -1258,9 +1258,11 @@ class UnitTestComponent(ProgramComponent):
         if flags['ready-to-commit']:
             # Create an instance of the RunReadyToCommit() builder.
             target = self._env.Dir('$INSTALL_REPORTS_DIR')
-            target = target.Dir('ready-to-commit')
-            target = target.File('%s.txt' % self._project_name)
+            target = target.Dir('ready-to-commit').Dir(self._project_name)
+            target = target.File('ReadyToCommitReportFile.txt')
             rtc_builder = self._env.RunReadyToCommit(target, None)
+            self._env.AlwaysBuild(rtc_builder)
+            self._env['PROJECT_NAME'] = self._project_name
             # Get the builders from which the ready-to-commit target will 
             # depend on.
             sources = project_component.GetSourcesFiles()

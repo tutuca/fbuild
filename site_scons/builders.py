@@ -119,7 +119,7 @@ def RunUnittest(env, target, source):
         else:
             env.Cprint('[passed] %s' % t, 'green')
         tindex = tindex + 1
-    return rc
+    return 0
 
 
 def InitLcov(env, target, source):
@@ -250,7 +250,7 @@ def AStyleCheck(env, target, source):
             ('-v "^[+-].*for.*:"',report_file,'-v "^---"','-v "^+++"','"^[+-]"')
         if subprocess.call(cmd, shell=True) > 0:
             result = 0
-    return result
+    return 0
 
 
 def AStyle(env, target, source):
@@ -316,7 +316,7 @@ def RunValgrind(env, target, source):
     ret_val = subprocess.call(cmd, shell=True)
     # Get back to the previous directory.
     os.chdir(cwd)
-    return ret_val
+    return 0
 
 
 def RunCCCC(env, target, source):
@@ -402,7 +402,7 @@ def RunMocko(env, target, source):
     directory = os.path.split(mocko_list)[0]
     # The mocko executable file.
     mocko = env.Dir('$INSTALL_BIN_DIR').File('mocko').abspath
-    # Exccute mocko.
+    # Execute mocko.
     cwd = env.Dir('#').abspath
     os.chdir(directory)
     ret_val = subprocess.call('%s %s' % (mocko, mocko_list), shell=True)
@@ -417,22 +417,22 @@ def RunReadyToCommit(env, target, source):
         'green'
     )
     # Check for astyle.
-    if _RTCCheckAstyle():
+    if _RTCCheckAstyle(env):
         env.Cprint('ASTYLE   : [OK]', 'green')
     else:
         env.Cprint('ASTYLE   : [ERROR]', 'red')
     # Cheeck for cppcheck.
-    if _RTCCheckCppcheck():
+    if _RTCCheckCppcheck(env):
         env.Cprint('CPPCHECK : [OK]', 'green')
     else:
         env.Cprint('CPPCHECK : [ERROR]', 'red')
     # Check for tests.
-    if _RTCCheckTests():
+    if _RTCCheckTests(env):
         env.Cprint('TESTS    : [OK]', 'green')
     else:
         env.Cprint('TESTE    : [ERROR]', 'red')
     # Check for valgrind.
-    if _RTCCheckValgrind():
+    if _RTCCheckValgrind(env):
         env.Cprint('VALGRIND : [OK]', 'green')
     else:
         env.Cprint('VALGRIND : [ERROR]', 'red')
@@ -482,19 +482,24 @@ def _CheckAstyle(env, source, output_directory):
     return {'need_astyle':need_astyle, 'need_astyle_list':need_astyle_list}
 
 
-def _RTCCheckAstyle():
-    return False
+def _RTCCheckAstyle(env):
+    # Get astyl-check report file name.
+    report_file = os.path.join(env['INSTALL_REPORTS_DIR'], 'astyle-check')
+    report_file = os.path.join(report_file, env['PROJECT_NAME'])
+    report_file = os.path.join(report_file, 'AstyleCheckReport.diff')
+    # Check if the project needs astyle.
+    cmd = "cat %s | grep -E '^\+' | grep -v +++ | grep -v 'for (auto'" % report_file
+    return subprocess.call(cmd, shell=True, stdout=subprocess.PIPE) != 0
 
-
-def _RTCCheckValgrind():
+def _RTCCheckValgrind(env):
     return True
 
 
-def _RTCCheckCppcheck():
+def _RTCCheckCppcheck(env):
     return True
 
 
-def _RTCCheckTests():
+def _RTCCheckTests(env):
     return True
 
 
