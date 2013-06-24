@@ -102,11 +102,8 @@ def RunUnittest(env, target, source):
         (dir, appbin) = os.path.split(app)
         # Check if the builder was called for jenkins or ready to commit.
         tmp = target[tindex].abspath.split('.')[0]
-        project = os.path.split(tmp)[1]
         testsuite = env.GetOption('testsuite')
-        if (utils.WasTargetInvoked('%s:jenkins' % project[:-5]) or 
-            utils.WasTargetInvoked('%s:ready-to-commit' % project[:-5])):
-            os.environ['GTEST_OUTPUT'] = env.test_report
+        os.environ['GTEST_OUTPUT'] = env.test_report
         if env.USE_MOCKO:
             cmd = "cd %s; gdb -x mocko_bind.gdb %s > %s" % (dir, appbin, t)
         else:
@@ -493,7 +490,13 @@ def _RTCCheckAstyle(env):
 
 
 def _RTCCheckCppcheck(env):
-    return True
+    # Get the cppcheck report file name.
+    report_file = os.path.join(env['INSTALL_REPORTS_DIR'], 'cppcheck')
+    report_file = os.path.join(report_file, env['PROJECT_NAME'])
+    report_file = os.path.join(report_file, 'CppCheckReport.xml')
+    # Check if the project needs astyle.
+    cmd = "cat %s | grep '<error>'" % report_file
+    return subprocess.call(cmd, shell=True, stdout=subprocess.PIPE) != 0
 
 
 def _RTCCheckTests(env):
