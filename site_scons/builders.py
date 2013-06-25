@@ -382,6 +382,7 @@ def RunCppCheck(env, target, source):
     if not os.path.exists(output_directory):
         os.makedirs(output_directory)
     # Create a string with the options for cppcheck.
+    import ipdb; ipdb.set_trace()
     options = ' '.join([opt for opt in env['CPPCHECK_OPTIONS']])
     # We create a string with the files for cppcheck.
     files = ' '.join([f.abspath for f in source])
@@ -512,25 +513,3 @@ def _RTCCheckValgrind(env):
     cmd = "cat %s | grep '<error>'" % report_file
     return subprocess.call(cmd, shell=True, stdout=subprocess.PIPE) != 0
 
-
-#targetDir = os.path.join(env['INSTALL_REPORTS_DIR'])
-    ## Create path to files generated
-    #OutputFiles = {
-        #'CPPCHECK': os.path.join(targetDir, 'cppcheck', project, 'CppCheckReport.txt'),
-        #'-ASTYLE-': os.path.join(targetDir, 'astyle-check', project, 'astyle-check-report.diff'),
-        #'VALGRIND': os.path.join(targetDir, 'valgrind', project + ':test', 'valgrind-report.xml'),
-    #}
-    # Check for each file if there is any error
-    #for f in OutputFiles:
-        #if os.path.exists(OutputFiles[f]):
-            #cmd = "cat %s | grep -E '(<error>|.orig|error:)'" % (OutputFiles[f])
-            #cmd_result = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
-            #cmd_stdout = cmd_result.stdout.read()
-            #cmd_result.wait()
-            #if cmd_stdout:
-                #env.Cprint('[%s] ERROR FOUND - please see: %s' % (f, OutputFiles[f]), 'yellow')
-            #else:
-                #env.Cprint('[%s] OK' % f, 'green')
-        #else:
-            #env.Cprint('[%s] ERROR FOUND - Cant Find file %s' % (f, OutputFiles[f]), 'red')
-    
