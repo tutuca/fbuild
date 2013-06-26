@@ -382,12 +382,15 @@ def RunCppCheck(env, target, source):
     if not os.path.exists(output_directory):
         os.makedirs(output_directory)
     # Create a string with the options for cppcheck.
-    import ipdb; ipdb.set_trace()
     options = ' '.join([opt for opt in env['CPPCHECK_OPTIONS']])
     # We create a string with the files for cppcheck.
     files = ' '.join([f.abspath for f in source])
     # Create the command to be pass to subprocess.call()
-    cmd = "cppcheck %s %s | sed '/files checked /d' > %s" % (options, files, report_file)
+    import ipdb; ipdb.set_trace()
+    if 'xml' in options:
+        cmd = "cppcheck %s %s | sed '/files checked /d' > %s.txt" % (options, files, report_file)
+    else:
+        cmd = "cppcheck %s %s | sed '/files checked /d' > %s.txt" % (options, files, report_file)
     return subprocess.call(cmd, shell=True)
 
 

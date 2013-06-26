@@ -585,7 +585,7 @@ class HeaderOnlyComponent(Component):
         # The target is the cppcheck report file.
         target = self._env.Dir(self._env['INSTALL_REPORTS_DIR'])
         target = target.Dir('cppcheck').Dir(self.name)
-        target = os.path.join(target.abspath, 'CppcheckReport.txt')
+        target = os.path.join(target.abspath, 'CppcheckReport')
         # Create an instance of the RunCppCheck() builder.
         cppcheck_builder = self._env.RunCppCheck(target, sources)
         # cppcheck can always be build.
@@ -1111,6 +1111,8 @@ class UnitTestComponent(ProgramComponent):
         return run_test_builder
 
     def _CheckForFlags(self):
+        # Get the component of the project.
+        project_component = self._component_graph.get(self._project_name)
         # Flags for check the calling targets.
         jenkins = utils.WasTargetInvoked('%s:jenkins' % self._project_name)
         coverage = utils.WasTargetInvoked('%s:coverage' % self._project_name)
@@ -1141,10 +1143,10 @@ class UnitTestComponent(ProgramComponent):
             self._env.Append(CXXFLAGS=flags, CFLAGS=flags, LINKFLAGS=flags)
         # Check if we need the output of cloc in xml file.
         if need_cloc_xml:
-            self._env.Replace(CLOC_OUTPUT_FORMAT='xml')
+            project_component._env.Replace(CLOC_OUTPUT_FORMAT='xml')
         # Check if we need the output of cppchec in xml format.
         if need_cppcheck_xml:
-            self._env.Append(CPPCHECK_OPTIONS=[' --xml '])
+            project_component._env.Append(CPPCHECK_OPTIONS='--xml')
         # Check if we need to create an xml report for valgrind.
         if need_valgrind_report:
             # Create the directory to store the valgrind report.
