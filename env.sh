@@ -82,7 +82,7 @@ check_install cccc false
 if [ "$?" -ne "0" ]; then return $?; fi
 check_install cloc false
 if [ "$?" -ne "0" ]; then return $?; fi
-check_install valgrind false
+check_install valgrind true
 if [ "$?" -ne "0" ]; then return $?; fi
 check_install cppcheck false
 if [ "$?" -ne "0" ]; then return $?; fi
