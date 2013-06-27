@@ -386,9 +386,8 @@ def RunCppCheck(env, target, source):
     # We create a string with the files for cppcheck.
     files = ' '.join([f.abspath for f in source])
     # Create the command to be pass to subprocess.call()
-    import ipdb; ipdb.set_trace()
     if 'xml' in options:
-        cmd = "cppcheck %s %s | sed '/files checked /d' > %s.txt" % (options, files, report_file)
+        cmd = "cppcheck %s %s 2> %s.xml" % (options, files, report_file)
     else:
         cmd = "cppcheck %s %s | sed '/files checked /d' > %s.txt" % (options, files, report_file)
     return subprocess.call(cmd, shell=True)
@@ -497,10 +496,13 @@ def _RTCCheckCppcheck(env):
     # Get the cppcheck report file name.
     report_file = os.path.join(env['INSTALL_REPORTS_DIR'], 'cppcheck')
     report_file = os.path.join(report_file, env['PROJECT_NAME'])
-    report_file = os.path.join(report_file, 'CppCheckReport.xml')
+    report_file = os.path.join(report_file, 'CppcheckReport.xml')
     # Check if the project needs astyle.
-    cmd = "cat %s | grep '<error>'" % report_file
-    return subprocess.call(cmd, shell=True, stdout=subprocess.PIPE) != 0
+    cmd_error = 'cat %s | grep severity=\\"error\\"' % report_file
+    cmd_warning = 'cat %s | grep severity=\\"warning\\"' % report_file
+    errors = subprocess.call(cmd_error, shell=True, stdout=subprocess.PIPE) != 0
+    warnings = subprocess.call(cmd_warning, shell=True, stdout=subprocess.PIPE) != 0
+    return errors and warnings
 
 
 def _RTCCheckTests(env):
