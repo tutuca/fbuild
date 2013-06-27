@@ -1,6 +1,6 @@
 # fudepan-build: The build system for FuDePAN projects
 #
-# Copyright (C) 2011-2012 Esteban Papp, Hugo Arregui, 
+# Copyright (C) 2011-2012 Esteban Papp, Hugo Arregui,
 #               2013 Gonzalo Bonigo, Gustavo Ojeda FuDePAN
 #
 # This file is part of the fudepan-build build system.
@@ -26,15 +26,14 @@
 
 import os
 import abc
-import sys
 
 from SCons import Node
 
 import utils
 
 
-HEADERS_FILTER = ['*.h','*.hpp']
-SOURCES_FILTER = ['*.c','*.cpp','*.cc']
+HEADERS_FILTER = ['*.h', '*.hpp']
+SOURCES_FILTER = ['*.c', '*.cpp', '*.cc']
 
 
 class CyclicDependencieError(Exception):
@@ -47,23 +46,23 @@ class CyclicDependencieError(Exception):
 class Component(object):
     """
         This class represents a component in the component graph.
-        
-        This is an abstract base class which contains the main interface for a 
-        component.
+
+        This is an abstract base class which contains the main interface for
+        a component.
     """
 
     # Make this class an abstract class.
     __metaclass__ = abc.ABCMeta
-    
+
     #
     # Public attributes.
-    # 
+    #
     # A string with the name of the component.
     name = None
-    
+
     #
     # Private attributes.
-    # 
+    #
     # The directory where the component lives (instance of SCons Dir class).
     _dir = None
     # A list with names of the components from which it depends.
@@ -80,17 +79,19 @@ class Component(object):
     _component_graph = None
     # A boolean that tells if the component is linkable or not.
     _should_be_linked = False
-    # A list with the libraries that need to be linked for build this component.
-    _libs = None # To get this attribute use the method GetLibs()
+    # A list with the libraries that need to be linked for build this
+    # component.
+    _libs = None  # To get this attribute use the method GetLibs()
     # A list with the path to the libraries in self._libs.
-    _libpaths = None # To get this attribute use the method GetLibs()
+    _libpaths = None  # To get this attribute use the method GetLibs()
     # A list with the path of the include directories.
-    _include_paths = None  # To get this attribute use the method GetIncludePaths()
-    
+    _include_paths = None  # To get this attribute use the method
+                           # GetIncludePaths()
+
     #
     # Special methods.
     #
-    
+
     def __init__(self, graph, env, name, dir, deps, inc, ext_inc, als=None):
         # Check consistency for some types.
         self.name = name
@@ -102,40 +103,40 @@ class Component(object):
         self._external_includes = self._FormatArgument(ext_inc)
         self._alias_groups = als if als is not None else []
         self._env.USE_MOCKO = 'mocko' in deps
-    
+
     #
     # Public methods.
     #
-    
+
     @abc.abstractmethod
     def Process(self):
         """
             Description:
-                This method describes how the component must be built and what 
-                actions can be perform on it.
+                This method describes how the component must be built and
+                what actions can be perform on it.
             Arguments:
                 None. (If some subclass add arguments they must be optional).
             Exceptions:
-                None. (If some subclass raise an exception it must be 
+                None. (If some subclass raise an exception it must be
                 specified here)
             Return:
-                This method must return a reference to a builder (it can be an 
-                instance of a Builder or an Alias) or None if the component 
-                does not need to be built.
+                This method must return a reference to a builder (it can be
+                an instance of a Builder or an Alias) or None if the
+                component does not need to be built.
         """
         return NotImplemented
-    
+
     def GetLibs(self):
         """
             Description:
-                This method returns the libraries (and its paths) that should 
+                This method returns the libraries (and its paths) that should
                 be linked when the component needs to be built.
             Arguments:
                 None.
             Exceptions:
                 None.
             Return:
-                A tuple instance of the form (libs,libpaths) where 'libs' is 
+                A tuple instance of the form (libs,libpaths) where 'libs' is
                 the list of the libraries and 'libpaths' the list of its paths.
         """
         if self._libs is not None and self._libpaths is not None:
@@ -155,17 +156,20 @@ class Component(object):
         # Remember:
         #   t[0]  ->  depth.
         #   t[1]  ->  name.
-        # This function tells if the tuple depth (t[0]) is the maximum in 
+        # This function tells if the tuple depth (t[0]) is the maximum in
         # self._libs.
-        IsMax = lambda t : len([x for x in self._libs if x[1]==t[1] and x[0]>t[0]]) == 0
-        # This function tells if the tuple name (t[1]) is unique in self._libs.
-        Unique = lambda t : len([x for x in self._libs if x[1]==t[1]]) == 1
+        IsMax = lambda t: len([x for x in self._libs \
+                              if (x[1] == t[1]) and (x[0] > t[0])]) == 0
+        # This function tells if the tuple name (t[1]) is unique in
+        # self._libs.
+        Unique = lambda t: len([x for x in self._libs if x[1] == t[1]]) == 1
         # Remove from the list the duplicated names.
-        aux = [t for t in self._libs if Unique(t) or IsMax(t)]; aux.sort()
+        aux = [t for t in self._libs if Unique(t) or IsMax(t)]
+        aux.sort()
         # Create the self._libs list.
         self._libs = [t[1] for t in aux]
         return (self._libs, self._libpaths)
-    
+
     def GetIncludePaths(self):
         """
             Description:
@@ -197,7 +201,7 @@ class Component(object):
             Exceptions:
                 None.
             Return:
-                A list of files. Each file is an instance of the SCons File 
+                A list of files. Each file is an instance of the SCons File
                 class.
         """
         return []
@@ -211,15 +215,15 @@ class Component(object):
             Exceptions:
                 None.
             Return:
-                A list with the source files, each element is an instance 
+                A list with the source files, each element is an instance
                 of the SCons File class.
         """
         return []
-    
+
     def GetObjectsFiles(self):
         """
             Description:
-                This method looks for the objects files that this component 
+                This method looks for the objects files that this component
                 needs to be built.
             Arguments:
                 None.
@@ -237,14 +241,14 @@ class Component(object):
     #
     # Private methods.
     #
-    
+
     def _GetIncludePaths(self, include_paths, stack):
         """
-            This is a recursive internal method used by the GetIncludePaths 
+            This is a recursive internal method used by the GetIncludePaths
             method.
         """
         if self.name in stack:
-            # If the component name is within the stack then there is a 
+            # If the component name is within the stack then there is a
             # cycle.
             stack.append(self.name)
             raise CyclicDependencieError(stack)
@@ -252,10 +256,10 @@ class Component(object):
             # We add the component name to the stack.
             stack.append(self.name)
         if len(stack) == 1:
-            # If we're here is because we are looking for the include of this 
+            # If we're here is because we are looking for the include of this
             # component.
             if isinstance(self, UnitTestComponent):
-                # If this is a UnitTestComponent we need the include directories 
+                # If this is a UnitTestComponent we need the include directories
                 # from its component.
                 component = self._component_graph.get(self._project_name)
                 for path in component._includes:
@@ -268,10 +272,11 @@ class Component(object):
             include_paths.add(self._env.Dir('$INSTALL_HEADERS_DIR').abspath)
             include_paths.add(self._dir.abspath)
         else:
-            # If we're here is because we're looking for the include of the 
+            # If we're here is because we're looking for the include of the
             # dependency of a component.
-            # 'self' can not be a UnitTestComponent. Because a UnitTestComponent 
-            # should never be a dependency of other component.
+            # 'self' can not be a UnitTestComponent. Because a
+            # 'UnitTestComponent should never be a dependency of other
+            # component.
             assert(not isinstance(self, UnitTestComponent))
             if isinstance(self, ExternalComponent):
                 for path in self._includes:
@@ -290,13 +295,13 @@ class Component(object):
                 component._GetIncludePaths(include_paths, stack)
             else:
                 self._env.cerror(
-                    '[error] %s depends on %s which could not be found' % 
+                    '[error] %s depends on %s which could not be found' %
                     (self.name, dependency)
                 )
         # We remove the component name from the stack.
         if self.name in stack:
             stack.pop()
-    
+
     def _GetLibs(self, libs, libpaths, stack, depth):
         """
             This is a recursive internal method used by the GetLibs method.
@@ -309,7 +314,7 @@ class Component(object):
             # We add the component name to the stack.
             stack.append(self.name)
         if self._should_be_linked and depth > 0:
-            libs.append((depth,self.name))
+            libs.append((depth, self.name))
             # We add the directory where the library lives.
             if not self._dir.abspath in libpaths:
                 libpaths.append(self._dir.abspath)
@@ -318,15 +323,15 @@ class Component(object):
             c = self._component_graph.get(dep)
             if c is None:
                 self._env.cerror(
-                    '[error] %s depends on %s which could not be found' % 
+                    '[error] %s depends on %s which could not be found' %
                     (self.name, dep)
                 )
-            else: #if not isinstance(c, HeaderOnlyComponent):
-                c._GetLibs(libs, libpaths, stack, depth+1)
+            else:
+                c._GetLibs(libs, libpaths, stack, depth + 1)
         # We remove the component name from the stack.
         if self.name in stack:
             stack.pop()
-     
+
     def _CreateInstallerBuilder(self, binaries, headers):
         """
             This method creates an installer builder.
@@ -347,7 +352,7 @@ class Component(object):
         # Create the alias for for install the component.
         self._env.Alias(self.name, installers, 'Install %s.' % self.name)
         return installers
-    
+
     def _CreateGroupAliases(self):
         """
             This method creates the aliases for the group.
@@ -358,10 +363,11 @@ class Component(object):
     #TODO: Move thos out of here! Could be into utils.py.
     def _FormatArgument(self, arg):
         """
-            This method takes an iterable object as argument, which can contain 
-            str, Dir or more iterable objects and returns a list with Dir objects.
+            This method takes an iterable object as argument, which can
+            contain str, Dir or more iterable objects and returns a list
+            with Dir objects.
         """
-        if not isinstance(arg, (list,tuple,set)):
+        if not isinstance(arg, (list, tuple, set)):
             arg = [arg]
         result = []
         for element in arg:
@@ -380,19 +386,19 @@ class Component(object):
 class ExternalComponent(Component):
     """
         This class represents an external component.
-        
-        External components are installed in the system rather than in the 
+
+        External components are installed in the system rather than in the
         fbuild install/ directory.
     """
-    
+
     #
     # Special methods.
     #
-    
+
     def __init__(self, graph, env, name, dir, deps, inc, linkable, als=None):
-        Component.__init__(self,graph,env,name,dir,deps,inc,[],als)
+        Component.__init__(self, graph, env, name, dir, deps, inc, [], als)
         self._should_be_linked = linkable
-    
+
     #
     # Public methods.
     #
@@ -407,46 +413,46 @@ class ExternalComponent(Component):
 class HeaderOnlyComponent(Component):
     """
         This class represents a header only component.
-        
-        This type of component does not have sources files, it contains only 
+
+        This type of component does not have sources files, it contains only
         header files.
     """
-    
+
     #
     # Private attributes.
     #
     # The path to the project's directory into the fbuild projects/ folder.
     # (instance of SCons Dir class).
     _project_dir = None
-    # A list with the header files (instance of SCons File class). Never use 
+    # A list with the header files (instance of SCons File class). Never use
     # this attribute directly, always use the method GetIncludeFiles().
     _header_file_list = None
-    # A dictionary with the builder of the component that can have a target 
+    # A dictionary with the builder of the component that can have a target
     # like 'project:target'.
     _builders = None
-    
+
     #
     # Special methods.
     #
-    
+
     def __init__(self, graph, env, name, dir, deps, inc, als=None):
-        Component.__init__(self,graph,env,name,dir,deps,inc,[],als)
+        Component.__init__(self, graph, env, name, dir, deps, inc, [], als)
         self._project_dir = self._env.Dir('WS_DIR').Dir(self.name)
-        self._builders = { # Maintain alphabetical order. 
-            'astyle':None,
-            'astyle-check':None,
-            'cccc':None,
-            'cloc':None,
-            'coverage':None,
-            'cppcheck':None,
-            'doc':None,
-            'install':None,
-            'jenkins':None,
-            'ready-to-commit':None,
-            'test':None,
-            'valgrind':None
+        self._builders = {  # Maintain alphabetical order.
+            'astyle': None,
+            'astyle-check': None,
+            'cccc': None,
+            'cloc': None,
+            'coverage': None,
+            'cppcheck': None,
+            'doc': None,
+            'install': None,
+            'jenkins': None,
+            'ready-to-commit': None,
+            'test': None,
+            'valgrind': None
         }
-    
+
     #
     # Public methods.
     #
@@ -454,14 +460,14 @@ class HeaderOnlyComponent(Component):
     def Process(self):
         """
             Description:
-                This method creates the targets of the actions that can be 
+                This method creates the targets of the actions that can be
                 applied to this component.
             Arguments:
                 None.
             Exceptions:
                 None.
             Return:
-                An instance of a builder which tell how to install the 
+                An instance of a builder which tell how to install the
                 component.
         """
         # Check if the component was already processed.
@@ -475,7 +481,7 @@ class HeaderOnlyComponent(Component):
         self._CreateCCCCTarget(headers)
         self._CreateClocTarget(headers)
         self._CreateCppcheckTarget(headers)
-        self._CreateDocTarget()        
+        self._CreateDocTarget()
         # Create the installer.
         installer = self._CreateInstallerBuilder([], headers)
         # Create the alias group.
@@ -483,7 +489,7 @@ class HeaderOnlyComponent(Component):
         # Set the installer into the builders dictionary.
         self._builders['install'] = installer
         return installer
-    
+
     def GetIncludeFiles(self):
         """
             Description:
@@ -493,7 +499,7 @@ class HeaderOnlyComponent(Component):
             Exceptions:
                 None.
             Return:
-                A list of files. Each file is an instance of the SCons File 
+                A list of files. Each file is an instance of the SCons File
                 class.
         """
         # If the files were already calculate we just return them.
@@ -506,11 +512,11 @@ class HeaderOnlyComponent(Component):
             files = utils.FindFiles(self._env, include_dir, HEADERS_FILTER)
             self._header_file_list.extend(files)
         return self._header_file_list
-    
+
     #
     # Private methods.
     #
-    
+
     def _CreateDocTarget(self):
         if self._builders['doc'] is not None:
             return self._builders['doc']
@@ -518,14 +524,19 @@ class HeaderOnlyComponent(Component):
         target = self._env.Dir(self._env['INSTALL_DOC_DIR']).Dir(self.name)
         # The sources are:
         #   1) The doxyfile template.
-        doxyfile = self._env.File(self._env.Dir('#').abspath+'/conf/doxygenTemplate')
+        doxyfile = self._env.File(
+            self._env.Dir('#').abspath + '/conf/doxygenTemplate'
+        )
         #   2) The SConscript of the project.
-        #      We pass it the path to the SConscript file because we need the 
-        #      path to the project directory but we only can put 'env.File' 
+        #      We pass it the path to the SConscript file because we need the
+        #      path to the project directory but we only can put 'env.File'
         #      objects as sources.
-        sconscript = ('%s/SConscript' % self._dir.abspath).replace('/build/','/projects/')
+        sconscript = ('%s/SConscript' % self._dir.abspath).replace(
+            '/build/',
+            '/projects/'
+        )
         # Create an instance of the RunDoxygen() builder.
-        doc_builder = self._env.RunDoxygen(target, [doxyfile,sconscript])
+        doc_builder = self._env.RunDoxygen(target, [doxyfile, sconscript])
         # Create the alias.
         name = '%s:doc' % self.name
         deps = [doc_builder]
@@ -535,7 +546,7 @@ class HeaderOnlyComponent(Component):
         self._builders['doc'] = doc_builder
         # Return the builder instance.
         return doc_builder
-    
+
     def _CreateCCCCTarget(self, sources):
         if self._builders['cccc'] is not None:
             return self._builders['cccc']
@@ -557,7 +568,7 @@ class HeaderOnlyComponent(Component):
         self._builders['cccc'] = cccc_builder
         # Return  the builder instance.
         return cccc_builder
-    
+
     def _CreateClocTarget(self, sources):
         if self._builders['cloc'] is not None:
             return self._builders['cloc']
@@ -578,7 +589,7 @@ class HeaderOnlyComponent(Component):
         self._builders['cloc'] = cloc_builder
         # Return the builder instance.
         return cloc_builder
-    
+
     def _CreateCppcheckTarget(self, sources):
         if self._builders['cppcheck'] is not None:
             return self._builders['cppcheck']
@@ -599,7 +610,7 @@ class HeaderOnlyComponent(Component):
         self._builders['cppcheck'] = cppcheck_builder
         # Return the builder instance.
         return cppcheck_builder
-    
+
     def _CreateAstyleCheckTarget(self, sources):
         if self._builders['astyle-check'] is not None:
             return self._builders['astyle-check']
@@ -620,7 +631,7 @@ class HeaderOnlyComponent(Component):
         self._builders['astyle-check'] = astyle_check_builder
         # Return the builder instance.
         return astyle_check_builder
-    
+
     def _CreateAstyleTarget(self, sources):
         if self._builders['astyle'] is not None:
             return self._builders['astyle']
@@ -644,23 +655,23 @@ class HeaderOnlyComponent(Component):
 class SourcedComponent(HeaderOnlyComponent):
     """
         This class represents a sourced component.
-        
+
         This type of component can have sources and headers files.
     """
-    
+
     #
     # Private attributes.
     #
-    # A list with the sources files (instances of the SCons File class). Never 
-    # use this attribute directly, use the GetSourcesFiles() method.
+    # A list with the sources files (instances of the SCons File class).
+    # Never use this attribute directly, use the GetSourcesFiles() method.
     _sources_file_list = None
-    
+
     #
     # Special methods.
     #
-    
+
     def __init__(self, graph, env, name, dir, deps, inc, ext_inc, src, als=None):
-        HeaderOnlyComponent.__init__(self,graph,env,name,dir,deps,ext_inc,als)
+        HeaderOnlyComponent.__init__(self, graph, env, name, dir, deps, ext_inc, als)
         # Because HeaderOnlyComponent doesn't have includes.
         self._includes = self._FormatArgument(inc)
         # Check the 'src' argument.
@@ -670,7 +681,7 @@ class SourcedComponent(HeaderOnlyComponent):
             raise ValueError("No sources were specified for a SourcedComponent object.")
         # Initialize the source files.
         self._InitSourcesFileList(src)
-    
+
     #
     # Public methods.
     #
@@ -678,7 +689,7 @@ class SourcedComponent(HeaderOnlyComponent):
     def Process(self):
         """
             Description:
-                This method creates the targets of the actions that can be 
+                This method creates the targets of the actions that can be
                 applied to this component.
             Arguments:
                 None.
@@ -701,7 +712,7 @@ class SourcedComponent(HeaderOnlyComponent):
             self._builders['install'] = True
         # We retuen an empty list because a sourced has nothing to install.
         return []
-    
+
     def GetSourcesFiles(self):
         """
             Description:
@@ -711,20 +722,20 @@ class SourcedComponent(HeaderOnlyComponent):
             Exceptions:
                 None.
             Return:
-                A list with the source files, each element is an instance of 
+                A list with the source files, each element is an instance of
                 the SCons File class.
         """
         # A sourced component must have at least one element.
         assert(len(self._sources_file_list) > 0)
         return self._sources_file_list
-        
+
     #
     # Private methods.
     #
-    
+
     def _InitSourcesFileList(self, src):
         """
-            This is an internal method that initialize the list of sources 
+            This is an internal method that initialize the list of sources
             files.
         """
         # This method must be called only once.
@@ -732,7 +743,7 @@ class SourcedComponent(HeaderOnlyComponent):
         # Create the list.
         self._sources_file_list = []
         self._InitSourcesFileRec(self._sources_file_list, src)
-    
+
     def _InitSourcesFileRec(self, files, src):
         """
             This is a private method used by _InitSourcesFileList().
@@ -755,25 +766,25 @@ class SourcedComponent(HeaderOnlyComponent):
 
 class ObjectComponent(SourcedComponent):
     """
-        This class represents a set of objects files, from which other 
+        This class represents a set of objects files, from which other
         component can depend to be built.
     """
-    
+
     #
     # Private attributes.
     #
     # A list with the object files (instances of the SCons Object() class).
     _objects = None
-    
+
     #
     # Special methods.
     #
-    
+
     def __init__(self, graph, env, name, dir, deps, inc, src, als=None):
-        SourcedComponent.__init__(self,graph,env,name,dir,deps,inc,[],src,als)
+        SourcedComponent.__init__(self, graph, env, name, dir, deps, inc, [], src, als)
         # A list of builders of the class Object().
         self._objects = []
-        
+
     #
     # Public methods.
     #
@@ -795,16 +806,16 @@ class ObjectComponent(SourcedComponent):
         self._CreateObjectFiles()
         # Create the installer.
         installer = self._CreateInstallerBuilder(
-            self._objects, 
+            self._objects,
             self.GetIncludeFiles()
         )
         self._builders['install'] = installer
         return installer
-    
+
     def GetObjectsFiles(self):
         """
             Description:
-                This method looks for the objects files that this component 
+                This method looks for the objects files that this component
                 needs to be built.
             Arguments:
                 None.
@@ -815,11 +826,11 @@ class ObjectComponent(SourcedComponent):
         """
         self._CreateObjectFiles()
         return self._objects + super(ObjectComponent, self).GetObjectsFiles()
-    
+
     #
     # Private methods.
     #
-    
+
     def _CreateObjectFiles(self):
         """
             Initialize the list of object files.
@@ -827,25 +838,25 @@ class ObjectComponent(SourcedComponent):
         if not self._objects:
             for source in self.GetSourcesFiles():
                 self._objects.append(self._CreateObjectBuilder(source))
-    
+
     def _CreateObjectBuilder(self, source):
         """
-            This is a private method that takes a file source and return an 
+            This is a private method that takes a file source and return an
             instance of the SCons Object() builder class.
         """
         # Get the list of include paths.
         include_paths = self.GetIncludePaths()
         # Get the list of libraries to link, and its directories.
-        (libs,libpaths) = self.GetLibs()
+        (libs, libpaths) = self.GetLibs()
         # Create the target for each file.
         target = source.abspath.split('.')[0]
         # Create an instance of the Object() builder.
         object_builder = self._env.Object(
             target,
             source,
-            CPPPATH = include_paths,
-            LIBPATH = libpaths,
-            LIBS = libs
+            CPPPATH=include_paths,
+            LIBPATH=libpaths,
+            LIBS=libs
         )
         # Return the builder instance.
         return object_builder
@@ -855,15 +866,15 @@ class StaticLibraryComponent(ObjectComponent):
     """
         This class represents a static library component.
     """
-    
+
     #
     # Special methods.
     #
-    
+
     def __init__(self, graph, env, name, dir, deps, inc, ext_inc, src, als=None):
-        ObjectComponent.__init__(self,graph,env,name,dir,deps,inc,src,als)
+        ObjectComponent.__init__(self, graph, env, name, dir, deps, inc, src, als)
         self._should_be_linked = True
-    
+
     #
     # Public methods.
     #
@@ -894,11 +905,11 @@ class StaticLibraryComponent(ObjectComponent):
         self._CreateGroupAliases()
         self._builders['install'] = installer
         return installer
-    
+
     #
     # Private methods.
     #
-    
+
     def _CreateStaticLibraryBuilder(self, target):
         # Get include paths.
         includes = self.GetIncludePaths()
@@ -906,7 +917,7 @@ class StaticLibraryComponent(ObjectComponent):
         slib_builder = self._env.StaticLibrary(
             target,
             self.GetObjectsFiles(),
-            CPPPATH = includes
+            CPPPATH=includes
         )
         # Create the all:buil alias.
         self._env.Alias('all:build', slib_builder, "Build all targets")
@@ -917,19 +928,19 @@ class DynamicLibraryComponent(ObjectComponent):
     """
         This class represents a shared library component.
     """
-    
+
     #
     # Special methods.
     #
-    
+
     def __init__(self, graph, env, name, dir, deps, inc, ext_inc, src, als=None):
-        ObjectComponent.__init__(self,graph,env,name,dir,deps,inc,src,als)
+        ObjectComponent.__init__(self, graph, env, name, dir, deps, inc, src, als)
         self._should_be_linked = True
-    
+
     #
     # Public methods.
     #
-    
+
     def Process(self):
         # Check if the component was already processed.
         if self._builders['install'] is not None:
@@ -949,28 +960,28 @@ class DynamicLibraryComponent(ObjectComponent):
         dlib_builder = self._CreateSharedLibraryBuilder(target)
         # Create the installer builder.
         installer = self._CreateInstallerBuilder(
-            [dlib_builder], 
+            [dlib_builder],
             self.GetIncludeFiles()
         )
         self._builders['install'] = installer
         return installer
-    
+
     #
     # Private methods.
     #
-    
+
     def _CreateSharedLibraryBuilder(self, target):
         # Get include paths.
         includes = self.GetIncludePaths()
         # Get the libraries to link and tehir directories.
-        (libs,libpaths) = self.GetLibs()
+        (libs, libpaths) = self.GetLibs()
         # Create an instance of the SharedLibrary() builder.
         dlib_builder = self._env.SharedLibrary(
             target,
-            self.GetSourcesFiles(), 
-            CPPPATH = includes, 
-            LIBPATH = libpaths,
-            LIBS = libs
+            self.GetSourcesFiles(),
+            CPPPATH=includes,
+            LIBPATH=libpaths,
+            LIBS=libs
         )
         # Create the all:build alias.
         self._env.Alias('all:build', dlib_builder, "Build all targets")
@@ -981,14 +992,14 @@ class ProgramComponent(ObjectComponent):
     """
         This class represents a program (executable) component.
     """
-    
+
     #
     # Special methods.
     #
-    
+
     def __init__(self, graph, env, name, dir, deps, inc, src, als=None):
-        ObjectComponent.__init__(self,graph,env,name,dir,deps,inc,src,als)
-        
+        ObjectComponent.__init__(self, graph, env, name, dir, deps, inc, src, als)
+
     #
     # Public methods.
     #
@@ -1016,16 +1027,16 @@ class ProgramComponent(ObjectComponent):
         self._CreateGroupAliases()
         self._builders['install'] = installer
         return installer
-    
+
     #
     # Private methods.
     #
-    
+
     def _CreateProgramBuilder(self, target, sources=None):
         # Get include paths.
         includes = self.GetIncludePaths()
         # Get the libraries to link and their directories.
-        (libs,libpaths) = self.GetLibs()
+        (libs, libpaths) = self.GetLibs()
         # Get the sources.
         if sources is not None:
             sources += self.GetObjectsFiles()
@@ -1035,9 +1046,9 @@ class ProgramComponent(ObjectComponent):
         program_builder = self._env.Program(
             target,
             sources,
-            CPPPATH = includes,
-            LIBPATH = libpaths,
-            LIBS = libs
+            CPPPATH=includes,
+            LIBPATH=libpaths,
+            LIBS=libs
         )
         # Craete the all:build alias.
         self._env.Alias('all:build', program_builder, "Build all targets")
@@ -1048,25 +1059,25 @@ class UnitTestComponent(ProgramComponent):
     """
         This class represents a test component.
     """
-    
+
     #
     # Private attributes.
     #
     # The name of the project from which the test component depends.
     _project_name = None
-    
+
     #
     # Special methods.
     #
-    
+
     def __init__(self, graph, env, name, dir, deps, inc, src, als=None):
-        ProgramComponent.__init__(self,graph,env,name,dir,deps,inc,src,als)
+        ProgramComponent.__init__(self, graph, env, name, dir, deps, inc, src, als)
         self._project_name = name.split('@')[0]
 
     #
     # Public methods.
     #
-    
+
     def Process(self):
         # Check if the component was already processed.
         if self._builders['install'] is not None:
@@ -1119,16 +1130,21 @@ class UnitTestComponent(ProgramComponent):
         rtc = (utils.WasTargetInvoked('%s:rtc' % self._project_name) or
               utils.WasTargetInvoked('%s:ready-to-commit' % self._project_name))
         # Create the dictionary of flags.
-        result = {'jenkins':jenkins, 'coverage':coverage, 'ready-to-commit':rtc}
+        result = {
+            'jenkins': jenkins,
+            'coverage': coverage,
+            'ready-to-commit': rtc
+        }
         # Check for needed reports.
-        need_coverage =  jenkins or coverage
+        need_coverage = jenkins or coverage
         need_test_report = jenkins or rtc
         need_cloc_xml = jenkins
         need_valgrind_report = jenkins or rtc
         need_cppcheck_xml = jenkins or rtc
         # Add flags to the environment for gtest and gmock.
-        aux = [f for f in self._env['CXXFLAGS'] if f not in ['-ansi','-pedantic']]
-        aux.append('-Wno-sign-compare'); CXXFLAGS=aux
+        aux = [f for f in self._env['CXXFLAGS'] if f not in ['-ansi', '-pedantic']]
+        aux.append('-Wno-sign-compare')
+        CXXFLAGS = aux
         if not '-ggdb3' in CXXFLAGS:
             CXXFLAGS.append('-ggdb3')
         self._env.Replace(CXXFLAGS=CXXFLAGS, CFLAGS=CXXFLAGS)
@@ -1160,7 +1176,7 @@ class UnitTestComponent(ProgramComponent):
             flags = ' --xml=yes --xml-file=%s ' % report_file
             self._env.Append(VALGRIND_OPTIONS=flags)
         return result
-        
+
     def _CreateValgrindTarget(self, program_builder):
         if self._builders['valgrind'] is not None:
             return self._builders['valgrind']
@@ -1174,7 +1190,7 @@ class UnitTestComponent(ProgramComponent):
         self._env.Alias(name, deps, msg)
         self._builders['valgrind'] = run_valgrind_builder
         return run_valgrind_builder
-        
+
     def _CreateCoverageTarget(self, target, program_builder):
         if self._builders['coverage'] is not None:
             return self._builders['coverage']
@@ -1191,7 +1207,10 @@ class UnitTestComponent(ProgramComponent):
         init_lcov_target = os.path.join(self._dir.abspath, 'coverage_data')
         init_lcov_soureces = [program_builder]
         # Create an instance of the InitLcov() builder.
-        init_lcov_builder = self._env.InitLcov(init_lcov_target,init_lcov_soureces)
+        init_lcov_builder = self._env.InitLcov(
+            init_lcov_target,
+            init_lcov_soureces
+        )
         # Create an instance of the RunUnittest() builder.
         run_test_builder = self._env.RunUnittest(target, program_builder)
         # Make the test depends from files in 'ref' dir.
@@ -1258,7 +1277,7 @@ class UnitTestComponent(ProgramComponent):
         project_component = self._component_graph.get(self._project_name)
         # Create the alias.
         ready_to_commit = self._env.Alias(
-            '%s:ready-to-commit' % self._project_name, 
+            '%s:ready-to-commit' % self._project_name,
             None,
             "Check if the project is ready to be commited."
         )
@@ -1277,7 +1296,7 @@ class UnitTestComponent(ProgramComponent):
             rtc_builder = self._env.RunReadyToCommit(target, None)
             self._env.AlwaysBuild(rtc_builder)
             self._env['PROJECT_NAME'] = self._project_name
-            # Get the builders from which the ready-to-commit target will 
+            # Get the builders from which the ready-to-commit target will
             # depend on.
             sources = project_component.GetSourcesFiles()
             includes = project_component.GetIncludeFiles()
@@ -1294,7 +1313,7 @@ class UnitTestComponent(ProgramComponent):
             self._env.Depends(ready_to_commit, rtc_builder)
         self._builders['ready-to-commit'] = ready_to_commit
         return ready_to_commit
-    
+
     def _UseMocko(self, sources):
         # Path to the tests directory.
         aux_path = os.path.join(self.env['BUILD_DIR'], self.name)

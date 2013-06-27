@@ -25,7 +25,6 @@
 
 
 import subprocess
-import platform
 import os.path
 import shutil
 import os
@@ -33,58 +32,56 @@ import os
 from SCons.Script import *
 import SCons.Builder
 
-from utils import FindFiles
 from utils import ChainCalls
-import utils
 
 
 def init(env):
-    bldRUT = Builder(action = SCons.Action.Action(RunUnittest, PrintDummy))
-    env.Append(BUILDERS = {'RunUnittest' : bldRUT})
+    bldRUT = Builder(action=SCons.Action.Action(RunUnittest, PrintDummy))
+    env.Append(BUILDERS={'RunUnittest': bldRUT})
     #-
-    bldInitLcov = Builder(action = SCons.Action.Action(InitLcov, PrintDummy))
-    env.Append(BUILDERS = {'InitLcov' : bldInitLcov })
+    bldInitLcov = Builder(action=SCons.Action.Action(InitLcov, PrintDummy))
+    env.Append(BUILDERS={'InitLcov': bldInitLcov})
     #-
-    bldRLcov= Builder(action = SCons.Action.Action(RunLcov, PrintDummy))
-    env.Append(BUILDERS = {'RunLcov' : bldRLcov})
+    bldRLcov = Builder(action=SCons.Action.Action(RunLcov, PrintDummy))
+    env.Append(BUILDERS={'RunLcov': bldRLcov})
     #-
-    bldDoxygen = Builder(action = SCons.Action.Action(RunDoxygen, PrintDummy))
-    env.Append(BUILDERS = {'RunDoxygen' : bldDoxygen})
+    bldDoxygen = Builder(action=SCons.Action.Action(RunDoxygen, PrintDummy))
+    env.Append(BUILDERS={'RunDoxygen': bldDoxygen})
     env['DEFAULT_DOXYFILE'] = env.File('#/conf/doxygenTemplate').abspath
     #-
-    bldAStyleCheck = Builder(action = SCons.Action.Action(AStyleCheck, PrintDummy))
-    env.Append(BUILDERS = {'RunAStyleCheck' : bldAStyleCheck})
+    bldAStyleCheck = Builder(action=SCons.Action.Action(AStyleCheck, PrintDummy))
+    env.Append(BUILDERS={'RunAStyleCheck': bldAStyleCheck})
     #-
-    bldAStyle = Builder(action = SCons.Action.Action(AStyle, PrintDummy))
-    env.Append(BUILDERS = {'RunAStyle' : bldAStyle})
+    bldAStyle = Builder(action=SCons.Action.Action(AStyle, PrintDummy))
+    env.Append(BUILDERS={'RunAStyle': bldAStyle})
     #-
-    bldPdfLatex = Builder(action = SCons.Action.Action(RunPdfLatex, PrintDummy))
-    env.Append(BUILDERS = {'RunPdfLatex':  bldPdfLatex})
+    bldPdfLatex = Builder(action=SCons.Action.Action(RunPdfLatex, PrintDummy))
+    env.Append(BUILDERS={'RunPdfLatex':  bldPdfLatex})
     env['PDFLATEX_OPTIONS'] = ''
     #-
-    bldValgrind = Builder(action = SCons.Action.Action(RunValgrind, PrintDummy))
-    env.Append(BUILDERS = {'RunValgrind':  bldValgrind})
+    bldValgrind = Builder(action=SCons.Action.Action(RunValgrind, PrintDummy))
+    env.Append(BUILDERS={'RunValgrind': bldValgrind})
     env['VALGRIND_OPTIONS'] = ' --leak-check=full --show-reachable=yes ' + \
                               '--error-limit=no --track-origins=yes'
     #-
-    bldCCCC = Builder(action = SCons.Action.Action(RunCCCC, PrintDummy))
-    env.Append(BUILDERS = {'RunCCCC':  bldCCCC})
+    bldCCCC = Builder(action=SCons.Action.Action(RunCCCC, PrintDummy))
+    env.Append(BUILDERS={'RunCCCC':  bldCCCC})
     env['CCCC_OPTIONS'] = []
     #-
-    bldCLOC = Builder(action = SCons.Action.Action(RunCLOC, PrintDummy))
-    env.Append(BUILDERS = {'RunCLOC':  bldCLOC})
-    env['CLOC_OUTPUT_FORMAT'] = 'txt' # txt | sql | xml
+    bldCLOC = Builder(action=SCons.Action.Action(RunCLOC, PrintDummy))
+    env.Append(BUILDERS={'RunCLOC':  bldCLOC})
+    env['CLOC_OUTPUT_FORMAT'] = 'txt'  # txt | sql | xml
     env['CLOC_OPTIONS'] = []
     #-
-    bldCppCheck = Builder(action = SCons.Action.Action(RunCppCheck, PrintDummy))
-    env.Append(BUILDERS = {'RunCppCheck':bldCppCheck})
+    bldCppCheck = Builder(action=SCons.Action.Action(RunCppCheck, PrintDummy))
+    env.Append(BUILDERS={'RunCppCheck': bldCppCheck})
     env['CPPCHECK_OPTIONS'] = [' --enable=all ']
     #-
-    bldMocko = Builder(action = SCons.Action.Action(RunMocko, PrintDummy))
-    env.Append(BUILDERS = {'RunMocko':bldMocko})
+    bldMocko = Builder(action=SCons.Action.Action(RunMocko, PrintDummy))
+    env.Append(BUILDERS={'RunMocko': bldMocko})
     #-
-    bldReadyToCommit = Builder(action = SCons.Action.Action(RunReadyToCommit, PrintDummy))
-    env.Append(BUILDERS = {'RunReadyToCommit':bldReadyToCommit})
+    bldReadyToCommit = Builder(action=SCons.Action.Action(RunReadyToCommit, PrintDummy))
+    env.Append(BUILDERS={'RunReadyToCommit': bldReadyToCommit})
 
 
 def PrintDummy(env, target, source):
@@ -94,14 +91,12 @@ def PrintDummy(env, target, source):
 def RunUnittest(env, target, source):
     # Print message on the screen.
     env.Cprint('\n=== Running TESTS ===\n', 'green')
-    rc = 0
     tindex = 0
     for s in source:
         t = target[tindex].abspath
         app = s.abspath
         (dir, appbin) = os.path.split(app)
         # Check if the builder was called for jenkins or ready to commit.
-        tmp = target[tindex].abspath.split('.')[0]
         testsuite = env.GetOption('testsuite')
         os.environ['GTEST_OUTPUT'] = env.test_report
         if env.USE_MOCKO:
@@ -120,30 +115,28 @@ def RunUnittest(env, target, source):
 
 
 def InitLcov(env, target, source):
-    test_executable = source[0].abspath
     indexFile = target[0].abspath
     silent = env.GetOption('verbose')
     data = {
         'coverage_file': os.path.join(os.path.dirname(os.path.dirname(indexFile)), 'coverage_output.dat'),
-        'output_dir'   : env.Dir('INSTALL_METRICS_DIR'),
-        'project_dir'  : env['PROJECT_DIR']
+        'output_dir': env.Dir('INSTALL_METRICS_DIR'),
+        'project_dir': env['PROJECT_DIR']
     }
-    r = ChainCalls(env, [
+    result = ChainCalls(env, [
         'lcov --zerocounters --directory %(project_dir)s -b .' % data,
         'lcov --capture --initial --directory %(project_dir)s -b . --output-file %(coverage_file)s' % data,
     ], silent)
-    return r
+    return result
 
 
 def RunLcov(env, target, source):
     # Print message on the screen.
     env.Cprint('\n=== Running COVERAGE ===\n', 'green')
-    test_executable = source[0].abspath
     indexFile = target[0].abspath
     data = {
         'coverage_file': os.path.join(os.path.dirname(os.path.dirname(indexFile)), 'coverage_output.dat'),
-        'output_dir'   : os.path.dirname(indexFile),
-        'project_dir'  : env['PROJECT_DIR']
+        'output_dir': os.path.dirname(indexFile),
+        'project_dir': env['PROJECT_DIR']
     }
     commands_list = [
         'rm -f %(coverage_file)s' % data,
@@ -173,7 +166,7 @@ def RunDoxygen(env, target, source):
     # Create the doc/project directory.
     os.mkdir(target)
     # Path to the project directory.
-    projectDir,_ = os.path.split(source[1].abspath)
+    projectDir, __ = os.path.split(source[1].abspath)
     # Path yo doxygen file for thise project.
     projectDoxyFile = projectDir + '/__tmp_doxyfile'
     # Copy the doxygen file template to the project directory.
@@ -187,7 +180,7 @@ def RunDoxygen(env, target, source):
     ftgt.flush()
     ftgt.close()
     # Create the command for the subprocess.call()
-    cmdOutput = os.path.join(target,'doxyfile_generation.output')
+    cmdOutput = os.path.join(target, 'doxyfile_generation.output')
     cmd = "cd %s; doxygen %s > %s" % (projectDir, projectDoxyFile, cmdOutput)
     rc = subprocess.call(cmd, shell=True)
     if env.GetOption('printresults'):
@@ -203,8 +196,6 @@ def RunDoxygen(env, target, source):
 def AStyleCheck(env, target, source):
     # Print message on the screen.
     env.Cprint('\n=== Running ASTYLE-CHECK ===\n', 'green')
-    # The return value.
-    result = 0
     # Get the report file.
     report_file = target[0].abspath
     # Get the output directory.
@@ -233,20 +224,14 @@ def AStyleCheck(env, target, source):
         # Print what need to be astyled.
         for f, info in check_astyle_result['need_astyle_list']:
             # Write into hte report file.
-            report.write(info+'\n\n')
+            report.write(info + '\n\n')
             # Print on the screen.
             env.Cprint('====> %s' % f, 'red')
-            env.Cprint(info,'yellow')
-        result = 1
+            env.Cprint(info, 'yellow')
     else:
         env.Cprint('[OK] No file needs astyle.', 'green')
     # Close the report file.
     report.close()
-    if check_astyle_result['need_astyle']:
-        cmd = 'grep %s %s | grep %s | grep %s | grep %s > /dev/null' % \
-            ('-v "^[+-].*for.*:"',report_file,'-v "^---"','-v "^+++"','"^[+-]"')
-        if subprocess.call(cmd, shell=True) > 0:
-            result = 0
     return 0
 
 
@@ -256,11 +241,11 @@ def AStyle(env, target, source):
     # Get the project directory.
     project_dir = target[0].abspath
     # Generate the list of files to apply astyle.
-    #   This is because the files in 'source' point to the build/ directory 
+    #   This is because the files in 'source' point to the build/ directory
     #   instead of the projects/ directory.
     build_dir = env['BUILD_DIR']
     ws_dir = env['WS_DIR']
-    file_list = ' '.join([f.abspath.replace(build_dir,ws_dir) for f in source if "tests/ref/" not in f.abspath])
+    file_list = ' '.join([f.abspath.replace(build_dir, ws_dir) for f in source if "tests/ref/" not in f.abspath])
     # Create the command for subprocess.call().
     cmd = "astyle -k1 --options=none --convert-tabs -bSKpUH %s" % file_list
     # Run astyle.
@@ -288,8 +273,6 @@ def RunPdfLatex(env, target, source):
     shutil.move(targetDir, tmpPdf2TexDir + pathTail[:-4] + ".pdf")
     shutil.rmtree(tmpPdf2TexDir)
     return rt
-    #env.Execute(env.Move(targetDir, tmpPdf2TexDir + pathTail[:-4] +".pdf"))
-    #env.Execute(env.Delete(tmpPdf2TexDir))
 
 
 def RunValgrind(env, target, source):
@@ -310,7 +293,7 @@ def RunValgrind(env, target, source):
     rep = (env_var, val_opt, test, testsuite)
     cmd = '%s valgrind %s %s --gtest_filter=%s' % rep
     # Execute the command.
-    ret_val = subprocess.call(cmd, shell=True)
+    subprocess.call(cmd, shell=True)
     # Get back to the previous directory.
     os.chdir(cwd)
     return 0
@@ -326,7 +309,7 @@ def RunCCCC(env, target, source):
     # Get the output directory.
     output_directory = os.path.split(report_file_name)[0]
     # Tell cccc the name of the output directory.
-    env.Append(CCCC_OPTIONS = '--outdir=%s' % output_directory)
+    env.Append(CCCC_OPTIONS='--outdir=%s' % output_directory)
     # Check if the output directory directory already exists.
     if not os.path.exists(output_directory):
         os.makedirs(output_directory)
@@ -354,9 +337,9 @@ def RunCLOC(env, target, source):
     else:
         error_msg = "Invalid value for the CLOC_OUTPUT_FORMAT flag"
         value = env['CLOC_OUTPUT_FORMAT']
-        env.Cprint('[ERROR] %s : %s' % (error_msg,value))
+        env.Cprint('[ERROR] %s : %s' % (error_msg, value))
     # Set the type of the report file.
-    env.Append(CLOC_OPTIONS = output_option)
+    env.Append(CLOC_OPTIONS=output_option)
     # Get the output directory.
     output_directory = os.path.split(report_file)[0]
     # Check if the output directory directory already exists.
@@ -396,8 +379,6 @@ def RunCppCheck(env, target, source):
 def RunMocko(env, target, source):
     # Get the file list.mocko.
     mocko_list = source[0].abspath
-    # Get mocko executable file.
-    mocko_exe = source[1].abspath
     # Get the tests directory.
     directory = os.path.split(mocko_list)[0]
     # The mocko executable file.
@@ -436,7 +417,7 @@ def RunReadyToCommit(env, target, source):
         env.Cprint('VALGRIND : [OK]', 'green')
     else:
         env.Cprint('VALGRIND : [ERROR]', 'red')
-    print "" # Just an empty line.
+    print ""  # Just an empty line.
     return 0
 
 
@@ -449,7 +430,7 @@ def _CheckAstyle(env, source, output_directory):
     files_list = []
     # Copy all sources into the temporary directory.
     for file in source:
-        if "tests/ref/" not in file.abspath: # TODO: Remove this line.
+        if "tests/ref/" not in file.abspath:  # TODO: Remove this line.
             os.system('cp %s %s' % (file.abspath, tmp_dir))
             f = env.Dir(tmp_dir).File(os.path.split(file.abspath)[1])
             files_list.append(f)
@@ -470,16 +451,16 @@ def _CheckAstyle(env, source, output_directory):
         # If the '.orig' file exists for the file then it was modify by astyle.
         if os.path.exists('%s.orig' % file.abspath):
             # Print the differences between files.
-            cmd = 'diff -Nau %s.orig %s' % (file.abspath,file.abspath)
+            cmd = 'diff -Nau %s.orig %s' % (file.abspath, file.abspath)
             diff = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
             diff_stdout = diff.stdout.read()
             diff.wait()
-            need_astyle_list.append((os.path.split(file.abspath)[1],diff_stdout))
+            need_astyle_list.append((os.path.split(file.abspath)[1], diff_stdout))
             need_astyle = True
     # Remove the temporary directory.
     os.system('rm -rf %s' % tmp_dir)
     # Return a dictionary.
-    return {'need_astyle':need_astyle, 'need_astyle_list':need_astyle_list}
+    return {'need_astyle': need_astyle, 'need_astyle_list': need_astyle_list}
 
 
 def _RTCCheckAstyle(env):
@@ -518,4 +499,3 @@ def _RTCCheckValgrind(env):
     report_file = os.path.join(report_file, 'valgrind-report.xml')
     cmd = "cat %s | grep '<error>'" % report_file
     return subprocess.call(cmd, shell=True, stdout=subprocess.PIPE) != 0
-

@@ -29,7 +29,7 @@ from core_components import Component
 
 
 class PdfLaTeXComponent(Component):
-    
+
     def __init__(self, componentGraph, env, name, compDir, latexfile, aliasGroups):
         Component.__init__(self, componentGraph, env, name, compDir, [], aliasGroups)
         self.latexfile = latexfile

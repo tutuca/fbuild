@@ -30,7 +30,6 @@ from SCons.Script.SConscript import SConsEnvironment
 
 from core_components import *
 from components import *
-import utils
 import fbuild_exceptions
 
 
@@ -48,9 +47,10 @@ def init(env):
     SConsEnvironment.CreatePdfLaTeX = CreatePdfLaTeX
     #SConsEnvironment.CreateAutoToolsProject = CreateAutoToolsProject
 
+
 class ComponentDictionary(dict):
 
-    def Add(self, component, check = True):
+    def Add(self, component, check=True):
         if check:
             if not component.name.islower():
                 component.env.Cprint('[warn] modules names should be lower case: ' + component.name, 'yellow')
@@ -67,6 +67,7 @@ class ComponentDictionary(dict):
 
 componentGraph = ComponentDictionary()
 
+
 def CreateExternalComponent(env, name, ext_inc, libPath, deps, shouldBeLinked, aliasGroups=None):
     aliasGroups = aliasGroups if aliasGroups is not None else []
     return componentGraph.Add(ExternalComponent(componentGraph,
@@ -79,6 +80,7 @@ def CreateExternalComponent(env, name, ext_inc, libPath, deps, shouldBeLinked, a
                                                 aliasGroups),
                                False)
 
+
 def CreateHeaderOnlyLibrary(env, name, inc, deps, aliasGroups=None):
     aliasGroups = aliasGroups if aliasGroups is not None else []
     return componentGraph.Add(HeaderOnlyComponent(componentGraph,
@@ -88,6 +90,7 @@ def CreateHeaderOnlyLibrary(env, name, inc, deps, aliasGroups=None):
                                            deps,
                                            inc,
                                            aliasGroups))
+
 
 def CreateStaticLibrary(env, name, inc, ext_inc, src, deps, aliasGroups=None):
     aliasGroups = aliasGroups if aliasGroups is not None else []
@@ -101,6 +104,7 @@ def CreateStaticLibrary(env, name, inc, ext_inc, src, deps, aliasGroups=None):
                                               src,
                                               aliasGroups))
 
+
 def CreateSharedLibrary(env, name, inc, ext_inc, src, deps, aliasGroups=None):
     aliasGroups = aliasGroups if aliasGroups is not None else []
     return componentGraph.Add(DynamicLibraryComponent(componentGraph,
@@ -113,6 +117,7 @@ def CreateSharedLibrary(env, name, inc, ext_inc, src, deps, aliasGroups=None):
                                                src,
                                                aliasGroups))
 
+
 def CreateObject(env, name, inc, src, deps, aliasGroups=None):
     aliasGroups = aliasGroups if aliasGroups is not None else []
     return componentGraph.Add(ObjectComponent(componentGraph,
@@ -124,6 +129,7 @@ def CreateObject(env, name, inc, src, deps, aliasGroups=None):
                                        src,
                                        aliasGroups))
 
+
 def CreateProgram(env, name, inc, src, deps, aliasGroups=None):
     aliasGroups = aliasGroups if aliasGroups is not None else []
     return componentGraph.Add(ProgramComponent(componentGraph,
@@ -134,6 +140,7 @@ def CreateProgram(env, name, inc, src, deps, aliasGroups=None):
                                         inc,
                                         src,
                                         aliasGroups))
+
 
 def CreateTest(env, name, inc, src, deps, aliasGroups=None):
     aliasGroups = aliasGroups if aliasGroups is not None else  []
@@ -154,7 +161,8 @@ def CreateTest(env, name, inc, src, deps, aliasGroups=None):
                                          src,
                                          aliasGroups))
 
-def CreatePdfLaTeX(env, name, latexfile = '', options='', aliasGroups=None):
+
+def CreatePdfLaTeX(env, name, latexfile='', options='', aliasGroups=None):
     aliasGroups = aliasGroups if aliasGroups is not None else []
     docName = name + ':pdf:' + latexfile
     latexfile = env['INSTALL_DOC_DIR'] + "/" + name + ":doc/latex/" + latexfile
@@ -165,6 +173,7 @@ def CreatePdfLaTeX(env, name, latexfile = '', options='', aliasGroups=None):
                                     env.Dir('.'),
                                     latexfile,
                                     aliasGroups))
+
 
 #def CreateAutoToolsProject(env, name, ext_dir, lib_targets, configurationFile, aliasGroups=None):
     #if aliasGroups == None:
@@ -178,21 +187,21 @@ def CreatePdfLaTeX(env, name, latexfile = '', options='', aliasGroups=None):
                                         #configurationFile,
                                         #aliasGroups))
 
+
 def WalkDirsForSconscripts(env, topdir, ignore=None):
     global componentGraph
 
     ignore = ignore if ignore is not None else []
-    
+
     # Step 1: load all the components in the dependency graph
-    # if we find a download dependency, we download it and re-process everything
-    # to be sure that all the components are downloaded and loaded in the
-    # dependency graph
-    # Initial set to pass the loop test
+    # if we find a download dependency, we download it and re-process
+    # everything to be sure that all the components are downloaded and
+    # loaded in the dependency graph Initial set to pass the loop test
     originalGraph = componentGraph.copy()
-    
+
     for component in env.ExternalDependenciesCreateComponentsDict.keys():
-        exec env.ExternalDependenciesCreateComponentsDict[component] in {'env':env}
-    
+        exec env.ExternalDependenciesCreateComponentsDict[component] in {'env': env}
+
     downloadedDependencies = True
     while downloadedDependencies:
         downloadedDependencies = False
@@ -234,6 +243,7 @@ def WalkDirsForSconscripts(env, topdir, ignore=None):
         component = componentGraph.get(componentName)
         component.Process()
 
+
 def _InstallComponentAndDep(env, component_name, depsToInstall):
     """
         This method search recursively for dependencies to install.
@@ -261,6 +271,7 @@ def _InstallComponentAndDep(env, component_name, depsToInstall):
         depsToInstall = list(set(depsToInstall + [comp_to_download]))
         downloadedDependencies = _InstallComponentAndDep(env, comp_to_download, depsToInstall)
     return downloadedDependencies
+
 
 def _CheckCircularDependencies(component, deps_installing, deps_to_install):
     for dep in deps_installing:
