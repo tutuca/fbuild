@@ -1255,10 +1255,15 @@ class UnitTestComponent(ProgramComponent):
         # Create the alias.
         ready_to_commit = self._env.Alias(
             '%s:ready-to-commit' % self._project_name, 
-            None
+            None,
+            "Check if the project is ready to be commited."
         )
         # Create a shorter alias.
-        self._env.Alias('%s:rtc' % self._project_name, ready_to_commit)
+        self._env.Alias(
+            '%s:rtc' % self._project_name,
+            ready_to_commit,
+            "Alias of the target: ready-to-commit."
+        )
         # If the target 'ready-to-commit' was invoked...
         if flags['ready-to-commit']:
             # Create an instance of the RunReadyToCommit() builder.
