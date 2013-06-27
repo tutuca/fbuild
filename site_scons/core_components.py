@@ -1105,7 +1105,7 @@ class UnitTestComponent(ProgramComponent):
         self._CreateValgrindTarget(program_builder)
         self._CreateCoverageTarget(run_test_target, program_builder)
         self._CreateJenkinsTarget(flags, run_test_target, program_builder)
-        self._CreateReadyToCommitTtarget(flags, program_builder)
+        self._CreateReadyToCommitTtarget(flags, run_test_target, program_builder)
         self._builders['install'] = run_test_builder
         # Return the builder that execute the test.
         return run_test_builder
@@ -1247,7 +1247,7 @@ class UnitTestComponent(ProgramComponent):
         self._builders['jenkins'] = jenkins
         return jenkins
 
-    def _CreateReadyToCommitTtarget(self, flags, program_builder):
+    def _CreateReadyToCommitTtarget(self, flags, run_test_target, program_builder):
         if self._builders['ready-to-commit'] is not None:
             return self._builders['ready-to-commit']
         # Get the component of the project.
@@ -1276,9 +1276,11 @@ class UnitTestComponent(ProgramComponent):
             astyle_check = project_component._CreateAstyleCheckTarget(source)
             cppcheck = project_component._CreateCppcheckTarget(source)
             valgrind = self._CreateValgrindTarget(program_builder)
+            run_test = self._env.RunUnittest(run_test_target, program_builder)
             # Create dependencies.
             self._env.Depends(rtc_builder, astyle_check)
             self._env.Depends(rtc_builder, cppcheck)
+            self._env.Depends(rtc_builder, run_test)
             self._env.Depends(rtc_builder, valgrind)
             self._env.Depends(ready_to_commit, rtc_builder)
         self._builders['ready-to-commit'] = ready_to_commit

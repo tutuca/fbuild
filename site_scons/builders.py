@@ -483,21 +483,17 @@ def _CheckAstyle(env, source, output_directory):
 
 
 def _RTCCheckAstyle(env):
-    # Get astyl-check report file name.
     report_file = os.path.join(env['INSTALL_REPORTS_DIR'], 'astyle-check')
     report_file = os.path.join(report_file, env['PROJECT_NAME'])
     report_file = os.path.join(report_file, 'AstyleCheckReport.diff')
-    # Check if the project needs astyle.
     cmd = "cat %s | grep -E '^\+' | grep -v +++ | grep -v 'for (auto'" % report_file
     return subprocess.call(cmd, shell=True, stdout=subprocess.PIPE) != 0
 
 
 def _RTCCheckCppcheck(env):
-    # Get the cppcheck report file name.
     report_file = os.path.join(env['INSTALL_REPORTS_DIR'], 'cppcheck')
     report_file = os.path.join(report_file, env['PROJECT_NAME'])
     report_file = os.path.join(report_file, 'CppcheckReport.xml')
-    # Check if the project needs astyle.
     cmd_error = 'cat %s | grep severity=\\"error\\"' % report_file
     cmd_warning = 'cat %s | grep severity=\\"warning\\"' % report_file
     errors = subprocess.call(cmd_error, shell=True, stdout=subprocess.PIPE) != 0
@@ -506,15 +502,20 @@ def _RTCCheckCppcheck(env):
 
 
 def _RTCCheckTests(env):
-    return True
+    report_file = os.path.join(env['INSTALL_REPORTS_DIR'], 'test')
+    report_file = os.path.join(report_file, env['PROJECT_NAME'])
+    report_file = os.path.join(report_file, 'test-report.xml')
+    cmd_failures = 'cat %s | grep "<testsuites" | grep -v "failures=\\"0\\""' % report_file
+    cmd_errors = 'cat %s | grep "<testsuites" | grep -v "errors=\\"0\\""' % report_file
+    failures = subprocess.call(cmd_failures, shell=True, stdout=subprocess.PIPE) != 0
+    errors = subprocess.call(cmd_errors, shell=True, stdout=subprocess.PIPE) != 0
+    return failures and errors
 
 
 def _RTCCheckValgrind(env):
-    # Get valgrind report file name.
     report_file = os.path.join(env['INSTALL_REPORTS_DIR'], 'valgrind')
     report_file = os.path.join(report_file, env['PROJECT_NAME'])
     report_file = os.path.join(report_file, 'valgrind-report.xml')
-    # Check if the project needs astyle.
     cmd = "cat %s | grep '<error>'" % report_file
     return subprocess.call(cmd, shell=True, stdout=subprocess.PIPE) != 0
 
