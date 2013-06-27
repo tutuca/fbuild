@@ -665,9 +665,9 @@ class SourcedComponent(HeaderOnlyComponent):
         self._includes = self._FormatArgument(inc)
         # Check the 'src' argument.
         if not src:
-            msg = "[ERROR] %s: None sources were specify for a" % self.name
+            msg = "[ERROR] %s: No sources were specified for a" % self.name
             self._env.Cprint("%s SourcedComponent object." % msg, 'red')
-            sys.exit(1)
+            raise ValueError("No sources were specified for a SourcedComponent object.")
         # Initialize the source files.
         self._InitSourcesFileList(src)
     
@@ -1222,7 +1222,11 @@ class UnitTestComponent(ProgramComponent):
         # Get the component of the project.
         project_component = self._component_graph.get(self._project_name)
         # Create the alias.
-        jenkins = self._env.Alias('%s:jenkins' % self._project_name, None)
+        jenkins = self._env.Alias(
+            '%s:jenkins' % self._project_name,
+            None,
+            "Build the environmnet's project for the Jenkins server."
+        )
         # If the target 'jenkins' was invoked...
         if flags['jenkins']:
             # Get the builders from which the jenkins target will depend on.
