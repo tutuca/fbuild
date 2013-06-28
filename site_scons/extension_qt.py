@@ -23,8 +23,6 @@
 """
 
 
-import glob
-import sys
 import os
 
 
@@ -46,19 +44,24 @@ def HasQt(env):
 
 def init(env):
     # This is a base component, it will include the qt base include path
-    qtdir =  os.environ.get('QT4DIR') or os.environ.get('QTDIR')
-    QT_INCLUDE_ROOT = os.getenv("QT_INCLUDE_ROOT", os.path.join(qtdir, 'include', 'qt4'))
-    env.CreateExternalLibraryComponent('QtInc',
-                                       env.Dir(os.getenv("QT_INCLUDE", QT_INCLUDE_ROOT)), 
-                                       env.Dir('/usr/lib/x86_64-linux-gnu'), 
-                                       [],
-                                       False)
+    qtdir = os.environ.get('QT4DIR') or os.environ.get('QTDIR')
+    QT_INCLUDE_ROOT = os.getenv(
+        "QT_INCLUDE_ROOT",
+        os.path.join(qtdir, 'include', 'qt4')
+    )
+    env.CreateExternalComponent(
+        'QtInc',
+        [env.Dir(os.getenv("QT_INCLUDE", QT_INCLUDE_ROOT))],
+        env.Dir('/usr/lib/x86_64-linux-gnu'),
+        [],
+        False
+    )
     validModules = [
         'QtCore',
         'QtGui',
         'QtOpenGL',
         'Qt3Support',
-        'QtAssistant', # deprecated
+        'QtAssistant',  # deprecated
         'QtAssistantClient',
         'QtScript',
         'QtDBus',
@@ -77,10 +80,12 @@ def init(env):
         'QtHelp',
         'QtScriptTools',
         'QtMultimedia',
-        ]
+    ]
     for module in validModules:
-        env.CreateExternalLibraryComponent(module,
-                                           env.Dir(os.path.join(QT_INCLUDE_ROOT, module)), 
-                                           env.Dir('/usr/lib/x86_64-linux-gnu'), 
-                                           ['QtInc'],
-                                           True)
+        env.CreateExternalComponent(
+            module,
+            [env.Dir(os.path.join(QT_INCLUDE_ROOT, module))],
+            env.Dir('/usr/lib/x86_64-linux-gnu'),
+            ['QtInc'],
+            True
+        )

@@ -98,11 +98,10 @@ fi
 alias fbuild=scons
 
 echo -e "FuDePAN-build 2.0"
-echo -e "Copyright (C) 2011-2012 Esteban Papp and Hugo Arregui, 2013 Gonzalo Bonigo and Gustavo Ojeda FuDePAN"
+echo -e "Copyright (C) 2011-2012 Esteban Papp and Hugo Arregui, 2013 Gonzalo Bonigo and Gustavo Ojeda, FuDePAN"
 echo -e "This program comes with ABSOLUTELY NO WARRANTY; for details see http://www.gnu.org/licenses/gpl-3.0.html"
 echo -e "FuDePAN-build is free software, and you are welcome to redistribute it under certain conditions; for more information visit http://www.gnu.org/licenses/gpl-3.0.html\n"
 
 echo -e "\e[0;32mWelcome to the FuDePAN console environment\e[0m"
 
 return 0
-

@@ -1,6 +1,6 @@
 # fudepan-build: The build system for FuDePAN projects
 #
-# Copyright (C) 2011-2012 Esteban Papp, Hugo Arregui, 
+# Copyright (C) 2011-2012 Esteban Papp, Hugo Arregui,
 #               2013 Gonzalo Bonigo, Gustavo Ojeda FuDePAN
 #
 # This file is part of the fudepan-build build system.
@@ -20,647 +20,1311 @@
 
 
 """
-    Add a description here!
+    This file contains the classes hierarchy for the components of the system.
 """
 
 
 import os
-import sys
+import abc
+
+from SCons import Node
+
 import utils
+import fbuild_exceptions
 
 
-headersFilter = ['*.h','*.hpp']
-sourceFilters = ['*.c','*.cpp','*.cc']
+HEADERS_FILTER = ['*.h', '*.hpp']
+SOURCES_FILTER = ['*.c', '*.cpp', '*.cc']
 
-
-class CyclicDependencieError(Exception):
-    """
-        An exception that represents a cycle in the dependence graph.
-    """
-    pass
 
 
 class Component(object):
-    
-    def __init__(self, componentGraph, env, name, compDir, deps, aliasGroups):
-        self.name = name
-        # Directory where the component lives (the directory that contains the
-        # SConscript)
-        self.compDir = compDir
-        self.dir = compDir.abspath
-        self.deps = deps
-        self.env = env.Clone()
-        self.aliasGroups = aliasGroups
-        self.componentGraph = componentGraph
-        self.projDir = os.path.join(env['WS_DIR'], os.path.relpath(self.dir, env['BUILD_DIR']))
-        self.shouldBeLinked = False
-        self.env.USE_MOCKO = 'mocko' in deps
+    """
+        This class represents a component in the component graph.
 
+        This is an abstract base class which contains the main interface for
+        a component.
+    """
+
+    # Make this class an abstract class.
+    __metaclass__ = abc.ABCMeta
+
+    #
+    # Public attributes.
+    #
+    # A string with the name of the component.
+    name = None
+
+    #
+    # Private attributes.
+    #
+    # The directory where the component lives (instance of SCons Dir class).
+    _dir = None
+    # A list with names of the components from which it depends.
+    _dependencies = None
+    # A list with the includes directories (instances of SCons Dir class).
+    _includes = None
+    # A list of external includes directories (instances of SCons Dir class).
+    _external_includes = None
+    # The environment of the component.
+    _env = None
+    # A list with the group of aliases to which the component belongs.
+    _alias_groups = None
+    # A reference to the graph of components.
+    _component_graph = None
+    # A boolean that tells if the component is linkable or not.
+    _should_be_linked = False
+    # A list with the libraries that need to be linked for build this
+    # component.
+    _libs = None  # To get this attribute use the method GetLibs()
+    # A list with the path to the libraries in self._libs.
+    _libpaths = None  # To get this attribute use the method GetLibs()
+    # A list with the path of the include directories.
+    _include_paths = None  # To get this attribute use the method
+                           # GetIncludePaths()
+
+    #
+    # Special methods.
+    #
+
+    def __init__(self, graph, env, name, dir, deps, inc, ext_inc, als=None):
+        # Check consistency for some types.
+        self.name = name
+        self._env = env.Clone()
+        self._component_graph = graph
+        self._dir = dir
+        self._dependencies = deps
+        self._includes = self._FormatArgument(inc)
+        self._external_includes = self._FormatArgument(ext_inc)
+        self._alias_groups = als if als is not None else []
+        self._env.USE_MOCKO = 'mocko' in deps
+
+    #
+    # Public methods.
+    #
+
+    @abc.abstractmethod
     def Process(self):
-        return None
-    
+        """
+            Description:
+                This method describes how the component must be built and
+                what actions can be perform on it.
+            Arguments:
+                None. (If some subclass add arguments they must be optional).
+            Exceptions:
+                None. (If some subclass raise an exception it must be
+                specified here)
+            Return:
+                This method must return a reference to a builder (it can be
+                an instance of a Builder or an Alias) or None if the
+                component does not need to be built.
+        """
+        return NotImplemented
+
     def GetLibs(self):
         """
             Description:
-                This method returns the libraries (and its paths) that should be 
-                linked when the component have to be build.
+                This method returns the libraries (and its paths) that should
+                be linked when the component needs to be built.
             Arguments:
                 None.
             Exceptions:
                 None.
             Return:
-                A tuple instance of the form (libs,libpaths) where 'libs' is the 
-                list of the libraries and 'libpaths' the list of its paths.
+                A tuple instance of the form (libs,libpaths) where 'libs' is
+                the list of the libraries and 'libpaths' the list of its paths.
         """
-        # List of libraries.
-        libs = []
-        # List of libraries paths.
-        libpaths = []
+        if self._libs is not None and self._libpaths is not None:
+            return (self._libs, self._libpaths)
+        else:
+            self._libs = []
+            self._libpaths = []
         # Append some strandars paths to this variable.
-        libpaths.append(self.env['INSTALL_LIB_DIR'])
-        libpaths.append(self.env['INSTALL_BIN_DIR'])
+        self._libpaths.append(self._env['INSTALL_LIB_DIR'])
+        self._libpaths.append(self._env['INSTALL_BIN_DIR'])
         # Look for the libs and its paths.
         try:
-            self._GetLibs(libs, libpaths, [], 0)
-        except CyclicDependencieError, error:
+            self._GetLibs(self._libs, self._libpaths, [], 0)
+        except fbuild_exceptions.CircularDependencyError, error:
             msg = (' -> ').join(error[0])
-            self.env.cerror('[error] A dependency cycle was found:\n  %s' % msg)
+            self._env.cerror('[error] A dependency cycle was found:\n  %s' % msg)
         # Remember:
         #   t[0]  ->  depth.
         #   t[1]  ->  name.
-        # This function tells if the tuple depth (t[0]) is the maximum in libs.
-        is_max = lambda t : len([x for x in libs if x[1]==t[1] and x[0]>t[0]]) == 0
-        # This function tells if the tuple name (t[1]) is unique in libs.
-        unique = lambda t : len([x for x in libs if x[1]==t[1]]) == 1
+        # This function tells if the tuple depth (t[0]) is the maximum in
+        # self._libs.
+        IsMax = lambda t: len([x for x in self._libs if (x[1] == t[1]) and (x[0] > t[0])]) == 0
+        # This function tells if the tuple name (t[1]) is unique in
+        # self._libs.
+        Unique = lambda t: len([x for x in self._libs if x[1] == t[1]]) == 1
         # Remove from the list the duplicated names.
-        aux = [t for t in libs if unique(t) or is_max(t)]; aux.sort()
-        # Create the libs list.
-        libs = [t[1] for t in aux]
-        return (libs, libpaths)
+        aux = [t for t in self._libs if Unique(t) or IsMax(t)]
+        aux.sort()
+        # Create the self._libs list.
+        self._libs = [t[1] for t in aux]
+        return (self._libs, self._libpaths)
 
-    def _GetLibs(self, libs, libpaths, stack, depth):
+    def GetIncludePaths(self):
         """
-            This is a recursive internal method used by the self.GetLibs() method.
+            Description:
+                This method looks for the include's paths of the component.
+            Arguments:
+                None.
+            Exceptions:
+                None.
+            Return:
+                A set of paths.
+        """
+        if self._include_paths is not None:
+            return list(self._include_paths)
+        else:
+            self._include_paths = set()
+        try:
+            self._GetIncludePaths(self._include_paths, [])
+        except fbuild_exceptions.CircularDependencyError, error:
+            msg = (' -> ').join(error[0])
+            self._env.cerror('[error] A dependency cycle was found:\n  %s' % msg)
+        return list(self._include_paths)
+
+    def GetIncludeFiles(self):
+        """
+            Description:
+                This method looks for the headers files of the component.
+            Arguments:
+                None.
+            Exceptions:
+                None.
+            Return:
+                A list of files. Each file is an instance of the SCons File
+                class.
+        """
+        return []
+
+    def GetSourcesFiles(self):
+        """
+            Description:
+                This method return a list with source files of the component.
+            Arguments:
+                None.
+            Exceptions:
+                None.
+            Return:
+                A list with the source files, each element is an instance
+                of the SCons File class.
+        """
+        return []
+
+    def GetObjectsFiles(self):
+        """
+            Description:
+                This method looks for the objects files that this component
+                needs to be built.
+            Arguments:
+                None.
+            Exceptions:
+                None.
+            Return:
+                A list with instance of the SCons Object() class.
+        """
+        object_files = []
+        for dependency in self._dependencies:
+            component = self._component_graph.get(dependency)
+            object_files.extend(component.GetObjectsFiles())
+        return object_files
+
+    #
+    # Private methods.
+    #
+
+    def _GetIncludePaths(self, include_paths, stack):
+        """
+            This is a recursive internal method used by the GetIncludePaths
+            method.
         """
         if self.name in stack:
-            # If the component name is within the stack then there is a cycle.
+            # If the component name is within the stack then there is a
+            # cycle.
             stack.append(self.name)
-            raise CyclicDependencieError(stack)
+            raise fbuild_exceptions.CircularDependencyError(stack)
         else:
             # We add the component name to the stack.
             stack.append(self.name)
-        if self.shouldBeLinked and depth > 0:
-            libs.append((depth,self.name))
-            # We add the directory where the library lives.
-            if not self.dir in libpaths:
-                libpaths.append(self.dir)
-        # Check its dependencies.
-        for dep in self.deps:
-            c = self.componentGraph.get(dep)
-            if c is None:
-                self.env.cerror(
-                    '[error] %s depends on %s which could not be found' % 
-                    (self.name, dep)
+        if len(stack) == 1:
+            # If we're here is because we are looking for the include of this
+            # component.
+            if isinstance(self, UnitTestComponent):
+                # If this is a UnitTestComponent we need the include directories
+                # from its component.
+                component = self._component_graph.get(self._project_name)
+                for path in component._includes:
+                    include_paths.add(path)
+            else:
+                # For any other component we use the _includes list.
+                for path in self._includes:
+                    include_paths.add(path)
+            # We also add the install/include/ and the build/project/ directories.
+            include_paths.add(self._env.Dir('$INSTALL_HEADERS_DIR').abspath)
+            include_paths.add(self._dir.abspath)
+        else:
+            # If we're here is because we're looking for the include of the
+            # dependency of a component.
+            # 'self' can not be a UnitTestComponent. Because a
+            # 'UnitTestComponent should never be a dependency of other
+            # component.
+            assert(not isinstance(self, UnitTestComponent))
+            if isinstance(self, ExternalComponent):
+                for path in self._includes:
+                    include_paths.add(path)
+            else:
+                path = self._env.Dir('$INSTALL_HEADERS_DIR')
+                path = path.Dir(self.name).abspath
+                include_paths.add(path)
+        # We always add external includes.
+        for path in self._external_includes:
+            include_paths.add(path)
+        # Look for the includes of its dependencies.
+        for dependency in self._dependencies:
+            component = self._component_graph.get(dependency)
+            if component is not None:
+                component._GetIncludePaths(include_paths, stack)
+            else:
+                self._env.cerror(
+                    '[error] %s depends on %s which could not be found' %
+                    (self.name, dependency)
                 )
-            else: #if not isinstance(c, HeaderOnlyComponent):
-                c._GetLibs(libs, libpaths, stack, depth+1)
         # We remove the component name from the stack.
         if self.name in stack:
             stack.pop()
 
-
-class ExternalLibraryComponent(Component):
-    
-    def __init__(self, componentGraph, env, name, compDir, deps, extInc, shouldBeLinked, aliasGroups):
-        Component.__init__(self, componentGraph, env, name, compDir, deps, aliasGroups)
-        self.extInc = []
-        if extInc:
-            if isinstance(extInc,list) or isinstance(extInc,tuple):
-                for i in extInc:
-                    self.extInc.append( i )
+    def _GetLibs(self, libs, libpaths, stack, depth):
+        """
+            This is a recursive internal method used by the GetLibs method.
+        """
+        if self.name in stack:
+            # If the component name is within the stack then there is a cycle.
+            stack.append(self.name)
+            raise fbuild_exceptions.CircularDependencyError(stack)
+        else:
+            # We add the component name to the stack.
+            stack.append(self.name)
+        if self._should_be_linked and depth > 0:
+            libs.append((depth, self.name))
+            # We add the directory where the library lives.
+            if not self._dir.abspath in libpaths:
+                libpaths.append(self._dir.abspath)
+        # Check its dependencies.
+        for dep in self._dependencies:
+            c = self._component_graph.get(dep)
+            if c is None:
+                self._env.cerror(
+                    '[error] %s depends on %s which could not be found' %
+                    (self.name, dep)
+                )
             else:
-                self.extInc.append( extInc )
-        self.shouldBeLinked = shouldBeLinked
+                c._GetLibs(libs, libpaths, stack, depth + 1)
+        # We remove the component name from the stack.
+        if self.name in stack:
+            stack.pop()
+
+    def _CreateInstallerBuilder(self, binaries):
+        """
+            This method creates an installer builder.
+        """
+        if isinstance(self, ProgramComponent):
+            binaries_dir = self._env.Dir('$INSTALL_BIN_DIR')
+        else:
+            binaries_dir = self._env.Dir('$INSTALL_LIB_DIR')
+        inc_installer = utils.RecursiveInstall(
+            self._env,
+            self._dir,
+            self._includes,
+            self.name,
+            HEADERS_FILTER
+        )
+        bin_installer = self._env.Install(binaries_dir, binaries)
+        installers = bin_installer + inc_installer
+        # Create the alias for install the component.
+        self._env.Alias(self.name, installers, 'Install %s.' % self.name)
+        return installers
+
+    def _CreateGroupAliases(self):
+        """
+            This method creates the aliases for the group.
+        """
+        for alias in self._alias_groups:
+            self._env.Alias(alias, None, "Build group %s" % alias)
+
+    #TODO: Move this out of here! Could be into utils.py.
+    def _FormatArgument(self, arg):
+        """
+            This method takes an iterable object as argument, which can
+            contain str, Dir or more iterable objects and returns a list
+            with Dir objects.
+        """
+        if not isinstance(arg, (list, tuple, set)):
+            arg = [arg]
+        result = []
+        for element in arg:
+            if isinstance(element, str):
+                result.append(self._env.Dir(element))
+            elif isinstance(element, Node.FS.Dir):
+                result.append(element)
+            else:
+                msg1 = '[ERROR] %s: Initializing component. ' % self.name
+                msg2 = 'Argument must be of type str or Dir.'
+                self._env.cerror(msg1 + msg2)
+                raise TypeError('Argument must be of type str or Dir.')
+        return result
+
+
+class ExternalComponent(Component):
+    """
+        This class represents an external component.
+
+        External components are installed in the system rather than in the
+        fbuild install/ directory.
+    """
+
+    #
+    # Special methods.
+    #
+
+    def __init__(self, graph, env, name, dir, deps, inc, linkable, als=None):
+        Component.__init__(self, graph, env, name, dir, deps, inc, [], als)
+        self._should_be_linked = linkable
+
+    #
+    # Public methods.
+    #
 
     def Process(self):
-        return Component.Process(self)
-
-    def GetIncludePaths(self):
-        (incs, processedComponents) = self._GetIncludePaths([], 0)
-        return utils.RemoveDuplicates(incs)
-
-    def _GetIncludePaths(self, processedComponents, depth):
-        incs = []
-        if depth > 0:
-            for i in self.extInc:
-                incs.append(os.path.join(self.env['WS_DIR'],
-                                   os.path.relpath(i.abspath,self.env['BUILD_DIR'])))
-        processedComponents.append(self.name)
-        for dep in self.deps:
-            # Only process the dep if it was not already processed
-            if dep not in processedComponents:
-                c = self.componentGraph.get(dep)
-                if c is None:
-                    self.env.cerror('[error] %s depends on %s which could not be found' % (self.name, dep))
-                    continue
-                (depIncs, depProcessedComp) = c._GetIncludePaths(processedComponents,depth+1)
-                incs.extend(depIncs)
-        return (incs, processedComponents)
+        """
+            This type of component no need to be built here.
+        """
+        return []
 
 
 class HeaderOnlyComponent(Component):
-    
-    def __init__(self, componentGraph, env, name, compDir, deps, extInc, aliasGroups):
-        Component.__init__(self, componentGraph, env, name, compDir, deps, aliasGroups)
-        self.extInc = []
-        if extInc:
-            if isinstance(extInc, (list, tuple)):
-                self.extInc.extend(extInc)
-            else:
-                self.extInc.append(extInc)
+    """
+        This class represents a header only component.
 
-    def Process(self, called_from_subclass=False):
-        Component.Process(self)
+        This type of component does not have sources files, it contains only
+        header files.
+    """
+
+    #
+    # Private attributes.
+    #
+    # The path to the project's directory into the fbuild projects/ folder.
+    # (instance of SCons Dir class).
+    _project_dir = None
+    # A list with the header files (instance of SCons File class). Never use
+    # this attribute directly, always use the method GetIncludeFiles().
+    _header_file_list = None
+    # A dictionary with the builder of the component that can have a target
+    # like 'project:target'.
+    _builders = None
+
+    #
+    # Special methods.
+    #
+
+    def __init__(self, graph, env, name, dir, deps, inc, als=None):
+        Component.__init__(self, graph, env, name, dir, deps, inc, [], als)
+        self._project_dir = self._env.Dir('WS_DIR').Dir(self.name)
+        self._builders = {  # Maintain alphabetical order.
+            'astyle': None,
+            'astyle-check': None,
+            'cccc': None,
+            'cloc': None,
+            'coverage': None,
+            'cppcheck': None,
+            'doc': None,
+            'install': None,
+            'jenkins': None,
+            'ready-to-commit': None,
+            'test': None,
+            'valgrind': None
+        }
+
+    #
+    # Public methods.
+    #
+
+    def Process(self):
+        """
+            Description:
+                This method creates the targets of the actions that can be
+                applied to this component.
+            Arguments:
+                None.
+            Exceptions:
+                None.
+            Return:
+                An instance of a builder which tell how to install the
+                component.
+        """
+        # Check if the component was already processed.
+        if self._builders['install'] is not None:
+            return self._builders['install']
         # Look for the sources of this component.
-        filters = []
-        filters.extend(headersFilter)
-        filters.extend(sourceFilters)
-        sources = utils.FilesFlatten(self.env, self.projDir, filters)
-        # Check if the coverage is needed.
-        if (utils.WasTargetInvoked('%s:jenkins' % self.name.split(':')[0]) or 
-           utils.WasTargetInvoked('%s:coverage' % self.name.split(':')[0])):
-            gprofFlags = ['--coverage']
-            self.env.Append(CXXFLAGS=gprofFlags, CFLAGS=gprofFlags, LINKFLAGS=gprofFlags)
-        # Create target for jenkins.
-        self._CreateJenkinsTarget()
-        if not self.name.endswith(':test'):
-            # Create target for generate the documentation.
-            self._CreateDocTarget()
-            # We add astyle target to all the components that can have a header.
-            self._CreateAstyleTarget(sources)
-            # We add a traget for check if the component is astyled.
-            self._CreateAstyleCheckTarget(sources)
-            # This condition is for the cases when the method is called from a subclass.
-            if not called_from_subclass:
-                # Create the list of the 'sources' files.
-                sources = []
-                for d in self.extInc:
-                    sources.extend(utils.FindFiles(self.env, d,['*.h']))
-                self._CreateCCCCTarget(sources)
-                self._CreateClocTarget(sources)
-                self._CreateCppcheckTarget(sources)
-            # If the component doesnt have external headers, we dont process it since
-            # there is nothing to install
-            if len(self.extInc) > 0:
-                hLib = utils.RecursiveInstall(self.env, self.compDir, self.extInc, self.name, headersFilter)
-                self.env.Alias(self.name, hLib, 'Install ' + self.name + ' headers')
-                self.env.Clean(self.name, hLib)
-                self.env.Alias('all:install', hLib, "Install all targets")
-                for alias in self.aliasGroups:
-                    self.env.Alias(alias, hLib, "Build group " + alias)
-                return hLib
-            else:
-                return None
+        headers = self.GetIncludeFiles()
+        # Create targets.
+        self._CreateAstyleCheckTarget(headers)
+        self._CreateAstyleTarget(headers)
+        self._CreateCCCCTarget(headers)
+        self._CreateClocTarget(headers)
+        self._CreateCppcheckTarget(headers)
+        self._CreateDocTarget()
+        # Create the installer.
+        installer = self._CreateInstallerBuilder([])
+        # Create the alias group.
+        self._CreateGroupAliases()
+        # Set the installer into the builders dictionary.
+        self._builders['install'] = installer
+        return installer
 
-    def GetIncludePaths(self):
-        (incs, processedComponents) = self._GetIncludePaths([], 0)
-        return incs
+    def GetIncludeFiles(self):
+        """
+            Description:
+                This method looks for the headers files of the component.
+            Arguments:
+                None.
+            Exceptions:
+                None.
+            Return:
+                A list of files. Each file is an instance of the SCons File
+                class.
+        """
+        # If the files were already calculate we just return them.
+        if self._header_file_list is not None:
+            return self._header_file_list
+        # Otherwise we look for them.
+        self._header_file_list = []
+        # Look for the files in each include directory.
+        for include_dir in self._includes:
+            files = utils.FindFiles(self._env, include_dir, HEADERS_FILTER)
+            self._header_file_list.extend(files)
+        return self._header_file_list
 
-    def _GetIncludePaths(self, processedComponents, depth):
-        includeModulePath = os.path.join(self.env['INSTALL_HEADERS_DIR'], self.name)
-        incs = []
-        if depth > 0:
-            for i in self.extInc:
-                rel = os.path.relpath(i.abspath, self.compDir.abspath)
-                hDir = os.path.join(includeModulePath, rel)
-                (hDirHead, hDirTail) = os.path.split(hDir)
-                incs.append(hDirHead)
-        # Because we are building from #, we include also compDir as an include
-        # path so it finds local includes
-        incs.append(self.dir)
-        processedComponents.append(self.name)
-        # Some modules export env.Dir('.') as a path, in those cases, we
-        # need to include env['INSTALL_HEADERS_DIR'] as include path, this is
-        # dangerous since it will be possible to refer to other modules
-        #incs.append(self.env['INSTALL_HEADERS_DIR'])
-        for dep in self.deps:
-            # Only process the dep if it was not already processed
-            if dep not in processedComponents:
-                c = self.componentGraph.get(dep)
-                if c is None:
-                    self.env.cerror('[error] %s depends on %s which could not be found' % (self.name, dep))
-                    continue
-                if hasattr(c, '_GetIncludePaths'):
-                    (depIncs, depProcessedComp) = c._GetIncludePaths(processedComponents,depth+1)
-                    incs.extend(depIncs)
-        return (incs, processedComponents)
-    
-    def _CreateCCCCTarget(self, sources):
-        # Create the 'target', it is the directory where the result will be put.
-        reports_dir = self.env['INSTALL_REPORTS_DIR']
-        target = self.env.Dir(reports_dir).Dir(self.env['INSTALL_METRICS_DIR']).Dir('cccc').Dir(self.name)
-        # Set the name of the report file.
-        outdir = target.abspath + os.sep
-        self.env.Append(CCCC_OPTIONS='--html_outfile='+outdir+'CCCCMainHTMLReport.html')
-        # Call RunCCCC().
-        cccc = self.env.RunCCCC(target, sources)
-        self.env.AlwaysBuild(cccc)
-        # Create an alias to be show when run 'fbuild targets'.
-        self.env.Alias(self.name+":cccc", cccc, 'Generate software metrics for %s' % self.name)
-        # Add dependence for jenkins.
-        self.env.Depends(self.jenkins_target,cccc)
-    
-    def _CreateClocTarget(self, sources):
-        # Check if we need to create an xml report.
-        if utils.WasTargetInvoked('%s:jenkins' % self.name.split(':')[0]):
-            self.env.Replace(CLOC_OUTPUT_FORMAT='xml')
-        # Create the 'target', it is the directory where the result will be put.
-        reports_dir = self.env['INSTALL_REPORTS_DIR']
-        target = self.env.Dir(reports_dir).Dir(self.env['INSTALL_METRICS_DIR']).Dir('cloc').Dir(self.name)
-        # Set the name of the report file.
-        outdir = target.abspath
-        if self.env['CLOC_OUTPUT_FORMAT'] == 'txt':
-            self.env.Append(CLOC_OPTIONS = '--out=%s/CLOCMainTXTReport' % outdir)
-        elif self.env['CLOC_OUTPUT_FORMAT'] == 'sql':
-            self.env.Append(CLOC_OPTIONS = '--sql=%s/CLOCMainSQLReport' % outdir)
-        elif self.env['CLOC_OUTPUT_FORMAT'] == 'xml':
-            self.env.Append(CLOC_OPTIONS = '--xml --out=%s/CLOCMainXMLReport' % outdir)
-        else:
-            raise ValueError("Not valid value for CLOC_OUTPUT_FORMAT",self.env['CLOC_OUTPUT_FORMAT'])
-        # Call RunCLOC().
-        cloc = self.env.RunCLOC(target, sources)
-        self.env.AlwaysBuild(cloc)
-        # Create Componentan alias to be show when run 'fbuild targets'.
-        self.env.Alias(self.name+":cloc", cloc, 'Generate software metrics for %s' % self.name)
-        # Add dependence for jenkins.
-        self.env.Depends(self.jenkins_target,cloc)
-    
-    def _CreateJenkinsTarget(self):
-        # Create the target for jenkins.
-        if self.name.endswith(':test'):
-            name = self.name.split(':')[0]
-        else:
-            name = self.name
-        self.jenkins_target = self.env.Alias('%s:jenkins' % name, None, '')
-        self.env.AlwaysBuild(self.jenkins_target)
-    
-    def _CreateCppcheckTarget(self, sources):
-        # Create the 'target', it is the directory where the result will be put.
-        target = self.env.Dir(self.env['INSTALL_REPORTS_DIR']).Dir('cppcheck').Dir(self.name)
-        # Check if we need to create an xml report.
-        if utils.WasTargetInvoked('%s:jenkins' % self.name.split(':')[0]):
-            self.env.Append(CPPCHECK_OPTIONS=['--xml'])
-        # Call RunCppCheck().
-        cppcheck = self.env.RunCppCheck(target, sources)
-        self.env.AlwaysBuild(cppcheck)
-        # Create an alias to be show when run 'fbuild targets'.
-        self.env.Alias(self.name+":cppcheck", cppcheck, 'C/C++ code analyse for %s' % self.name)
-        # Add dependence for jenkins.
-        self.env.Depends(self.jenkins_target,cppcheck)
-    
+    #
+    # Private methods.
+    #
+
     def _CreateDocTarget(self):
-        targetDocDir = self.env.Dir(self.env['INSTALL_DOC_DIR']).Dir(self.name)
-        doxyfile = self.env.File(self.env.Dir('#').abspath+'/conf/doxygenTemplate')
-        sconscript = ('%s/SConscript' % self.dir).replace('/build/','/projects/')
-        # We pass it the path to the SConscript file because we need the path to 
-        # the project directory but we only can put 'env.File' objects as sources.
-        doc = self.env.RunDoxygen(targetDocDir, [doxyfile,sconscript])
-        self.env.Clean(doc, targetDocDir)
-        self.env.Alias(self.name+':doc', doc, 'Generate documentation for ' + self.name)
-        # Add dependence for jenkins.
-        self.env.Depends(self.jenkins_target,doc)
-    
+        if self._builders['doc'] is not None:
+            return self._builders['doc']
+        # The target is the directory where the documentation will be stored.
+        target = self._env.Dir(self._env['INSTALL_DOC_DIR']).Dir(self.name)
+        # The sources are:
+        #   1) The doxyfile template.
+        doxyfile = self._env.File(
+            self._env.Dir('#').abspath + '/conf/doxygenTemplate'
+        )
+        #   2) The SConscript of the project.
+        #      We pass it the path to the SConscript file because we need the
+        #      path to the project directory but we only can put 'env.File'
+        #      objects as sources.
+        sconscript = ('%s/SConscript' % self._dir.abspath).replace(
+            '/build/',
+            '/projects/'
+        )
+        # Create an instance of the RunDoxygen() builder.
+        doc_builder = self._env.RunDoxygen(target, [doxyfile, sconscript])
+        # Create the alias.
+        name = '%s:doc' % self.name
+        deps = [doc_builder]
+        msg = 'Generate documentation for %s' % self.name
+        self._env.Alias(name, deps, msg)
+        # Save the builder into the builder dictionary.
+        self._builders['doc'] = doc_builder
+        # Return the builder instance.
+        return doc_builder
+
+    def _CreateCCCCTarget(self, sources):
+        if self._builders['cccc'] is not None:
+            return self._builders['cccc']
+        # The target is the cccc report file.
+        target = self._env.Dir(self._env['INSTALL_REPORTS_DIR'])
+        target = target.Dir(self._env['INSTALL_METRICS_DIR'])
+        target = target.Dir('cccc').Dir(self.name)
+        target = os.path.join(target.abspath, 'CCCCMainHTMLReport.html')
+        # Create an instance of the RunCCCC() builder.
+        cccc_builder = self._env.RunCCCC(target, sources)
+        # cccc can always be build.
+        self._env.AlwaysBuild(cccc_builder)
+        # Create the alias.
+        name = "%s:cccc" % self.name
+        deps = [cccc_builder]
+        msg = 'Run cccc for %s' % self.name
+        self._env.Alias(name, deps, msg)
+        # Save the builder into the builder dictionary.
+        self._builders['cccc'] = cccc_builder
+        # Return  the builder instance.
+        return cccc_builder
+
+    def _CreateClocTarget(self, sources):
+        if self._builders['cloc'] is not None:
+            return self._builders['cloc']
+        # The target is the report file generated by cloc.
+        target = self._env.Dir('$INSTALL_METRICS_DIR')
+        target = target.Dir('cloc').Dir(self.name)
+        target = os.path.join(target.abspath, 'CLOCMainReport')
+        # Create an instance of the RunCLOC() builder.
+        cloc_builder = self._env.RunCLOC(target, sources)
+        # cloc can always be build.
+        self._env.AlwaysBuild(cloc_builder)
+        # Create the alias.
+        name = "%s:cloc" % self.name
+        deps = [cloc_builder]
+        msg = 'Run cloc for %s' % self.name
+        self._env.Alias(name, deps, msg)
+        # Save the builder into the builder dictionary.
+        self._builders['cloc'] = cloc_builder
+        # Return the builder instance.
+        return cloc_builder
+
+    def _CreateCppcheckTarget(self, sources):
+        if self._builders['cppcheck'] is not None:
+            return self._builders['cppcheck']
+        # The target is the cppcheck report file.
+        target = self._env.Dir(self._env['INSTALL_REPORTS_DIR'])
+        target = target.Dir('cppcheck').Dir(self.name)
+        target = os.path.join(target.abspath, 'CppcheckReport')
+        # Create an instance of the RunCppCheck() builder.
+        cppcheck_builder = self._env.RunCppCheck(target, sources)
+        # cppcheck can always be build.
+        self._env.AlwaysBuild(cppcheck_builder)
+        # Create the alias.
+        name = "%s:cppcheck" % self.name
+        deps = [cppcheck_builder]
+        msg = 'Run cppcheck for %s' % self.name
+        self._env.Alias(name, deps, msg)
+        # Save the builder into the builder dictionary.
+        self._builders['cppcheck'] = cppcheck_builder
+        # Return the builder instance.
+        return cppcheck_builder
+
     def _CreateAstyleCheckTarget(self, sources):
-        # Create the target.
-        target = self.env.Dir(self.env['INSTALL_REPORTS_DIR'])
+        if self._builders['astyle-check'] is not None:
+            return self._builders['astyle-check']
+        # The target is the .diff file.
+        target = self._env.Dir(self._env['INSTALL_REPORTS_DIR'])
         target = target.Dir('astyle-check').Dir(self.name)
-        target = target.File('astyle-check-report.diff')
-        # Call RunAStyleCheck().
-        astyle_check = self.env.RunAStyleCheck(target, sources)
-        self.env.AlwaysBuild(astyle_check)
-        # Create info message.
-        msg = "Checks if the project %s has been astyled." % self.name
-        # Create an alias for the astyle checker.
-        self.env.Alias('%s:astyle-check' % self.name, astyle_check, msg)
-        # Add dependence for jenkins.
-        self.env.Depends(self.jenkins_target,astyle_check)
-    
+        target = target.File('AstyleCheckReport.diff')
+        # Create an instance of the RunAStyleCheck() builder.
+        astyle_check_builder = self._env.RunAStyleCheck(target, sources)
+        # astyle-check can always be build.
+        self._env.AlwaysBuild(astyle_check_builder)
+        # Create the alias.
+        name = '%s:astyle-check' % self.name
+        deps = [astyle_check_builder]
+        msg = "Checks if the project needs astyle."
+        self._env.Alias(name, deps, msg)
+        # Save the builder into the builder dictionary.
+        self._builders['astyle-check'] = astyle_check_builder
+        # Return the builder instance.
+        return astyle_check_builder
+
     def _CreateAstyleTarget(self, sources):
-        # Create the target.
-        target = self.env.Dir(self.env['BUILD_DIR']).Dir('astyle').Dir(self.name)
-        # Call RunAStyle().
-        astyleOut = self.env.RunAStyle(target, sources)
-        # Create an alias for astyle.
-        self.env.Alias('%s:astyle' % self.name, astyleOut, "Runs astyle on " + self.name)
+        if self._builders['astyle'] is not None:
+            return self._builders['astyle']
+        # We use the prject directory as the target.
+        target = self._env.Dir(self._env['WS_DIR']).Dir(self.name)
+        # Create an instance of the RunAStyle() builder.
+        astyle_builder = self._env.RunAStyle(target, sources)
+        # astyle can always be executed.
+        self._env.AlwaysBuild(astyle_builder)
+        # Create the alias.
+        name = '%s:astyle' % self.name
+        deps = [astyle_builder]
+        msg = "Run astyle on %s" % self.name
+        self._env.Alias(name, deps, msg)
+        # Save the builder into the builder dictionary.
+        self._builders['astyle'] = astyle_builder
+        # Return the builder instance.
+        return astyle_builder
 
 
 class SourcedComponent(HeaderOnlyComponent):
+    """
+        This class represents a sourced component.
 
-    def __init__(self, componentGraph, env, name, compDir, deps, inc, extInc, src, aliasGroups):
-        HeaderOnlyComponent.__init__(self, componentGraph, env, name, compDir, deps, extInc, aliasGroups)
-        self.inc = []
-        self.inc_paths = []
-        if inc:
-            if isinstance(inc, (list, tuple)):
-                for i in inc:
-                    self.inc_paths.append(i.abspath)
-                    self.inc.append( os.path.relpath(i.abspath, compDir.abspath) )
-            else:
-                self.inc_paths.append(inc.abspath)
-                self.inc.append( os.path.relpath(inc.abspath, compDir.abspath) )
-        self.src = []
-        if src:
-            if isinstance(src, (list, tuple)):
-                for s in src:
-                    if isinstance(s, str):
-                        self.src.append(os.path.abspath(s))
-                    elif isinstance(s, (list, tuple)):
-                        for subS in s:
-                            self.src.append(os.path.abspath(compDir.rel_path(subS)))
-                    else:
-                        self.src.append(os.path.abspath(compDir.rel_path(s)))
-            else:
-                if isinstance(src, str):
-                    self.src.append(os.path.abspath(src))
-                else:
-                    self.src.append(os.path.abspath(compDir.rel_path(src)))
-        # Create list sources and headers files
-        self.src_files = []
-        self.inc_files = self._GetIncludeFiles()
-        for x in self.src:
-            self.src_files.append(self.env.File(x))
+        This type of component can have sources and headers files.
+    """
+
+    #
+    # Private attributes.
+    #
+    # A list with the sources files (instances of the SCons File class).
+    # Never use this attribute directly, use the GetSourcesFiles() method.
+    _sources_file_list = None
+
+    #
+    # Special methods.
+    #
+
+    def __init__(self, graph, env, name, dir, deps, inc, ext_inc, src, als=None):
+        HeaderOnlyComponent.__init__(self, graph, env, name, dir, deps, ext_inc, als)
+        # Because HeaderOnlyComponent doesn't have includes.
+        self._includes = self._FormatArgument(inc)
+        # Check the 'src' argument.
+        if not src:
+            msg = "[ERROR] %s: No sources were specified for a" % self.name
+            self._env.cerror("%s SourcedComponent object." % msg)
+            raise ValueError("No sources were specified for a SourcedComponent object.")
+        # Initialize the source files.
+        self._InitSourcesFileList(src)
+
+    #
+    # Public methods.
+    #
 
     def Process(self):
-        HeaderOnlyComponent.Process(self,True)
-        if not self.name.endswith(':test'):
+        """
+            Description:
+                This method creates the targets of the actions that can be
+                applied to this component.
+            Arguments:
+                None.
+            Exceptions:
+                None.
+            Return:
+                None. (A sourced component can't be built nor installed.)
+        """
+        # Check if the component was already processed.
+        if self._builders['install'] is None:
             # Create the list of the 'sources' files.
-            sources = self.src_files + self.inc_files
+            sources = self.GetSourcesFiles() + self.GetIncludeFiles()
+            # Create targets.
+            self._CreateAstyleCheckTarget(sources)
+            self._CreateAstyleTarget(sources)
             self._CreateCCCCTarget(sources)
             self._CreateClocTarget(sources)
             self._CreateCppcheckTarget(sources)
+            self._CreateDocTarget()
+            self._builders['install'] = True
+        # We retuen an empty list because a sourced has nothing to install.
+        return []
 
-    def GetIncludePaths(self):
-        (incs, processedComponents) = self._GetIncludePaths([], 0)
-        return incs
+    def GetSourcesFiles(self):
+        """
+            Description:
+                This method return a list with source files of the component.
+            Arguments:
+                None.
+            Exceptions:
+                None.
+            Return:
+                A list with the source files, each element is an instance of
+                the SCons File class.
+        """
+        # A sourced component must have at least one element.
+        assert(len(self._sources_file_list) > 0)
+        return self._sources_file_list
 
-    def _GetIncludePaths(self, processedComponents, depth):
-        incs = []
-        (extIncs, processedComponents) = HeaderOnlyComponent._GetIncludePaths(self, processedComponents, depth)
-        incs.extend(extIncs)
-        if depth == 0:
-            # local headers can be referred explicitely (they are relative to the
-            # current build directory) and are not from the install directory
-            for i in self.inc:
-                hDir = os.path.join(self.projDir, i)
-                incs.append(hDir)
-        return (incs, processedComponents)
+    #
+    # Private methods.
+    #
 
-    def _GetIncludeFiles (self):
-        include_files = []
-        for i in self.inc:
-            hDir = os.path.join(self.projDir, i)
-            if hDir.endswith('/.'):
-                hDir = hDir.replace('/.','/')
-            for p in [hDir+x for x in headersFilter]:
-                include_files.extend(self.env.Glob(p))
-        return include_files
+    def _InitSourcesFileList(self, src):
+        """
+            This is an internal method that initialize the list of sources
+            files.
+        """
+        # This method must be called only once.
+        assert(self._sources_file_list is None)
+        # Create the list.
+        self._sources_file_list = []
+        self._InitSourcesFileRec(self._sources_file_list, src)
 
-
-class StaticLibraryComponent(SourcedComponent):
-    
-    def __init__(self, componentGraph, env, name, compDir, deps, inc, extInc, src, aliasGroups):
-        SourcedComponent.__init__(self, componentGraph, env, name, compDir, deps, inc, extInc, src, aliasGroups)
-        self.shouldBeLinked = True
-
-    def Process(self):
-        SourcedComponent.Process(self)
-        incpaths = self.GetIncludePaths()
-        target = os.path.join(self.dir, self.name)
-        sLib = self.env.StaticLibrary(target, self.src, CPPPATH=incpaths)
-        iLib = self.env.Install(self.env['INSTALL_LIB_DIR'], sLib)
-        self.env.Alias(self.name, sLib, "Build " + self.name)
-        self.env.Alias('all:build', sLib, "build all targets")
-        self.env.Alias('all:install', iLib, "Install all targets")
-        for alias in self.aliasGroups:
-            self.env.Alias(alias, iLib, "Build group " + alias)
-        return sLib
-
-
-class DynamicLibraryComponent(SourcedComponent):
-    
-    def __init__(self, componentGraph, env, name, compDir, deps, inc, extInc, src, aliasGroups):
-        SourcedComponent.__init__(self, componentGraph, env, name, compDir, deps, inc, extInc, src, aliasGroups)
-        self.shouldBeLinked = True
-
-    def Process(self):
-        SourcedComponent.Process(self)
-        incpaths = self.GetIncludePaths()
-        (libs,libpaths) = self.GetLibs()
-        target = os.path.join(self.dir, self.name)
-        dLib = self.env.SharedLibrary(target, self.src, CPPPATH=incpaths, LIBS=libs, LIBPATH=libpaths)
-        iLib = self.env.Install(self.env['INSTALL_LIB_DIR'], dLib)
-        self.env.Alias(self.name, iLib, "Build and install " + self.name)
-        self.env.Alias('all:build', dLib, "build all targets")
-        self.env.Alias('all:install', iLib, "Install all targets")
-        for alias in self.aliasGroups:
-            self.env.Alias(alias, iLib, "Build group " + alias)
-        return dLib
+    def _InitSourcesFileRec(self, files, src):
+        """
+            This is a private method used by _InitSourcesFileList().
+            It looks for the file recursively.
+        """
+        if isinstance(src, Node.FS.Dir):
+            # If it's a Dir we read the files it contains.
+            files.extend(utils.FindFiles(src, SOURCES_FILTER))
+        elif isinstance(src, Node.FS.File):
+            # If it's a File, we just add it.
+            files.append(src)
+        elif isinstance(src, str):
+            # If it's a string it must be a file.
+            files.append(self._env.File(src))
+        else:
+            # It must be an iterable object.
+            for source in src:
+                self._InitSourcesFileRec(files, source)
 
 
 class ObjectComponent(SourcedComponent):
-    
-    def __init__(self, componentGraph, env, name, compDir, deps, inc, src, aliasGroups):
-        SourcedComponent.__init__(self, componentGraph, env, name, compDir, deps, inc, [], src, aliasGroups)
-        self.objs = []
+    """
+        This class represents a set of objects files, from which other
+        component can depend to be built.
+    """
+
+    #
+    # Private attributes.
+    #
+    # A list with the object files (instances of the SCons Object() class).
+    _objects = None
+
+    #
+    # Special methods.
+    #
+
+    def __init__(self, graph, env, name, dir, deps, inc, src, als=None):
+        SourcedComponent.__init__(self, graph, env, name, dir, deps, inc, [], src, als)
+        # A list of builders of the class Object().
+        self._objects = []
+
+    #
+    # Public methods.
+    #
 
     def Process(self):
-        if not self.objs:
-            SourcedComponent.Process(self)
-            incpaths = self.GetIncludePaths()
-            (libs,libpaths) = self.GetLibs()
-            target = os.path.join(self.dir, self.name)
-            for src in self.src:
-                target = src.split('.')[0]
-                obj = self.env.Object(target, src, CPPPATH=incpaths, LIBS=libs, LIBPATH=libpaths)
-                self.objs.append(obj)
-        return self.objs
+        # Check if the component was already processed.
+        if self._builders['install'] is not None:
+            return self._builders['install']
+        # Create the list of the 'sources' files.
+        sources = self.GetSourcesFiles() + self.GetIncludeFiles()
+        # Create targets.
+        self._CreateAstyleCheckTarget(sources)
+        self._CreateAstyleTarget(sources)
+        self._CreateCCCCTarget(sources)
+        self._CreateClocTarget(sources)
+        self._CreateCppcheckTarget(sources)
+        self._CreateDocTarget()
+        # Initialize the object file list.
+        self._CreateObjectFiles()
+        # Create the installer.
+        installer = self._CreateInstallerBuilder(self._objects)
+        self._builders['install'] = installer
+        return installer
+
+    def GetObjectsFiles(self):
+        """
+            Description:
+                This method looks for the objects files that this component
+                needs to be built.
+            Arguments:
+                None.
+            Exceptions:
+                None.
+            Return:
+                A list with instance of the SCons Object() class.
+        """
+        self._CreateObjectFiles()
+        return self._objects + super(ObjectComponent, self).GetObjectsFiles()
+
+    #
+    # Private methods.
+    #
+
+    def _CreateObjectFiles(self):
+        """
+            Initialize the list of object files.
+        """
+        if not self._objects:
+            for source in self.GetSourcesFiles():
+                self._objects.append(self._CreateObjectBuilder(source))
+
+    def _CreateObjectBuilder(self, source):
+        """
+            This is a private method that takes a file source and return an
+            instance of the SCons Object() builder class.
+        """
+        # Get the list of include paths.
+        include_paths = self.GetIncludePaths()
+        # Get the list of libraries to link, and its directories.
+        (libs, libpaths) = self.GetLibs()
+        # Create the target for each file.
+        target = source.abspath.split('.')[0]
+        # Create an instance of the Object() builder.
+        object_builder = self._env.Object(
+            target,
+            source,
+            CPPPATH=include_paths,
+            LIBPATH=libpaths,
+            LIBS=libs
+        )
+        # Return the builder instance.
+        return object_builder
 
 
-class ProgramComponent(SourcedComponent):
-    
-    def __init__(self, componentGraph, env, name, compDir, deps, inc, src, aliasGroups):
-        SourcedComponent.__init__(self, componentGraph, env, name, compDir, deps, inc, [], src, aliasGroups)
+class StaticLibraryComponent(ObjectComponent):
+    """
+        This class represents a static library component.
+    """
+
+    #
+    # Special methods.
+    #
+
+    def __init__(self, graph, env, name, dir, deps, inc, ext_inc, src, als=None):
+        ObjectComponent.__init__(self, graph, env, name, dir, deps, inc, src, als)
+        self._should_be_linked = True
+
+    #
+    # Public methods.
+    #
 
     def Process(self):
-        SourcedComponent.Process(self)
-        incpaths = self.GetIncludePaths()
-        (libs,libpaths) = self.GetLibs()
-        target = os.path.join(self.env['INSTALL_LIB_DIR'], self.name)
-        self.prog = self.env.Program(target, self.findSources(), CPPPATH=incpaths, LIBS=libs, LIBPATH=libpaths)
-        iProg = self.env.Install(self.env['INSTALL_BIN_DIR'], self.prog)
-        self.env.Alias(self.name, iProg, "Build and install " + self.name)
-        self.env.Alias('all:build', self.prog, "Build all targets")
-        self.env.Alias('all:install', iProg, "Install all targets")
-        for alias in self.aliasGroups:
-            self.env.Alias(alias, iProg, "Build group " + alias)
-        return self.prog
+        # Check if the component was already processed.
+        if self._builders['install'] is not None:
+            return self._builders['install']
+        # The target is the name of library to be created.
+        target = os.path.join(self._dir.abspath, self.name)
+        # Create the list of the 'sources' files.
+        sources = self.GetSourcesFiles() + self.GetIncludeFiles()
+        # Create targets.
+        self._CreateAstyleCheckTarget(sources)
+        self._CreateAstyleTarget(sources)
+        self._CreateCCCCTarget(sources)
+        self._CreateClocTarget(sources)
+        self._CreateCppcheckTarget(sources)
+        self._CreateDocTarget()
+        # Create a static library builder.
+        slib_builder = self._CreateStaticLibraryBuilder(target)
+        # Create an installer builders.
+        installer = self._CreateInstallerBuilder([slib_builder])
+        # Create the group aliases.
+        self._CreateGroupAliases()
+        self._builders['install'] = installer
+        return installer
 
-    def findSources(self):
-        src = self.src
-        for dep in self.deps:
-            c = self.componentGraph.get(dep)
-            if isinstance(c, ObjectComponent):
-                src.extend(c.Process())
-        return src
+    #
+    # Private methods.
+    #
+
+    def _CreateStaticLibraryBuilder(self, target):
+        # Get include paths.
+        includes = self.GetIncludePaths()
+        # Create an instance of th StaticLibrary() builder.
+        slib_builder = self._env.StaticLibrary(
+            target,
+            self.GetObjectsFiles(),
+            CPPPATH=includes
+        )
+        # Create the all:buil alias.
+        self._env.Alias('all:build', slib_builder, "Build all targets")
+        return slib_builder
+
+
+class DynamicLibraryComponent(ObjectComponent):
+    """
+        This class represents a shared library component.
+    """
+
+    #
+    # Special methods.
+    #
+
+    def __init__(self, graph, env, name, dir, deps, inc, ext_inc, src, als=None):
+        ObjectComponent.__init__(self, graph, env, name, dir, deps, inc, src, als)
+        self._should_be_linked = True
+
+    #
+    # Public methods.
+    #
+
+    def Process(self):
+        # Check if the component was already processed.
+        if self._builders['install'] is not None:
+            return self._builders['install']
+        # The target is the name of library to be created.
+        target = os.path.join(self._dir.abspath, self.name)
+        # Create the list of the 'sources' files.
+        sources = self.GetSourcesFiles() + self.GetIncludeFiles()
+        # Create targets.
+        self._CreateAstyleCheckTarget(sources)
+        self._CreateAstyleTarget(sources)
+        self._CreateCCCCTarget(sources)
+        self._CreateClocTarget(sources)
+        self._CreateCppcheckTarget(sources)
+        self._CreateDocTarget()
+        # Create the shared library builder.
+        dlib_builder = self._CreateSharedLibraryBuilder(target)
+        # Create the installer builder.
+        installer = self._CreateInstallerBuilder([dlib_builder])
+        self._builders['install'] = installer
+        return installer
+
+    #
+    # Private methods.
+    #
+
+    def _CreateSharedLibraryBuilder(self, target):
+        # Get include paths.
+        includes = self.GetIncludePaths()
+        # Get the libraries to link and tehir directories.
+        (libs, libpaths) = self.GetLibs()
+        # Create an instance of the SharedLibrary() builder.
+        dlib_builder = self._env.SharedLibrary(
+            target,
+            self.GetSourcesFiles(),
+            CPPPATH=includes,
+            LIBPATH=libpaths,
+            LIBS=libs
+        )
+        # Create the all:build alias.
+        self._env.Alias('all:build', dlib_builder, "Build all targets")
+        return dlib_builder
+
+
+class ProgramComponent(ObjectComponent):
+    """
+        This class represents a program (executable) component.
+    """
+
+    #
+    # Special methods.
+    #
+
+    def __init__(self, graph, env, name, dir, deps, inc, src, als=None):
+        ObjectComponent.__init__(self, graph, env, name, dir, deps, inc, src, als)
+
+    #
+    # Public methods.
+    #
+
+    def Process(self):
+        # Check if the component was already processed.
+        if self._builders['install'] is not None:
+            return self._builders['install']
+        # The target is the name of program to be created.
+        target = os.path.join(self._env['INSTALL_LIB_DIR'], self.name)
+        # Create the list of the 'sources' files.
+        sources = self.GetSourcesFiles() + self.GetIncludeFiles()
+        # Create targets.
+        self._CreateAstyleCheckTarget(sources)
+        self._CreateAstyleTarget(sources)
+        self._CreateCCCCTarget(sources)
+        self._CreateClocTarget(sources)
+        self._CreateCppcheckTarget(sources)
+        self._CreateDocTarget()
+        # Create the program builder.
+        program_builder = self._CreateProgramBuilder(target)
+        # Create an instance of the Install() builder.
+        installer = self._CreateInstallerBuilder([program_builder])
+        # Create the group aliases.
+        self._CreateGroupAliases()
+        self._builders['install'] = installer
+        return installer
+
+    #
+    # Private methods.
+    #
+
+    def _CreateProgramBuilder(self, target, sources=None):
+        # Get include paths.
+        includes = self.GetIncludePaths()
+        # Get the libraries to link and their directories.
+        (libs, libpaths) = self.GetLibs()
+        # Get the sources.
+        if sources is not None:
+            sources += self.GetObjectsFiles()
+        else:
+            sources = self.GetObjectsFiles()
+        # Create an instance of the Program() builder.
+        program_builder = self._env.Program(
+            target,
+            sources,
+            CPPPATH=includes,
+            LIBPATH=libpaths,
+            LIBS=libs
+        )
+        # Craete the all:build alias.
+        self._env.Alias('all:build', program_builder, "Build all targets")
+        return program_builder
 
 
 class UnitTestComponent(ProgramComponent):
-    
-    def __init__(self, componentGraph, env, name, compDir, deps, inc, src, aliasGroups):
-        ProgramComponent.__init__(self, componentGraph, env, name, compDir, deps, inc, src, aliasGroups)
+    """
+        This class represents a test component.
+    """
+
+    #
+    # Private attributes.
+    #
+    # The name of the project from which the test component depends.
+    _project_name = None
+
+    #
+    # Special methods.
+    #
+
+    def __init__(self, graph, env, name, dir, deps, inc, src, als=None):
+        ProgramComponent.__init__(self, graph, env, name, dir, deps, inc, src, als)
+        self._project_name = name.split('@')[0]
+
+    #
+    # Public methods.
+    #
 
     def Process(self):
-        # Call to super-super-class SourcedComponent().
-        # We not call directly to the supper class ProgramComponent.Process() 
-        # since it generates a problem when running the test executable.
-        SourcedComponent.Process(self)
-        # So, we have to call the Program() builde
+        # Check if the component was already processed.
+        if self._builders['install'] is not None:
+            return self._builders['install']
+        # Create the target.
+        target = os.path.join(self._dir.abspath, '%s_test' % self._project_name)
+        # File to store the test results.
+        passed_file_name = '%s.passed' % self._project_name
+        run_test_target = os.path.join(self._dir.abspath, passed_file_name)
+        # Check for the flags we need to set in the environment.
+        flags = self._CheckForFlags()
         # Check for use 'mocko'.
-        mocko_builder = None
-        sources = self.findSources()
-        if self.env.USE_MOCKO:
-            mocko_builder = self._CheckMocko(sources)
-        incpaths = self.GetIncludePaths()
-        (libs,libpaths) = self.GetLibs()
-        target = os.path.join(self.dir, self.name)
-        self.prog = self.env.Program(target, sources, CPPPATH=incpaths, LIBS=libs, LIBPATH=libpaths)
-        self.env.Alias('all:build', self.prog, "Build alltargets")
-        # Flags for gtest and gmock.
-        CXXFLAGS = [f for f in self.env['CXXFLAGS'] if f not in ['-ansi', '-pedantic']]
-        CXXFLAGS.append('-Wno-sign-compare')
+        sources = []
+        if self._env.USE_MOCKO:
+            self._UseMocko(sources)
+        # Create the builder that creates the test executable.
+        program_builder = self._CreateProgramBuilder(target, sources)
+        # Creante an instance of the RunUnittest() builder.
+        run_test_builder = self._env.RunUnittest(run_test_target, program_builder)
+        # Check if the user want to run the tests anyway.
+        if self._env.GetOption('forcerun'):
+            self._env.AlwaysBuild(run_test_builder)
+        # Make the execution of test depends from files in 'ref' dir.
+        for refFile in utils.FindFiles(self._env, self._dir.Dir('ref')):
+            self._env.Depends(program_builder, refFile)
+        # Create the alias for 'project:test'.
+        name = '%s:test' % self._project_name
+        deps = [run_test_builder]
+        msg = "Run test for %s" % self._project_name
+        self._env.Alias(name, deps, msg)
+        # Create alias for 'all:test'.
+        self._env.Alias('all:test', run_test_builder, "Run all tests")
+        # Create alias for aliasGroups.
+        self._CreateGroupAliases()
+        # Create targets.
+        self._CreateValgrindTarget(program_builder)
+        self._CreateCoverageTarget(run_test_target, program_builder)
+        self._CreateJenkinsTarget(flags, run_test_target, program_builder)
+        self._CreateReadyToCommitTtarget(flags, run_test_target, program_builder)
+        self._builders['install'] = run_test_builder
+        # Return the builder that execute the test.
+        return run_test_builder
+
+    def _CheckForFlags(self):
+        # Get the component of the project.
+        project_component = self._component_graph.get(self._project_name)
+        # Flags for check the calling targets.
+        jenkins = utils.WasTargetInvoked('%s:jenkins' % self._project_name)
+        coverage = utils.WasTargetInvoked('%s:coverage' % self._project_name)
+        rtc = (utils.WasTargetInvoked('%s:rtc' % self._project_name) or
+              utils.WasTargetInvoked('%s:ready-to-commit' % self._project_name))
+        # Create the dictionary of flags.
+        result = {
+            'jenkins': jenkins,
+            'coverage': coverage,
+            'ready-to-commit': rtc
+        }
+        # Check for needed reports.
+        need_coverage = jenkins or coverage
+        need_test_report = jenkins or rtc
+        need_cloc_xml = jenkins
+        need_valgrind_report = jenkins or rtc
+        need_cppcheck_xml = jenkins or rtc
+        # Add flags to the environment for gtest and gmock.
+        aux = [f for f in self._env['CXXFLAGS'] if f not in ['-ansi', '-pedantic']]
+        aux.append('-Wno-sign-compare')
+        CXXFLAGS = aux
         if not '-ggdb3' in CXXFLAGS:
             CXXFLAGS.append('-ggdb3')
-        self.env.Replace(CXXFLAGS=CXXFLAGS, CFLAGS=CXXFLAGS)
-        # Check if it needed to generate a test report.
-        if utils.WasTargetInvoked('%s:jenkins' % self.name.split(':')[0]):
-            gtest_report = self.env.Dir(self.env['INSTALL_REPORTS_DIR']).Dir('test').Dir(self.name[:-5])
-            self.env.gtest_report = 'xml:%s/test-report.xml' % gtest_report.abspath
-        # File to store the test results.
-        target = os.path.join(self.dir, self.name + '.passed')
-        tTest = self.env.RunUnittest(target, self.prog)
-        self.env.Alias(self.name, tTest, "Build and install " + self.name)
-        # Check if the user want to run the tests anyway.
-        if self.env.GetOption('forcerun'):
-            self.env.AlwaysBuild(tTest)
-        # Create the target for the test.
-        self.env.Alias(self.name, tTest, "Run test for " + self.name)
-        # Make the test depends from files in 'ref' dir.
-        for refFile in utils.FindFiles(self.env, self.compDir.Dir('ref')):
-            self.env.Depends(tTest, refFile)
-        # Alias target for 'all'.
-        self.env.Alias('all:test', tTest, "Run all tests")
-        # Adding a valgrind target for tests.
-        tvalg = self._CreateValgrindTarget(tTest)
-        # Adding a coverage target for tests.
-        tcov = self._CreateCoverageTarget(target)
-        # Add dependence for jenkins.
-        self.env.Depends(self.jenkins_target,[tvalg, tcov])
-        # Create alias for aliasGroups.
-        for alias in self.aliasGroups:
-            self.env.Alias(alias, tTest, "Build group " + alias)
+        self._env.Replace(CXXFLAGS=CXXFLAGS, CFLAGS=CXXFLAGS)
+        # Check if we need test report.
+        if need_test_report:
+            test_report = self._env.Dir(self._env['INSTALL_REPORTS_DIR'])
+            test_report = test_report.Dir('test').Dir(self._project_name)
+            self._env.test_report = 'xml:%s/test-report.xml' % test_report.abspath
+        # Check if we need the coverage flag.
+        if need_coverage:
+            flags = ['--coverage']
+            self._env.Append(CXXFLAGS=flags, CFLAGS=flags, LINKFLAGS=flags)
+        # Check if we need the output of cloc in xml file.
+        if need_cloc_xml:
+            project_component._env.Replace(CLOC_OUTPUT_FORMAT='xml')
+        # Check if we need the output of cppchec in xml format.
+        if need_cppcheck_xml:
+            project_component._env.Append(CPPCHECK_OPTIONS='--xml')
+        # Check if we need to create an xml report for valgrind.
+        if need_valgrind_report:
+            # Create the directory to store the valgrind report.
+            report_dir = self._env['INSTALL_REPORTS_DIR']
+            valgrind_report_dir = self._env.Dir(report_dir).Dir('valgrind')
+            valgrind_report_dir = valgrind_report_dir.Dir(self._project_name)
+            if not os.path.exists(valgrind_report_dir.abspath):
+                os.makedirs(valgrind_report_dir.abspath)
+            # Set the path to the report file.
+            report_file = '%s/valgrind-report.xml' % valgrind_report_dir.abspath
+            flags = ' --xml=yes --xml-file=%s ' % report_file
+            self._env.Append(VALGRIND_OPTIONS=flags)
+        return result
 
-    def GetIncludePaths(self):
-        includes = super(UnitTestComponent, self).GetIncludePaths()
-        project = self.componentGraph.get(self.name.split(':')[0])
-        #adding current test dir
-        filtered_includes = [self.dir, project.dir]
-        #adding project in test include path (relative to build dir)
-        for i in getattr(project, 'inc', []):
-            filtered_includes.append(os.path.join(project.dir, i))
-            filtered_includes.append(os.path.join(project.projDir, i))
-        prjInstallPath = os.path.join(self.env['INSTALL_HEADERS_DIR'], project.name)
-        for i in includes:
-            path = os.path.realpath(i)
-            in_build_dir = self.env['BUILD_DIR'] in path
-            is_tested_project = project.dir in path or project.projDir in path or prjInstallPath in path
-            if not in_build_dir and not is_tested_project:
-                filtered_includes.append(path)
-        return filtered_includes
+    def _CreateValgrindTarget(self, program_builder):
+        if self._builders['valgrind'] is not None:
+            return self._builders['valgrind']
+        target = '%s:valgrind' % self._project_name
+        # Create an instance of the RunValgrind() builder.
+        run_valgrind_builder = self._env.RunValgrind(target, program_builder)
+        # Create the alias.
+        name = target
+        deps = [run_valgrind_builder]
+        msg = 'Run valgrind for %s test' % self._project_name
+        self._env.Alias(name, deps, msg)
+        self._builders['valgrind'] = run_valgrind_builder
+        return run_valgrind_builder
 
-    def _CreateValgrindTarget(self, tTest): 
-        # Remove the ':test' from the name of the project.
-        name = self.name.split(':')[0]
-        vtname = '%s:valgrind' % name
-        # Check if we need to create an xml report.
-        if utils.WasTargetInvoked('%s:jenkins' % self.name.split(':')[0]):
-            report_dir = self.env['INSTALL_REPORTS_DIR']
-            vdir = self.env.Dir(report_dir).Dir('valgrind').Dir(self.name[:-5])
-            if not os.path.exists(vdir.abspath):
-                os.makedirs(vdir.abspath)
-            vreport = '%s/valgrind-report.xml' % vdir.abspath
-            self.env.Append(VALGRIND_OPTIONS = ' --xml=yes --xml-file=%s ' % vreport)
-        # Target for the RunValgrind() builder.
-        tvalg = os.path.join(self.env['INSTALL_LIB_DIR'], self.name)
-        # Call builder RunValgrind().
-        rvalg = self.env.RunValgrind(vtname, self.prog)
-        # Create an alias for valgrind.
-        avalg = self.env.Alias(vtname, [tTest,rvalg], 'Run valgrind for %s test' % name)
-        return avalg
-        
-    def _CreateCoverageTarget(self, target):
-        # Get the path directory to the project.
-        project = self.componentGraph.get(self.name.split(':')[0])
-        self.env['PROJECT_DIR'] = project.dir        
-        # Targets and sources for builder InitLcov.
-        initLcovTarget = os.path.join(self.dir, 'coverage_data')
-        initLcovSoureces = [self.prog]
-        # Call builder initLcov().
-        initLcov = self.env.InitLcov(initLcovTarget, initLcovSoureces)
-        # Call builder RunLcov().
+    def _CreateCoverageTarget(self, target, program_builder):
+        if self._builders['coverage'] is not None:
+            return self._builders['coverage']
+        # Edit the target
         target = "%s.cov" % target
-        covTest = self.env.RunUnittest(target, self.prog)
+        # Get the path directory to the project.
+        project_component = self._component_graph.get(self._project_name)
+        self._env['PROJECT_DIR'] = project_component._dir.abspath
+        project_deps = self._dependencies + project_component._dependencies
+        project_deps = utils.RemoveDuplicates(project_deps)
+        project_deps.remove(self._project_name)
+        self._env['PROJECT_DEPS'] = project_deps
+        # Targets and sources for builder InitLcov().
+        init_lcov_target = os.path.join(self._dir.abspath, 'coverage_data')
+        init_lcov_soureces = [program_builder]
+        # Create an instance of the InitLcov() builder.
+        init_lcov_builder = self._env.InitLcov(
+            init_lcov_target,
+            init_lcov_soureces
+        )
+        # Create an instance of the RunUnittest() builder.
+        run_test_builder = self._env.RunUnittest(target, program_builder)
         # Make the test depends from files in 'ref' dir.
-        for refFile in utils.FindFiles(self.env, self.compDir.Dir('ref')):
-            self.env.Depends(covTest, refFile)
+        for refFile in utils.FindFiles(self._env, self._dir.Dir('ref')):
+            self._env.Depends(run_test_builder, refFile)
         # Targets and sources for RunLcov() builder.
-        reports_dir = self.env['INSTALL_REPORTS_DIR']
-        coverage_dir = self.env.Dir(reports_dir).Dir('coverage').Dir(self.name[:-5])
-        runLcovTargets = os.path.join(coverage_dir.abspath, 'index.html')
-        runLcovSources = [self.prog]
-        # Call builder RunLcov().
-        lcov = self.env.RunLcov(runLcovTargets, runLcovSources)
+        reports_dir = self._env['INSTALL_REPORTS_DIR']
+        coverage_dir = self._env.Dir(reports_dir).Dir('coverage')
+        coverage_dir = coverage_dir.Dir(self._project_name).abspath
+        lcov_targets = os.path.join(coverage_dir, 'index.html')
+        lcov_sources = [program_builder]
+        # Create an instance of the RunLcov() builder.
+        run_lcov_builder = self._env.RunLcov(lcov_targets, lcov_sources)
         # Create dependencies between targets.
-        self.env.Depends(covTest, initLcov)
-        self.env.Depends(lcov, covTest)
+        self._env.Depends(run_test_builder, init_lcov_builder)
+        self._env.Depends(run_lcov_builder, run_test_builder)
         # Create the target for coverage.
-        cov = self.env.Alias('%s:coverage' % self.name[:-5], lcov)
+        cov = self._env.Alias(
+            '%s:coverage' % self._project_name,
+            run_lcov_builder,
+            'Checks the tests coverage on the project.'
+        )
         # Coverage can always be built.
-        self.env.AlwaysBuild(cov)
-        self.env.AlwaysBuild(covTest)
+        self._env.AlwaysBuild(cov)
+        self._env.AlwaysBuild(run_test_builder)
+        self._builders['coverage'] = cov
         return cov
-    
-    def _CheckMocko(self, sources):
+
+    def _CreateJenkinsTarget(self, flags, target, program_builder):
+        if self._builders['jenkins'] is not None:
+            return self._builders['jenkins']
+        # Get the component of the project.
+        project_component = self._component_graph.get(self._project_name)
+        # Create the alias.
+        jenkins = self._env.Alias(
+            '%s:jenkins' % self._project_name,
+            None,
+            "Build the environmnet's project for the Jenkins server."
+        )
+        # If the target 'jenkins' was invoked...
+        if flags['jenkins']:
+            # Get the builders from which the jenkins target will depend on.
+            sources = project_component.GetSourcesFiles()
+            includes = project_component.GetIncludeFiles()
+            source = sources + includes
+            astyle_check = project_component._CreateAstyleCheckTarget(source)
+            cppcheck = project_component._CreateCppcheckTarget(source)
+            cccc = project_component._CreateCCCCTarget(source)
+            cloc = project_component._CreateClocTarget(source)
+            doc = project_component._CreateDocTarget()
+            valgrind = self._CreateValgrindTarget(program_builder)
+            coverage = self._CreateCoverageTarget(target, program_builder)
+            # Create dependencies.
+            self._env.Depends(jenkins, astyle_check)
+            self._env.Depends(jenkins, cppcheck)
+            self._env.Depends(jenkins, valgrind)
+            self._env.Depends(jenkins, coverage)
+            self._env.Depends(jenkins, cccc)
+            self._env.Depends(jenkins, cloc)
+            self._env.Depends(jenkins, doc)
+        self._builders['jenkins'] = jenkins
+        return jenkins
+
+    def _CreateReadyToCommitTtarget(self, flags, run_test_target, program_builder):
+        if self._builders['ready-to-commit'] is not None:
+            return self._builders['ready-to-commit']
+        # Get the component of the project.
+        project_component = self._component_graph.get(self._project_name)
+        # Create the alias.
+        ready_to_commit = self._env.Alias(
+            '%s:ready-to-commit' % self._project_name,
+            None,
+            "Check if the project is ready to be commited."
+        )
+        # Create a shorter alias.
+        self._env.Alias(
+            '%s:rtc' % self._project_name,
+            ready_to_commit,
+            "Alias of the target: ready-to-commit."
+        )
+        # If the target 'ready-to-commit' was invoked...
+        if flags['ready-to-commit']:
+            # Create an instance of the RunReadyToCommit() builder.
+            target = self._env.Dir('$INSTALL_REPORTS_DIR')
+            target = target.Dir('ready-to-commit').Dir(self._project_name)
+            target = target.File('ReadyToCommitReportFile.txt')
+            rtc_builder = self._env.RunReadyToCommit(target, None)
+            self._env.AlwaysBuild(rtc_builder)
+            self._env['PROJECT_NAME'] = self._project_name
+            # Get the builders from which the ready-to-commit target will
+            # depend on.
+            sources = project_component.GetSourcesFiles()
+            includes = project_component.GetIncludeFiles()
+            source = sources + includes
+            astyle_check = project_component._CreateAstyleCheckTarget(source)
+            cppcheck = project_component._CreateCppcheckTarget(source)
+            valgrind = self._CreateValgrindTarget(program_builder)
+            run_test = self._env.RunUnittest(run_test_target, program_builder)
+            # Create dependencies.
+            self._env.Depends(rtc_builder, astyle_check)
+            self._env.Depends(rtc_builder, cppcheck)
+            self._env.Depends(rtc_builder, run_test)
+            self._env.Depends(rtc_builder, valgrind)
+            self._env.Depends(ready_to_commit, rtc_builder)
+        self._builders['ready-to-commit'] = ready_to_commit
+        return ready_to_commit
+
+    def _UseMocko(self, sources):
         # Path to the tests directory.
-        aux_path = os.path.join(self.env['BUILD_DIR'], self.name[:-5])
+        aux_path = os.path.join(self._env['BUILD_DIR'], self.name)
         tests_dir = os.path.join(aux_path, 'tests')
         # Path to the list.mocko file.
         mocko_list = os.path.join(tests_dir, 'list.mocko')
-        mocko_list = self.env.File(mocko_list)
+        mocko_list = self._env.File(mocko_list)
         # Path to the mocko_bind.cpp file.
         mocko_bind_cpp = os.path.join(tests_dir, 'mocko_bind.cpp')
-        mocko_bind_cpp = self.env.File(mocko_bind_cpp)
+        mocko_bind_cpp = self._env.File(mocko_bind_cpp)
         # Path to the mocko_bind.h file.
         mocko_bind_h = os.path.join(tests_dir, 'mocko_bind.h')
-        mocko_bind_h = self.env.File(mocko_bind_h)
+        mocko_bind_h = self._env.File(mocko_bind_h)
         # Path to the mocko_bind.gdb file.
         mocko_bind_gdb = os.path.join(tests_dir, 'mocko_bind.gdb')
-        mocko_bind_gdb = self.env.File(mocko_bind_gdb)
+        mocko_bind_gdb = self._env.File(mocko_bind_gdb)
         # The 'mocko' executable.
-        mocko_exe = self.env.Dir('$INSTALL_BIN_DIR').File('mocko')
+        mocko_exe = self._env.Dir('$INSTALL_BIN_DIR').File('mocko')
         # Create an instance of the RunMocko() builder.
         targets = [mocko_bind_h, mocko_bind_cpp, mocko_bind_gdb]
         src = [mocko_list, mocko_exe]
-        mocko_builder = self.env.RunMocko(targets, src)
+        mocko_builder = self._env.RunMocko(targets, src)
         # Add mocko_bind.cpp to the sources.
         sources.append(mocko_bind_cpp)
         return mocko_builder

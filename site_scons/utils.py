@@ -1,19 +1,19 @@
-# fudepan-build: The build system for FuDePAN projects 
+# fudepan-build: The build system for FuDePAN projects
 #
 # Copyright (C) 2011 Esteban Papp, 2013 Gonzalo Bonigo, FuDePAN
-# 
+#
 # This file is part of the fudepan-build build system.
-# 
+#
 # fudepan-build is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
-# 
+#
 # fudepan-build is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU General Public License
 # along with fudepan-build.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -38,12 +38,14 @@ DISRTO_ARCH = 'ARCH'
 # Path to the /etc/issue file which contains the distro.
 _DISRTO_FILE = '/etc/issue'
 
+
 def FindFiles(env, fromDir, filters=None):
     filters = filters if filters is not None else ['*']
     path = fromDir.abspath
     files = []
     for s in env.Glob(path + '/*'):
-        if isinstance(s, Dir): #s.isdir doesn't work as expected in variant dir (when the dir is not created)
+        #s.isdir doesn't work as expected in variant dir (when the dir is not created)
+        if isinstance(s, Dir):
             files.extend(FindFiles(env, s, filters))
         else:
             if any([fnmatch.fnmatch(s.abspath, filter) for filter in filters]):
@@ -52,21 +54,24 @@ def FindFiles(env, fromDir, filters=None):
     return files
 
 
+#
+# TODO: Rewrite this method!!!!
+#
 def RecursiveInstall(env, sourceDir, sourcesRel, targetName, fileFilter=None):
     fileFilter = fileFilter if fileFilter is not None else ['*.*']
     nodes = []
     for s in sourcesRel:
         nodes.extend(FindFiles(env, s, fileFilter))
     l = len(sourceDir.abspath) + 1
-    relnodes = [ n.abspath[l:] for n in nodes ]
+    relnodes = [n.abspath[l:] for n in nodes]
     targetHeaderDir = env.Dir(env['INSTALL_HEADERS_DIR']).Dir(targetName).abspath
     targets = []
     sources = []
     for n in relnodes:
         t = env.File(os.path.join(targetHeaderDir, n))
         s = sourceDir.File(n)
-        targets.append( t )
-        sources.append( s )
+        targets.append(t)
+        sources.append(s)
     iAs = env.InstallAs(targets, sources)
     return iAs
 
@@ -166,7 +171,8 @@ def ChainCalls(env, cmds, silent=True):
             stdout = fnull if silent else None
             if not silent:
                 print '>>', cmd
-            rc = subprocess.call(cmd, stdout=stdout, shell=True) #errors always shows
+            #errors always shows
+            rc = subprocess.call(cmd, stdout=stdout, shell=True)
         if rc:
             env.cerror('error executing: %s' % cmd)
             return rc
@@ -197,7 +203,7 @@ def GetDistro():
         f.close()
         if distro in ['Ubuntu', 'ubuntu', 'UBUNTU']:
             result = DISTRO_UBUNTU
-        elif distro in ['Arch','arch','ARCH']:
+        elif distro in ['Arch', 'arch', 'ARCH']:
             result = DISRTO_ARCH
         else:
             raise fbuild_exceptions.DistroError()
