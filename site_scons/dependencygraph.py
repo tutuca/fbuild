@@ -190,6 +190,7 @@ def CreatePdfLaTeX(env, name, latexfile='', options='', aliasGroups=None):
 
 def WalkDirsForSconscripts(env, topdir, ignore=None):
     global componentGraph
+    global downloadedDependencies
 
     ignore = ignore if ignore is not None else []
 
@@ -253,6 +254,7 @@ def _InstallComponentAndDep(env, component_name, depsToInstall):
         This method search recursively for dependencies to install.
     """
     global componentGraph
+    global downloadedDependencies
     downloadedDependencies = False
     component = componentGraph.get(component_name)
     # Get dependency list for component.

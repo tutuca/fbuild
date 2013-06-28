@@ -225,7 +225,7 @@ class HG(Dependencies):
         rc = subprocess.call("cd %s; hg pull -u" % self.target, shell=True)
         if rc != 0:
             return Cformat('[error] hg failed to update target %s from %s, ' +
-                           'error: %s' (self.target, self.url, rc),
+                           'error: %s' % (self.target, self.url, rc),
                            'red')
         return 0
 
@@ -387,12 +387,12 @@ def _CreateProjectsDependenciesTargets(env):
     if os.path.exists(localProjectsFile):
         localProjectElements = projectsDom.getElementsByTagName('project')
         for localProjectElment in localProjectElements:
-            projectType = projectElement.getAttribute('repository_type')
+            projectType = localProjectElment.getAttribute('repository_type')
             project = _CreateDependency(
                 env,
                 projectName,
                 projectType,
-                projectElement
+                localProjectElment
             )
             if project:
                 projects[projectName] = project

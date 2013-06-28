@@ -331,7 +331,7 @@ class Component(object):
         if self.name in stack:
             stack.pop()
 
-    def _CreateInstallerBuilder(self, binaries, headers):
+    def _CreateInstallerBuilder(self, binaries):
         """
             This method creates an installer builder.
         """
@@ -359,7 +359,7 @@ class Component(object):
         for alias in self._alias_groups:
             self._env.Alias(alias, None, "Build group %s" % alias)
 
-    #TODO: Move thos out of here! Could be into utils.py.
+    #TODO: Move this out of here! Could be into utils.py.
     def _FormatArgument(self, arg):
         """
             This method takes an iterable object as argument, which can
@@ -482,7 +482,7 @@ class HeaderOnlyComponent(Component):
         self._CreateCppcheckTarget(headers)
         self._CreateDocTarget()
         # Create the installer.
-        installer = self._CreateInstallerBuilder([], headers)
+        installer = self._CreateInstallerBuilder([])
         # Create the alias group.
         self._CreateGroupAliases()
         # Set the installer into the builders dictionary.
@@ -804,10 +804,7 @@ class ObjectComponent(SourcedComponent):
         # Initialize the object file list.
         self._CreateObjectFiles()
         # Create the installer.
-        installer = self._CreateInstallerBuilder(
-            self._objects,
-            self.GetIncludeFiles()
-        )
+        installer = self._CreateInstallerBuilder(self._objects)
         self._builders['install'] = installer
         return installer
 
@@ -896,10 +893,7 @@ class StaticLibraryComponent(ObjectComponent):
         # Create a static library builder.
         slib_builder = self._CreateStaticLibraryBuilder(target)
         # Create an installer builders.
-        installer = self._CreateInstallerBuilder(
-            [slib_builder],
-            self.GetIncludeFiles()
-        )
+        installer = self._CreateInstallerBuilder([slib_builder])
         # Create the group aliases.
         self._CreateGroupAliases()
         self._builders['install'] = installer
@@ -958,10 +952,7 @@ class DynamicLibraryComponent(ObjectComponent):
         # Create the shared library builder.
         dlib_builder = self._CreateSharedLibraryBuilder(target)
         # Create the installer builder.
-        installer = self._CreateInstallerBuilder(
-            [dlib_builder],
-            self.GetIncludeFiles()
-        )
+        installer = self._CreateInstallerBuilder([dlib_builder])
         self._builders['install'] = installer
         return installer
 
@@ -1021,7 +1012,7 @@ class ProgramComponent(ObjectComponent):
         # Create the program builder.
         program_builder = self._CreateProgramBuilder(target)
         # Create an instance of the Install() builder.
-        installer = self._CreateInstallerBuilder([program_builder], [])
+        installer = self._CreateInstallerBuilder([program_builder])
         # Create the group aliases.
         self._CreateGroupAliases()
         self._builders['install'] = installer
@@ -1315,26 +1306,26 @@ class UnitTestComponent(ProgramComponent):
 
     def _UseMocko(self, sources):
         # Path to the tests directory.
-        aux_path = os.path.join(self.env['BUILD_DIR'], self.name)
+        aux_path = os.path.join(self._env['BUILD_DIR'], self.name)
         tests_dir = os.path.join(aux_path, 'tests')
         # Path to the list.mocko file.
         mocko_list = os.path.join(tests_dir, 'list.mocko')
-        mocko_list = self.env.File(mocko_list)
+        mocko_list = self._env.File(mocko_list)
         # Path to the mocko_bind.cpp file.
         mocko_bind_cpp = os.path.join(tests_dir, 'mocko_bind.cpp')
-        mocko_bind_cpp = self.env.File(mocko_bind_cpp)
+        mocko_bind_cpp = self._env.File(mocko_bind_cpp)
         # Path to the mocko_bind.h file.
         mocko_bind_h = os.path.join(tests_dir, 'mocko_bind.h')
-        mocko_bind_h = self.env.File(mocko_bind_h)
+        mocko_bind_h = self._env.File(mocko_bind_h)
         # Path to the mocko_bind.gdb file.
         mocko_bind_gdb = os.path.join(tests_dir, 'mocko_bind.gdb')
-        mocko_bind_gdb = self.env.File(mocko_bind_gdb)
+        mocko_bind_gdb = self._env.File(mocko_bind_gdb)
         # The 'mocko' executable.
-        mocko_exe = self.env.Dir('$INSTALL_BIN_DIR').File('mocko')
+        mocko_exe = self._env.Dir('$INSTALL_BIN_DIR').File('mocko')
         # Create an instance of the RunMocko() builder.
         targets = [mocko_bind_h, mocko_bind_cpp, mocko_bind_gdb]
         src = [mocko_list, mocko_exe]
-        mocko_builder = self.env.RunMocko(targets, src)
+        mocko_builder = self._env.RunMocko(targets, src)
         # Add mocko_bind.cpp to the sources.
         sources.append(mocko_bind_cpp)
         return mocko_builder

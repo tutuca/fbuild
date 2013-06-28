@@ -35,13 +35,12 @@ class PdfLaTeXComponent(Component):
         self.latexfile = latexfile
 
     def Process(self):
-        Component.Process(self)
         docDir = "/" + self.name.split(':')[0] + ":doc/pdf/"
-        targetDir = self.env.Dir(self.env['INSTALL_DOC_DIR']).Dir(docDir, True)
-        pdf = self.env.RunPdfLaTeX(targetDir, self.latexfile)
-        self.env.Clean(pdf, targetDir)
-        self.env.Alias(self.name, pdf, 'Generate pdf from ' +
+        targetDir = self._env.Dir(self._env['INSTALL_DOC_DIR']).Dir(docDir, True)
+        pdf = self._env.RunPdfLaTeX(targetDir, self.latexfile)
+        self._env.Clean(pdf, targetDir)
+        self._env.Alias(self.name, pdf, 'Generate pdf from ' +
             os.path.split(self.latexfile)[-1] +
             ' for ' + self.name.split(':')[0])
-        for alias in self.aliasGroups:
-            self.env.Alias(alias, pdf, "Build group " + alias)
+        for alias in self._alias_groups:
+            self._env.Alias(alias, pdf, "Build group " + alias)
