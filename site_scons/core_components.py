@@ -1216,7 +1216,7 @@ class UnitTestComponent(ProgramComponent):
         cov = self._env.Alias(
             '%s:coverage' % self._project_name,
             run_lcov_builder,
-            'Check the tests coverage on the project.'
+            'Checks the tests coverage on the project.'
         )
         # Coverage can always be built.
         self._env.AlwaysBuild(cov)
