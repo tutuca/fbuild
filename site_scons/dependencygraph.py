@@ -143,7 +143,7 @@ def CreateProgram(env, name, inc, src, deps, aliasGroups=None):
 
 
 def CreateTest(env, name, inc, src, deps, aliasGroups=None):
-    aliasGroups = aliasGroups if aliasGroups is not None else  []
+    aliasGroups = aliasGroups if aliasGroups is not None else []
     # Change the name so we can add the component to the graph.
     testName = '%s@test' % name
     # The test automatically depends on the thing that is testing
@@ -209,16 +209,20 @@ def WalkDirsForSconscripts(env, topdir, ignore=None):
             if ignore.count(os.path.relpath(root, topdir)) == 0:
                 for filename in fnmatch.filter(filenames, 'SConscript'):
                     pathname = os.path.join(root, filename)
-                    vdir = os.path.join(env['BUILD_DIR'],
-                                        os.path.relpath(root,env['WS_DIR']))
+                    vdir = os.path.join(
+                        env['BUILD_DIR'],
+                        os.path.relpath(root, env['WS_DIR'])
+                    )
                     # We clone the enviroment since we need different one for each
                     # project.
                     env2 = env
                     env = env.Clone()
-                    env.SConscript(pathname,
-                                   exports='env',                                                                              
-                                   variant_dir=vdir,
-                                   duplicate=1)
+                    env.SConscript(
+                        pathname,
+                        exports='env',
+                        variant_dir=vdir,
+                        duplicate=1
+                    )
                     env = env2
         # Check if there is a component that we dont know how to build
         for component in componentGraph.GetComponentsNames():
@@ -233,7 +237,7 @@ def WalkDirsForSconscripts(env, topdir, ignore=None):
             componentGraph.clear()
             componentGraph.update(originalGraph)
             for component in env.ExternalDependenciesCreateComponentsDict.keys():
-                d = {'env':env}
+                d = {'env': env}
                 exec env.ExternalDependenciesCreateComponentsDict[component] in d
 
     # Step 2: real processing we have everything loaded in the dependency graph
@@ -260,13 +264,17 @@ def _InstallComponentAndDep(env, component_name, depsToInstall):
     dep_list_comp = [dep for dep in dep_list_comp if componentGraph.get(dep) is None]
     # If dependency list is empty, then we can download the component.
     if not dep_list_comp and component is None:
-        downloadedDependencies = env.CheckoutDependencyNow(component_name,env)
+        downloadedDependencies = env.CheckoutDependencyNow(component_name, env)
     # Else we need to continue installing others dependencies.
     elif dep_list_comp:
         try:
             _CheckCircularDependencies(component_name, dep_list_comp, depsToInstall)
         except fbuild_exceptions.CircularDependencyError as Dep:
-            env.Cprint('[err] Circular Dependency Error in %s found between %s and %s.' %(component_name, dep_list_comp, depsToInstall), 'red')
+            env.Cprint(
+                '[err] Circular Dependency Error in %s found between %s and %s.'
+                % (component_name, dep_list_comp, depsToInstall),
+                'red'
+            )
         comp_to_download = dep_list_comp.pop()
         depsToInstall = list(set(depsToInstall + [comp_to_download]))
         downloadedDependencies = _InstallComponentAndDep(env, comp_to_download, depsToInstall)

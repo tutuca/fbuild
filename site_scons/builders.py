@@ -175,7 +175,7 @@ def RunDoxygen(env, target, source):
     fsrc.close()
     targetName = os.path.basename(target)
     ftgt = open(projectDoxyFile, "w")
-    ftgt.write(doxygenSrc.replace('$PROJECT_NAME', targetName)\
+    ftgt.write(doxygenSrc.replace('$PROJECT_NAME', targetName)
                          .replace('$OUTPUT_DIR', target))
     ftgt.flush()
     ftgt.close()

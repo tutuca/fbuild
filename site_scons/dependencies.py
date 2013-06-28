@@ -163,7 +163,7 @@ class Dependencies(object):
                 Cprint('[info] execute post-checkout command: %s' % cmd, 'purple')
                 rc = subprocess.call(cmd, shell=True)
                 if rc != 0:
-                    return Cformat('[error] failed to execute post-checkout ' + \
+                    return Cformat('[error] failed to execute post-checkout ' +
                                    'command: %s, error: %s' % (cmd, rc),
                                    'red')
         return 0
@@ -215,7 +215,7 @@ class HG(Dependencies):
         Cprint('[hg] Checkout %s => %s' % (self.url, self.target), 'purple')
         rc = subprocess.call(['hg', 'clone', self.url, self.target])
         if rc != 0:
-            return Cformat('[error] hg failed to Checkout target %s from %s, ' + \
+            return Cformat('[error] hg failed to Checkout target %s from %s, ' +
                            'error: %s' % (self.target, self.url, rc),
                            'red')
         return self.AfterCheckout()
@@ -224,7 +224,7 @@ class HG(Dependencies):
         Cprint('[hg] updating %s => %s' % (self.url, self.target), 'purple')
         rc = subprocess.call("cd %s; hg pull -u" % self.target, shell=True)
         if rc != 0:
-            return Cformat('[error] hg failed to update target %s from %s, ' + \
+            return Cformat('[error] hg failed to update target %s from %s, ' +
                            'error: %s' (self.target, self.url, rc),
                            'red')
         return 0
@@ -369,7 +369,7 @@ def _CreateProjectsDependenciesTargets(env):
         projectName = projectElement.getAttribute('name')
         if projectName in projects > 0:
             env.Cprint(
-                '[warn] project ' + projectName + ' information is duplicated in' \
+                '[warn] project ' + projectName + ' information is duplicated in'
                 + ' the projects.xml file',
                 'yellow'
             )
@@ -440,8 +440,8 @@ def _CreateExternalDependenciesTargets(env):
         # dictionary, we have duplicated information into the external_dependencies
         # xml file.
         if componentName in external_dependencies:
-            env.Cprint('[warn] component ' + componentName + \
-                       ' information is duplicated in the ' + \
+            env.Cprint('[warn] component ' + componentName +
+                       ' information is duplicated in the ' +
                        'external_dependencies.xml file', 'yellow')
         else:
             componentTarget = ''

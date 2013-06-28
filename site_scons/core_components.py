@@ -158,8 +158,7 @@ class Component(object):
         #   t[1]  ->  name.
         # This function tells if the tuple depth (t[0]) is the maximum in
         # self._libs.
-        IsMax = lambda t: len([x for x in self._libs \
-                              if (x[1] == t[1]) and (x[0] > t[0])]) == 0
+        IsMax = lambda t: len([x for x in self._libs if (x[1] == t[1]) and (x[0] > t[0])]) == 0
         # This function tells if the tuple name (t[1]) is unique in
         # self._libs.
         Unique = lambda t: len([x for x in self._libs if x[1] == t[1]]) == 1

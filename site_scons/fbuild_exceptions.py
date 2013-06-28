@@ -22,11 +22,13 @@
     Fudepan-build exceptions.
 """
 
+
 class FbuildException(Exception):
     """
         Generic class to handle exception used in fudepan-build.
     """
     pass
+
 
 class DistroError(FbuildException):
     """
@@ -34,20 +36,23 @@ class DistroError(FbuildException):
     """
     pass
 
+
 class DependencyError(FbuildException):
     """
         This class exception is used to handle dependency errors.
     """
     pass
 
+
 class CircularDependencyError(DependencyError):
     """
         This class exception is used by the function _CheckCircularDependency().
     """
+
     def __init__(self, component, dependency):
         self.component = component
         self.dependency = dependency
-        
+
     def __str__(self):
         message = 'Circular Dependency found between %s and %s' % (self.component, self.dependency)
         return repr(message)
