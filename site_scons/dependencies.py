@@ -74,7 +74,7 @@ def init(env):
         if DISTRO == utils.DISRTO_ARCH:
             MANAGER = 'PACMAN'
         else:
-            MANAGER = 'APTITUDE'
+            MANAGER = 'APT-GET'
     except fbuild_exceptions.DistroError:
         env.Cprint('[warn] unsupported distribution.', 'yellow')
     # Create a builder for the checkout of the dependencies.
