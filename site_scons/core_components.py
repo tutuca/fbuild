@@ -30,17 +30,12 @@ import abc
 from SCons import Node
 
 import utils
+import fbuild_exceptions
 
 
 HEADERS_FILTER = ['*.h', '*.hpp']
 SOURCES_FILTER = ['*.c', '*.cpp', '*.cc']
 
-
-class CyclicDependencieError(Exception):
-    """
-        An exception that represents a cycle in the dependence graph.
-    """
-    pass
 
 
 class Component(object):
@@ -150,7 +145,7 @@ class Component(object):
         # Look for the libs and its paths.
         try:
             self._GetLibs(self._libs, self._libpaths, [], 0)
-        except CyclicDependencieError, error:
+        except fbuild_exceptions.CircularDependencyError, error:
             msg = (' -> ').join(error[0])
             self._env.cerror('[error] A dependency cycle was found:\n  %s' % msg)
         # Remember:
@@ -186,7 +181,7 @@ class Component(object):
             self._include_paths = set()
         try:
             self._GetIncludePaths(self._include_paths, [])
-        except CyclicDependencieError, error:
+        except fbuild_exceptions.CircularDependencyError, error:
             msg = (' -> ').join(error[0])
             self._env.cerror('[error] A dependency cycle was found:\n  %s' % msg)
         return list(self._include_paths)
@@ -250,7 +245,7 @@ class Component(object):
             # If the component name is within the stack then there is a
             # cycle.
             stack.append(self.name)
-            raise CyclicDependencieError(stack)
+            raise fbuild_exceptions.CircularDependencyError(stack)
         else:
             # We add the component name to the stack.
             stack.append(self.name)
@@ -308,7 +303,7 @@ class Component(object):
         if self.name in stack:
             # If the component name is within the stack then there is a cycle.
             stack.append(self.name)
-            raise CyclicDependencieError(stack)
+            raise fbuild_exceptions.CircularDependencyError(stack)
         else:
             # We add the component name to the stack.
             stack.append(self.name)
@@ -348,7 +343,7 @@ class Component(object):
         )
         bin_installer = self._env.Install(binaries_dir, binaries)
         installers = bin_installer + inc_installer
-        # Create the alias for for install the component.
+        # Create the alias for install the component.
         self._env.Alias(self.name, installers, 'Install %s.' % self.name)
         return installers
 
@@ -377,7 +372,7 @@ class Component(object):
             else:
                 msg1 = '[ERROR] %s: Initializing component. ' % self.name
                 msg2 = 'Argument must be of type str or Dir.'
-                self._env.Cprint(msg1 + msg2, 'red')
+                self._env.cerror(msg1 + msg2)
                 raise TypeError('Argument must be of type str or Dir.')
         return result
 
@@ -676,7 +671,7 @@ class SourcedComponent(HeaderOnlyComponent):
         # Check the 'src' argument.
         if not src:
             msg = "[ERROR] %s: No sources were specified for a" % self.name
-            self._env.Cprint("%s SourcedComponent object." % msg, 'red')
+            self._env.cerror("%s SourcedComponent object." % msg)
             raise ValueError("No sources were specified for a SourcedComponent object.")
         # Initialize the source files.
         self._InitSourcesFileList(src)
@@ -1218,7 +1213,11 @@ class UnitTestComponent(ProgramComponent):
         self._env.Depends(run_test_builder, init_lcov_builder)
         self._env.Depends(run_lcov_builder, run_test_builder)
         # Create the target for coverage.
-        cov = self._env.Alias('%s:coverage' % self._project_name, run_lcov_builder)
+        cov = self._env.Alias(
+            '%s:coverage' % self._project_name,
+            run_lcov_builder,
+            'Check the tests coverage on the project.'
+        )
         # Coverage can always be built.
         self._env.AlwaysBuild(cov)
         self._env.AlwaysBuild(run_test_builder)
