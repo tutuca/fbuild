@@ -105,3 +105,4 @@ echo -e "FuDePAN-build is free software, and you are welcome to redistribute it 
 echo -e "\e[0;32mWelcome to the FuDePAN console environment\e[0m"
 
 return 0
+
