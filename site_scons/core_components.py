@@ -1122,7 +1122,7 @@ class UnitTestComponent(ProgramComponent):
         }
         # Check for needed reports.
         need_coverage = jenkins or coverage
-        need_test_report = True # jenkins or rtc TODO: Fixme!!!!!!!
+        need_test_report =  # jenkins or rtc TODO: Fixme!!!!!!!
         need_cloc_xml = jenkins
         need_valgrind_report = jenkins or rtc
         need_cppcheck_xml = jenkins or rtc
