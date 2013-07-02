@@ -96,9 +96,9 @@ def RunUnittest(env, target, source):
         t = target[tindex].abspath
         app = s.abspath
         (dir, appbin) = os.path.split(app)
-        # Check if the builder was called for jenkins or ready to commit.
         testsuite = env.GetOption('testsuite')
-        os.environ['GTEST_OUTPUT'] = env.test_report
+        if env.NEED_TEST_REPORT:
+            os.environ['GTEST_OUTPUT'] = env.test_report
         if env.USE_MOCKO:
             cmd = "cd %s; gdb -x mocko_bind.gdb %s > %s" % (dir, appbin, t)
         else:
@@ -499,3 +499,4 @@ def _RTCCheckValgrind(env):
     report_file = os.path.join(report_file, 'valgrind-report.xml')
     cmd = "cat %s | grep '<error>'" % report_file
     return subprocess.call(cmd, shell=True, stdout=subprocess.PIPE) != 0
+

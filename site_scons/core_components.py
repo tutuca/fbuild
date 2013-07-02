@@ -1121,11 +1121,11 @@ class UnitTestComponent(ProgramComponent):
             'ready-to-commit': rtc
         }
         # Check for needed reports.
-        need_coverage = jenkins or coverage
-        need_test_report =  # jenkins or rtc TODO: Fixme!!!!!!!
-        need_cloc_xml = jenkins
-        need_valgrind_report = jenkins or rtc
-        need_cppcheck_xml = jenkins or rtc
+        self._env.NEED_COVERAGE = jenkins or coverage
+        self._env.NEED_TEST_REPORT =  jenkins or rtc
+        self._env.NEED_CLOC_XML = jenkins
+        self._env.NEED_VALGRIND_REPORT = jenkins or rtc
+        self._env.NEED_CPPCKET_XML = jenkins or rtc
         # Add flags to the environment for gtest and gmock.
         aux = [f for f in self._env['CXXFLAGS'] if f not in ['-ansi', '-pedantic']]
         aux.append('-Wno-sign-compare')
@@ -1134,22 +1134,22 @@ class UnitTestComponent(ProgramComponent):
             CXXFLAGS.append('-ggdb3')
         self._env.Replace(CXXFLAGS=CXXFLAGS, CFLAGS=CXXFLAGS)
         # Check if we need test report.
-        if need_test_report:
+        if self._env.NEED_TEST_REPORT:
             test_report = self._env.Dir(self._env['INSTALL_REPORTS_DIR'])
             test_report = test_report.Dir('test').Dir(self._project_name)
             self._env.test_report = 'xml:%s/test-report.xml' % test_report.abspath
         # Check if we need the coverage flag.
-        if need_coverage:
+        if self._env.NEED_COVERAGE:
             flags = ['--coverage']
             self._env.Append(CXXFLAGS=flags, CFLAGS=flags, LINKFLAGS=flags)
         # Check if we need the output of cloc in xml file.
-        if need_cloc_xml:
+        if self._env.NEED_CLOC_XML:
             project_component._env.Replace(CLOC_OUTPUT_FORMAT='xml')
         # Check if we need the output of cppchec in xml format.
-        if need_cppcheck_xml:
+        if self._env.NEED_CPPCKET_XML:
             project_component._env.Append(CPPCHECK_OPTIONS='--xml')
         # Check if we need to create an xml report for valgrind.
-        if need_valgrind_report:
+        if self._env.NEED_VALGRIND_REPORT:
             # Create the directory to store the valgrind report.
             report_dir = self._env['INSTALL_REPORTS_DIR']
             valgrind_report_dir = self._env.Dir(report_dir).Dir('valgrind')
