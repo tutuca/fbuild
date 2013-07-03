@@ -499,4 +499,3 @@ def _RTCCheckValgrind(env):
     report_file = os.path.join(report_file, 'valgrind-report.xml')
     cmd = "cat %s | grep '<error>'" % report_file
     return subprocess.call(cmd, shell=True, stdout=subprocess.PIPE) != 0
-
