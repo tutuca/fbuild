@@ -1305,7 +1305,7 @@ class UnitTestComponent(ProgramComponent):
 
     def _UseMocko(self, sources):
         # Path to the tests directory.
-        aux_path = os.path.join(self._env['BUILD_DIR'], self.name)
+        aux_path = os.path.join(self._env['BUILD_DIR'], self._project_name)
         tests_dir = os.path.join(aux_path, 'tests')
         # Path to the list.mocko file.
         mocko_list = os.path.join(tests_dir, 'list.mocko')
