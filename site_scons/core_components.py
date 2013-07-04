@@ -141,7 +141,6 @@ class Component(object):
             self._libpaths = []
         # Append some strandars paths to this variable.
         self._libpaths.append(self._env['INSTALL_LIB_DIR'])
-        self._libpaths.append(self._env['INSTALL_BIN_DIR'])
         # Look for the libs and its paths.
         try:
             self._GetLibs(self._libs, self._libpaths, [], 0)
@@ -162,7 +161,7 @@ class Component(object):
         aux.sort()
         # Create the self._libs list.
         self._libs = [t[1] for t in aux]
-        return (self._libs, self._libpaths)
+        return (utils.RemoveDuplicates(self._libs), self._libpaths)
 
     def GetIncludePaths(self):
         """
@@ -230,7 +229,7 @@ class Component(object):
         for dependency in self._dependencies:
             component = self._component_graph.get(dependency)
             object_files.extend(component.GetObjectsFiles())
-        return object_files
+        return []
 
     #
     # Private methods.
@@ -816,6 +815,10 @@ class ObjectComponent(SourcedComponent):
                 A list with instance of the SCons Object() class.
         """
         self._CreateObjectFiles()
+        #if self.__class__ == ObjectComponent:
+            #result = self._objects + super(ObjectComponent, self).GetObjectsFiles()
+        #else:
+            #result = super(ObjectComponent, self).GetObjectsFiles()
         return self._objects + super(ObjectComponent, self).GetObjectsFiles()
 
     #
@@ -1079,6 +1082,8 @@ class UnitTestComponent(ProgramComponent):
         if self._env.USE_MOCKO:
             self._UseMocko(sources)
         # Create the builder that creates the test executable.
+        if 'fx-parser' in self.name:
+            import ipdb; ipdb.set_trace()
         program_builder = self._CreateProgramBuilder(target, sources)
         # Creante an instance of the RunUnittest() builder.
         run_test_builder = self._env.RunUnittest(run_test_target, program_builder)
