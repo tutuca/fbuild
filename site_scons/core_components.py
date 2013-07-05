@@ -229,7 +229,7 @@ class Component(object):
         for dependency in self._dependencies:
             component = self._component_graph.get(dependency)
             object_files.extend(component.GetObjectsFiles())
-        return []
+        return object_files
 
     #
     # Private methods.
@@ -353,7 +353,7 @@ class Component(object):
         for alias in self._alias_groups:
             self._env.Alias(alias, None, "Build group %s" % alias)
 
-    #TODO: Move this out of here! Could be into utils.py.
+    #TODO: Move this out of here and change its name! Could be into utils.py.
     def _FormatArgument(self, arg):
         """
             This method takes an iterable object as argument, which can
@@ -814,12 +814,14 @@ class ObjectComponent(SourcedComponent):
             Return:
                 A list with instance of the SCons Object() class.
         """
+        #NOTE: Tmp code!
         self._CreateObjectFiles()
-        #if self.__class__ == ObjectComponent:
-            #result = self._objects + super(ObjectComponent, self).GetObjectsFiles()
-        #else:
-            #result = super(ObjectComponent, self).GetObjectsFiles()
-        return self._objects + super(ObjectComponent, self).GetObjectsFiles()
+        if self.__class__ == ObjectComponent:
+            result = self._objects + super(ObjectComponent, self).GetObjectsFiles()
+        else:
+            result = super(ObjectComponent, self).GetObjectsFiles()
+        return result
+        #return self._objects + super(ObjectComponent, self).GetObjectsFiles()
 
     #
     # Private methods.
@@ -1082,6 +1084,7 @@ class UnitTestComponent(ProgramComponent):
         if self._env.USE_MOCKO:
             self._UseMocko(sources)
         # Create the builder that creates the test executable.
+        #NOTE: Tmp code!
         if 'fx-parser' in self.name:
             import ipdb; ipdb.set_trace()
         program_builder = self._CreateProgramBuilder(target, sources)
