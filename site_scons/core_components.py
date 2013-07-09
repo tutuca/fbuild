@@ -1155,6 +1155,7 @@ class UnitTestComponent(ProgramComponent):
         if self._env.NEED_COVERAGE:
             flags = ['--coverage']
             self._env.Append(CXXFLAGS=flags, CFLAGS=flags, LINKFLAGS=flags)
+            project_component._env.Append(CXXFLAGS=flags, CFLAGS=flags, LINKFLAGS=flags)
         # Check if we need the output of cloc in xml file.
         if self._env.NEED_CLOC_XML:
             project_component._env.Replace(CLOC_OUTPUT_FORMAT='xml')
