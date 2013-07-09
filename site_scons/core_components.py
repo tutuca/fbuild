@@ -64,8 +64,18 @@ class Component(object):
     _dependencies = None
     # A list with the includes directories (instances of SCons Dir class).
     _includes = None
+    # A list with the path of the include directories.
+    _include_paths = None
     # A list of external includes directories (instances of SCons Dir class).
     _external_includes = None
+    # A list with the libraries that need to be linked for build this
+    # component.
+    _libs = None
+    # A list with the path to the libraries that need to be linked for build
+    # this component.
+    _libpaths = None
+    # The list of objects file to be linked when build this component.
+    _object_files = None
     # The environment of the component.
     _env = None
     # A list with the group of aliases to which the component belongs.
@@ -74,14 +84,6 @@ class Component(object):
     _component_graph = None
     # A boolean that tells if the component is linkable or not.
     _should_be_linked = False
-    # A list with the libraries that need to be linked for build this
-    # component.
-    _libs = None  # To get this attribute use the method GetLibs()
-    # A list with the path to the libraries in self._libs.
-    _libpaths = None  # To get this attribute use the method GetLibs()
-    # A list with the path of the include directories.
-    _include_paths = None  # To get this attribute use the method
-                           # GetIncludePaths()
 
     #
     # Special methods.
@@ -225,15 +227,42 @@ class Component(object):
             Return:
                 A list with instance of the SCons Object() class.
         """
-        object_files = []
-        for dependency in self._dependencies:
-            component = self._component_graph.get(dependency)
-            object_files.extend(component.GetObjectsFiles())
-        return object_files
+        if self._object_files is not None:
+            return self._object_files
+        else:
+            self._object_files = []
+        try:
+            self._GetObjectsFiles(self._object_files, [])
+        except fbuild_exceptions.CircularDependencyError, error:
+            msg = (' -> ').join(error[0])
+            self._env.cerror('[error] A dependency cycle was found:\n  %s' % msg)
+        return self._object_files
 
-    #
     # Private methods.
     #
+
+    def _GetObjectsFiles(self, object_files, stack):
+        """
+            This is a recursive internal method used by the GetObjectsFiles
+            method.
+        """
+        if self.name in stack:
+            # If the component name is within the stack then there is a
+            # cycle.
+            stack.append(self.name)
+            raise fbuild_exceptions.CircularDependencyError(stack)
+        else:
+            # We add the component name to the stack.
+            stack.append(self.name)
+        if self.__class__ in [ObjectComponent, ProgramComponent, UnitTestComponent]:
+            self._CreateObjectFiles()
+            object_files.extend(self._objects)
+        for dependency in self._dependencies:
+            component = self._component_graph.get(dependency)
+            component._GetObjectsFiles(object_files, stack)
+        # We remove the component name from the stack.
+        if self.name in stack:
+            stack.pop()
 
     def _GetIncludePaths(self, include_paths, stack):
         """
@@ -802,27 +831,6 @@ class ObjectComponent(SourcedComponent):
         self._builders['install'] = installer
         return installer
 
-    def GetObjectsFiles(self):
-        """
-            Description:
-                This method looks for the objects files that this component
-                needs to be built.
-            Arguments:
-                None.
-            Exceptions:
-                None.
-            Return:
-                A list with instance of the SCons Object() class.
-        """
-        #NOTE: Tmp code!
-        self._CreateObjectFiles()
-        if self.__class__ == ObjectComponent:
-            result = self._objects + super(ObjectComponent, self).GetObjectsFiles()
-        else:
-            result = super(ObjectComponent, self).GetObjectsFiles()
-        return result
-        #return self._objects + super(ObjectComponent, self).GetObjectsFiles()
-
     #
     # Private methods.
     #
@@ -1084,9 +1092,10 @@ class UnitTestComponent(ProgramComponent):
         if self._env.USE_MOCKO:
             self._UseMocko(sources)
         # Create the builder that creates the test executable.
-        #NOTE: Tmp code!
+        #NOTE: TMP-CODE
         if 'fx-parser' in self.name:
             import ipdb; ipdb.set_trace()
+        #NOTE: TMP-CODE
         program_builder = self._CreateProgramBuilder(target, sources)
         # Creante an instance of the RunUnittest() builder.
         run_test_builder = self._env.RunUnittest(run_test_target, program_builder)
