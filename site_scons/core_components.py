@@ -254,7 +254,7 @@ class Component(object):
         else:
             # We add the component name to the stack.
             stack.append(self.name)
-        if self.__class__ in [ObjectComponent, ProgramComponent, UnitTestComponent]:
+        if len(stack) == 1 and isinstance(self,ObjectComponent):
             self._CreateObjectFiles()
             object_files.extend(self._objects)
         for dependency in self._dependencies:
@@ -1092,10 +1092,6 @@ class UnitTestComponent(ProgramComponent):
         if self._env.USE_MOCKO:
             self._UseMocko(sources)
         # Create the builder that creates the test executable.
-        #NOTE: TMP-CODE
-        if 'fx-parser' in self.name:
-            import ipdb; ipdb.set_trace()
-        #NOTE: TMP-CODE
         program_builder = self._CreateProgramBuilder(target, sources)
         # Creante an instance of the RunUnittest() builder.
         run_test_builder = self._env.RunUnittest(run_test_target, program_builder)
