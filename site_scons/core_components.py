@@ -97,7 +97,7 @@ class Component(object):
         self._includes = self._FormatArgument(inc)
         self._external_includes = self._FormatArgument(ext_inc)
         self._alias_groups = als if als is not None else []
-        self._env.USE_MOCKO = 'mocko' in deps
+        self._env._USE_MOCKO = 'mocko' in deps
 
     #
     # Public methods.
@@ -1076,7 +1076,7 @@ class UnitTestComponent(ProgramComponent):
         flags = self._CheckForFlags()
         # Check for use 'mocko'.
         sources = []
-        if self._env.USE_MOCKO:
+        if self._env._USE_MOCKO:
             self._UseMocko(sources)
         # Create the builder that creates the test executable.
         program_builder = self._CreateProgramBuilder(target, sources)
