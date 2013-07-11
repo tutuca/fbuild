@@ -255,7 +255,7 @@ class Component(object):
             # We add the component name to the stack.
             stack.append(self.name)
         if ((len(stack) == 1 and isinstance(self,ObjectComponent)) or
-            (self.__class__ == ProgramComponent)):
+            (type(self) == ProgramComponent)):
             self._CreateObjectFiles()
             object_files.extend(self._objects)
         for dependency in self._dependencies:
