@@ -98,7 +98,7 @@ function check_astyle_2_03 {
     ASTYLE_TAR="astyle_2_03.tar.gz"
     ASTYLE_PATH_INSTALL="astyle/build/gcc"
 
-    if [ -z "$(echo $(astyle -V 2>&1 | cut -f4 -d' ') '< 2.03' | bc -l)" ]; then
+    if [[ "$(echo $(astyle -V 2>&1 | cut -f4 -d' ') '< 2.03' | bc -l)" != 0 ]]; then
         echo -e "\e[0;33m[Warning] AStyle version should be at least 2.03\e[0m"
         echo "info: Do you want me to install it? (your password could be required)"
         
