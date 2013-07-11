@@ -64,8 +64,18 @@ class Component(object):
     _dependencies = None
     # A list with the includes directories (instances of SCons Dir class).
     _includes = None
+    # A list with the path of the include directories.
+    _include_paths = None
     # A list of external includes directories (instances of SCons Dir class).
     _external_includes = None
+    # A list with the libraries that need to be linked for build this
+    # component.
+    _libs = None
+    # A list with the path to the libraries that need to be linked for build
+    # this component.
+    _libpaths = None
+    # The list of objects file to be linked when build this component.
+    _object_files = None
     # The environment of the component.
     _env = None
     # A list with the group of aliases to which the component belongs.
@@ -74,14 +84,6 @@ class Component(object):
     _component_graph = None
     # A boolean that tells if the component is linkable or not.
     _should_be_linked = False
-    # A list with the libraries that need to be linked for build this
-    # component.
-    _libs = None  # To get this attribute use the method GetLibs()
-    # A list with the path to the libraries in self._libs.
-    _libpaths = None  # To get this attribute use the method GetLibs()
-    # A list with the path of the include directories.
-    _include_paths = None  # To get this attribute use the method
-                           # GetIncludePaths()
 
     #
     # Special methods.
@@ -141,7 +143,6 @@ class Component(object):
             self._libpaths = []
         # Append some strandars paths to this variable.
         self._libpaths.append(self._env['INSTALL_LIB_DIR'])
-        self._libpaths.append(self._env['INSTALL_BIN_DIR'])
         # Look for the libs and its paths.
         try:
             self._GetLibs(self._libs, self._libpaths, [], 0)
@@ -162,7 +163,7 @@ class Component(object):
         aux.sort()
         # Create the self._libs list.
         self._libs = [t[1] for t in aux]
-        return (self._libs, self._libpaths)
+        return (utils.RemoveDuplicates(self._libs), self._libpaths)
 
     def GetIncludePaths(self):
         """
@@ -226,15 +227,43 @@ class Component(object):
             Return:
                 A list with instance of the SCons Object() class.
         """
-        object_files = []
-        for dependency in self._dependencies:
-            component = self._component_graph.get(dependency)
-            object_files.extend(component.GetObjectsFiles())
-        return object_files
+        if self._object_files is not None:
+            return self._object_files
+        else:
+            self._object_files = []
+        try:
+            self._GetObjectsFiles(self._object_files, [])
+        except fbuild_exceptions.CircularDependencyError, error:
+            msg = (' -> ').join(error[0])
+            self._env.cerror('[error] A dependency cycle was found:\n  %s' % msg)
+        return self._object_files
 
-    #
     # Private methods.
     #
+
+    def _GetObjectsFiles(self, object_files, stack):
+        """
+            This is a recursive internal method used by the GetObjectsFiles
+            method.
+        """
+        if self.name in stack:
+            # If the component name is within the stack then there is a
+            # cycle.
+            stack.append(self.name)
+            raise fbuild_exceptions.CircularDependencyError(stack)
+        else:
+            # We add the component name to the stack.
+            stack.append(self.name)
+        if ((len(stack) == 1 and isinstance(self,ObjectComponent)) or
+            (type(self) == ProgramComponent)):
+            self._CreateObjectFiles()
+            object_files.extend(self._objects)
+        for dependency in self._dependencies:
+            component = self._component_graph.get(dependency)
+            component._GetObjectsFiles(object_files, stack)
+        # We remove the component name from the stack.
+        if self.name in stack:
+            stack.pop()
 
     def _GetIncludePaths(self, include_paths, stack):
         """
@@ -354,7 +383,7 @@ class Component(object):
         for alias in self._alias_groups:
             self._env.Alias(alias, None, "Build group %s" % alias)
 
-    #TODO: Move this out of here! Could be into utils.py.
+    #TODO: Move this out of here and change its name! Could be into utils.py.
     def _FormatArgument(self, arg):
         """
             This method takes an iterable object as argument, which can
@@ -802,21 +831,6 @@ class ObjectComponent(SourcedComponent):
         installer = self._CreateInstallerBuilder(self._objects)
         self._builders['install'] = installer
         return installer
-
-    def GetObjectsFiles(self):
-        """
-            Description:
-                This method looks for the objects files that this component
-                needs to be built.
-            Arguments:
-                None.
-            Exceptions:
-                None.
-            Return:
-                A list with instance of the SCons Object() class.
-        """
-        self._CreateObjectFiles()
-        return self._objects + super(ObjectComponent, self).GetObjectsFiles()
 
     #
     # Private methods.

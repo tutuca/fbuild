@@ -48,11 +48,4 @@ class CircularDependencyError(DependencyError):
     """
         This class exception is used by the function _CheckCircularDependency().
     """
-
-    def __init__(self, component, dependency):
-        self.component = component
-        self.dependency = dependency
-
-    def __str__(self):
-        message = 'Circular Dependency found between %s and %s' % (self.component, self.dependency)
-        return repr(message)
+    pass

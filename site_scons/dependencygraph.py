@@ -271,9 +271,9 @@ def _InstallComponentAndDep(env, component_name, depsToInstall):
     elif dep_list_comp:
         try:
             _CheckCircularDependencies(component_name, dep_list_comp, depsToInstall)
-        except fbuild_exceptions.CircularDependencyError as Dep:
+        except fbuild_exceptions.CircularDependencyError:
             env.Cprint(
-                '[err] Circular Dependency Error in %s found between %s and %s.'
+                '[error] Circular Dependency Error in %s found between %s and %s.'
                 % (component_name, dep_list_comp, depsToInstall),
                 'red'
             )
@@ -286,4 +286,4 @@ def _InstallComponentAndDep(env, component_name, depsToInstall):
 def _CheckCircularDependencies(component, deps_installing, deps_to_install):
     for dep in deps_installing:
         if dep in deps_to_install:
-            raise fbuild_exceptions.CircularDependencyError(component, dep)
+            raise fbuild_exceptions.CircularDependencyError()
