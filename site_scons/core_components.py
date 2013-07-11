@@ -359,6 +359,7 @@ class Component(object):
         """
             This method creates an installer builder.
         """
+        if 'fixucp' in self.name: import ipdb; ipdb.set_trace()
         if isinstance(self, ProgramComponent):
             binaries_dir = self._env.Dir('$INSTALL_BIN_DIR')
         else:
@@ -829,6 +830,8 @@ class ObjectComponent(SourcedComponent):
         self._CreateObjectFiles()
         # Create the installer.
         installer = self._CreateInstallerBuilder(self._objects)
+        # Create the group aliases.
+        self._CreateGroupAliases()
         self._builders['install'] = installer
         return installer
 
