@@ -1037,9 +1037,7 @@ class ProgramComponent(ObjectComponent):
         # Get the libraries to link and their directories.
         (libs, libpaths) = self.GetLibs()
         # Get the sources.
-        if sources is not None:
-            sources += self.GetObjectsFiles()
-        else:
+        if sources is None:
             sources = self.GetObjectsFiles()
         # Create an instance of the Program() builder.
         program_builder = self._env.Program(
@@ -1089,7 +1087,7 @@ class UnitTestComponent(ProgramComponent):
         # Check for the flags we need to set in the environment.
         flags = self._CheckForFlags()
         # Check for use 'mocko'.
-        sources = []
+        sources = self.GetObjectsFiles()
         if self._env._USE_MOCKO:
             self._UseMocko(sources)
         # Create the builder that creates the test executable.
@@ -1340,6 +1338,7 @@ class UnitTestComponent(ProgramComponent):
         targets = [mocko_bind_h, mocko_bind_cpp, mocko_bind_gdb]
         src = [mocko_list, mocko_exe]
         mocko_builder = self._env.RunMocko(targets, src)
+        self._env.Depends(sources, mocko_builder)    
         # Add mocko_bind.cpp to the sources.
         sources.append(mocko_bind_cpp)
         return mocko_builder
