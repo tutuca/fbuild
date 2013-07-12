@@ -255,7 +255,7 @@ class Component(object):
             # We add the component name to the stack.
             stack.append(self.name)
         if ((len(stack) == 1 and isinstance(self,ObjectComponent)) or
-            (self.__class__ == ProgramComponent)):
+            (type(self) == ProgramComponent) or (type(self) == ObjectComponent)):
             self._CreateObjectFiles()
             object_files.extend(self._objects)
         for dependency in self._dependencies:
@@ -829,6 +829,8 @@ class ObjectComponent(SourcedComponent):
         self._CreateObjectFiles()
         # Create the installer.
         installer = self._CreateInstallerBuilder(self._objects)
+        # Create the group aliases.
+        self._CreateGroupAliases()
         self._builders['install'] = installer
         return installer
 
@@ -1008,7 +1010,9 @@ class ProgramComponent(ObjectComponent):
         if self._builders['install'] is not None:
             return self._builders['install']
         # The target is the name of program to be created.
-        target = os.path.join(self._env['INSTALL_LIB_DIR'], self.name)
+        target = os.path.join(self._env['BUILD_DIR'], self.name)
+        target = os.path.join(target, 'bin')
+        target = os.path.join(target, self.name)
         # Create the list of the 'sources' files.
         sources = self.GetSourcesFiles() + self.GetIncludeFiles()
         # Create targets.
