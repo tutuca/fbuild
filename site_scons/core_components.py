@@ -255,7 +255,7 @@ class Component(object):
             # We add the component name to the stack.
             stack.append(self.name)
         if ((len(stack) == 1 and isinstance(self,ObjectComponent)) or
-            (type(self) == ProgramComponent) or (type(self) == ObjectComponent)):
+            (type(self) == ObjectComponent)):
             self._CreateObjectFiles()
             object_files.extend(self._objects)
         for dependency in self._dependencies:
@@ -1036,13 +1036,13 @@ class ProgramComponent(ObjectComponent):
     #
 
     def _CreateProgramBuilder(self, target, sources=None):
+        sources = sources if sources is not None else []
         # Get include paths.
         includes = self.GetIncludePaths()
         # Get the libraries to link and their directories.
         (libs, libpaths) = self.GetLibs()
-        # Get the sources.
-        if sources is None:
-            sources = self.GetObjectsFiles()
+        # Get the objects files.
+        sources.extend(self.GetObjectsFiles())
         # Create an instance of the Program() builder.
         program_builder = self._env.Program(
             target,
@@ -1091,7 +1091,7 @@ class UnitTestComponent(ProgramComponent):
         # Check for the flags we need to set in the environment.
         flags = self._CheckForFlags()
         # Check for use 'mocko'.
-        sources = self.GetSourcesFiles()
+        sources = []
         if self._env._USE_MOCKO:
             self._UseMocko(sources)
         # Create the builder that creates the test executable.
