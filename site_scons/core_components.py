@@ -1091,7 +1091,7 @@ class UnitTestComponent(ProgramComponent):
         # Check for the flags we need to set in the environment.
         flags = self._CheckForFlags()
         # Check for use 'mocko'.
-        sources = self.GetObjectsFiles()
+        sources = self.GetSourcesFiles()
         if self._env._USE_MOCKO:
             self._UseMocko(sources)
         # Create the builder that creates the test executable.
@@ -1342,7 +1342,6 @@ class UnitTestComponent(ProgramComponent):
         targets = [mocko_bind_h, mocko_bind_cpp, mocko_bind_gdb]
         src = [mocko_list, mocko_exe]
         mocko_builder = self._env.RunMocko(targets, src)
-        self._env.Depends(sources, mocko_builder)    
         # Add mocko_bind.cpp to the sources.
         sources.append(mocko_bind_cpp)
         return mocko_builder
