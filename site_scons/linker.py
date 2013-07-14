@@ -39,4 +39,3 @@ def LinuxOptions(env):
     # scons to deploy it somewhere else.
     env.Append(RPATH=env['INSTALL_LIB_DIR'])
     env['ENV']['LD_LIBRARY_PATH'] = env['INSTALL_LIB_DIR']
-
