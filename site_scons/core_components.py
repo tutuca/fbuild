@@ -1338,4 +1338,3 @@ class UnitTestComponent(ProgramComponent):
         # Add mocko_bind.cpp to the sources.
         sources.append(mocko_bind_cpp)
         return mocko_builder
-
