@@ -1321,21 +1321,14 @@ class UnitTestComponent(ProgramComponent):
         return ready_to_commit
 
     def _UseMocko(self, sources):
-        # Path to the tests directory.
-        aux_path = os.path.join(self._env['BUILD_DIR'], self._project_name)
-        tests_dir = os.path.join(aux_path, 'tests')
         # Path to the list.mocko file.
-        mocko_list = os.path.join(tests_dir, 'list.mocko')
-        mocko_list = self._env.File(mocko_list)
+        mocko_list = self._dir.File('list.mocko')
         # Path to the mocko_bind.cpp file.
-        mocko_bind_cpp = os.path.join(tests_dir, 'mocko_bind.cpp')
-        mocko_bind_cpp = self._env.File(mocko_bind_cpp)
+        mocko_bind_cpp = self._dir.File('mocko_bind.cpp')
         # Path to the mocko_bind.h file.
-        mocko_bind_h = os.path.join(tests_dir, 'mocko_bind.h')
-        mocko_bind_h = self._env.File(mocko_bind_h)
+        mocko_bind_h = self._dir.File('mocko_bind.h')
         # Path to the mocko_bind.gdb file.
-        mocko_bind_gdb = os.path.join(tests_dir, 'mocko_bind.gdb')
-        mocko_bind_gdb = self._env.File(mocko_bind_gdb)
+        mocko_bind_gdb = self._dir.File('mocko_bind.gdb')
         # The 'mocko' executable.
         mocko_exe = self._env.Dir('$INSTALL_BIN_DIR').File('mocko')
         # Create an instance of the RunMocko() builder.
