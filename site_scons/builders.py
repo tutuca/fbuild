@@ -99,7 +99,7 @@ def RunUnittest(env, target, source):
         testsuite = env.GetOption('testsuite')
         if env.NEED_TEST_REPORT:
             os.environ['GTEST_OUTPUT'] = env.test_report
-        if env.USE_MOCKO:
+        if env._USE_MOCKO:
             cmd = "cd %s; gdb -x mocko_bind.gdb %s > %s" % (dir, appbin, t)
         else:
             cmd = "cd %s; ./%s --gtest_filter=%s > %s" % (dir, appbin, testsuite, t)
@@ -377,14 +377,23 @@ def RunCppCheck(env, target, source):
 
 
 def RunMocko(env, target, source):
+    # Print message on the screen.
+    env.Cprint('\n=== Running MOCKO ===\n', 'green')
+    verbose = not env.GetOption('verbose')
     # Get the file list.mocko.
     mocko_list = source[0].abspath
     # Get the tests directory.
     directory = os.path.split(mocko_list)[0]
     # The mocko executable file.
     mocko = env.Dir('$INSTALL_BIN_DIR').File('mocko').abspath
-    # Execute mocko.
+    # Get current directory.
     cwd = env.Dir('#').abspath
+    # Print info.
+    if verbose:
+        print "> chdir", directory
+        print '> %s %s' % (mocko, mocko_list)
+        print "> chdir", cwd
+    # Execute mocko.
     os.chdir(directory)
     ret_val = subprocess.call('%s %s' % (mocko, mocko_list), shell=True)
     os.chdir(cwd)

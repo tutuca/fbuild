@@ -99,7 +99,7 @@ class Component(object):
         self._includes = self._FormatArgument(inc)
         self._external_includes = self._FormatArgument(ext_inc)
         self._alias_groups = als if als is not None else []
-        self._env.USE_MOCKO = 'mocko' in deps
+        self._env._USE_MOCKO = 'mocko' in deps
 
     #
     # Public methods.
@@ -255,7 +255,7 @@ class Component(object):
             # We add the component name to the stack.
             stack.append(self.name)
         if ((len(stack) == 1 and isinstance(self,ObjectComponent)) or
-            (type(self) == ProgramComponent) or (type(self) == ObjectComponent)):
+            (type(self) == ObjectComponent)):
             self._CreateObjectFiles()
             object_files.extend(self._objects)
         for dependency in self._dependencies:
@@ -1036,15 +1036,13 @@ class ProgramComponent(ObjectComponent):
     #
 
     def _CreateProgramBuilder(self, target, sources=None):
+        sources = sources if sources is not None else []
         # Get include paths.
         includes = self.GetIncludePaths()
         # Get the libraries to link and their directories.
         (libs, libpaths) = self.GetLibs()
-        # Get the sources.
-        if sources is not None:
-            sources += self.GetObjectsFiles()
-        else:
-            sources = self.GetObjectsFiles()
+        # Get the objects files.
+        sources.extend(self.GetObjectsFiles())
         # Create an instance of the Program() builder.
         program_builder = self._env.Program(
             target,
@@ -1094,7 +1092,7 @@ class UnitTestComponent(ProgramComponent):
         flags = self._CheckForFlags()
         # Check for use 'mocko'.
         sources = []
-        if self._env.USE_MOCKO:
+        if self._env._USE_MOCKO:
             self._UseMocko(sources)
         # Create the builder that creates the test executable.
         program_builder = self._CreateProgramBuilder(target, sources)
@@ -1323,21 +1321,14 @@ class UnitTestComponent(ProgramComponent):
         return ready_to_commit
 
     def _UseMocko(self, sources):
-        # Path to the tests directory.
-        aux_path = os.path.join(self._env['BUILD_DIR'], self._project_name)
-        tests_dir = os.path.join(aux_path, 'tests')
         # Path to the list.mocko file.
-        mocko_list = os.path.join(tests_dir, 'list.mocko')
-        mocko_list = self._env.File(mocko_list)
+        mocko_list = self._dir.File('list.mocko')
         # Path to the mocko_bind.cpp file.
-        mocko_bind_cpp = os.path.join(tests_dir, 'mocko_bind.cpp')
-        mocko_bind_cpp = self._env.File(mocko_bind_cpp)
+        mocko_bind_cpp = self._dir.File('mocko_bind.cpp')
         # Path to the mocko_bind.h file.
-        mocko_bind_h = os.path.join(tests_dir, 'mocko_bind.h')
-        mocko_bind_h = self._env.File(mocko_bind_h)
+        mocko_bind_h = self._dir.File('mocko_bind.h')
         # Path to the mocko_bind.gdb file.
-        mocko_bind_gdb = os.path.join(tests_dir, 'mocko_bind.gdb')
-        mocko_bind_gdb = self._env.File(mocko_bind_gdb)
+        mocko_bind_gdb = self._dir.File('mocko_bind.gdb')
         # The 'mocko' executable.
         mocko_exe = self._env.Dir('$INSTALL_BIN_DIR').File('mocko')
         # Create an instance of the RunMocko() builder.
