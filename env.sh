@@ -43,8 +43,10 @@ fi
 
 if [ "$(which apt-get 2>/dev/null)" ]; then
     source ./site_scons/installer_aptget.sh
+    source ./site_scons/installer_extras_dbub.sh
 elif [ "$(which packer)" ]; then
     source ./site_scons/installer_packer.sh
+    source ./site_scons/installer_extras_dbub.sh
 else
     function check_install {
         if [ "$3" ]; then     
