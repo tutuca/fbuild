@@ -64,8 +64,18 @@ class Component(object):
     _dependencies = None
     # A list with the includes directories (instances of SCons Dir class).
     _includes = None
+    # A list with the path of the include directories.
+    _include_paths = None
     # A list of external includes directories (instances of SCons Dir class).
     _external_includes = None
+    # A list with the libraries that need to be linked for build this
+    # component.
+    _libs = None
+    # A list with the path to the libraries that need to be linked for build
+    # this component.
+    _libpaths = None
+    # The list of objects file to be linked when build this component.
+    _object_files = None
     # The environment of the component.
     _env = None
     # A list with the group of aliases to which the component belongs.
@@ -74,14 +84,6 @@ class Component(object):
     _component_graph = None
     # A boolean that tells if the component is linkable or not.
     _should_be_linked = False
-    # A list with the libraries that need to be linked for build this
-    # component.
-    _libs = None  # To get this attribute use the method GetLibs()
-    # A list with the path to the libraries in self._libs.
-    _libpaths = None  # To get this attribute use the method GetLibs()
-    # A list with the path of the include directories.
-    _include_paths = None  # To get this attribute use the method
-                           # GetIncludePaths()
 
     #
     # Special methods.
@@ -97,7 +99,7 @@ class Component(object):
         self._includes = self._FormatArgument(inc)
         self._external_includes = self._FormatArgument(ext_inc)
         self._alias_groups = als if als is not None else []
-        self._env.USE_MOCKO = 'mocko' in deps
+        self._env._USE_MOCKO = 'mocko' in deps
 
     #
     # Public methods.
@@ -141,7 +143,6 @@ class Component(object):
             self._libpaths = []
         # Append some strandars paths to this variable.
         self._libpaths.append(self._env['INSTALL_LIB_DIR'])
-        self._libpaths.append(self._env['INSTALL_BIN_DIR'])
         # Look for the libs and its paths.
         try:
             self._GetLibs(self._libs, self._libpaths, [], 0)
@@ -162,7 +163,7 @@ class Component(object):
         aux.sort()
         # Create the self._libs list.
         self._libs = [t[1] for t in aux]
-        return (self._libs, self._libpaths)
+        return (utils.RemoveDuplicates(self._libs), self._libpaths)
 
     def GetIncludePaths(self):
         """
@@ -226,15 +227,43 @@ class Component(object):
             Return:
                 A list with instance of the SCons Object() class.
         """
-        object_files = []
-        for dependency in self._dependencies:
-            component = self._component_graph.get(dependency)
-            object_files.extend(component.GetObjectsFiles())
-        return object_files
+        if self._object_files is not None:
+            return self._object_files
+        else:
+            self._object_files = []
+        try:
+            self._GetObjectsFiles(self._object_files, [])
+        except fbuild_exceptions.CircularDependencyError, error:
+            msg = (' -> ').join(error[0])
+            self._env.cerror('[error] A dependency cycle was found:\n  %s' % msg)
+        return self._object_files
 
-    #
     # Private methods.
     #
+
+    def _GetObjectsFiles(self, object_files, stack):
+        """
+            This is a recursive internal method used by the GetObjectsFiles
+            method.
+        """
+        if self.name in stack:
+            # If the component name is within the stack then there is a
+            # cycle.
+            stack.append(self.name)
+            raise fbuild_exceptions.CircularDependencyError(stack)
+        else:
+            # We add the component name to the stack.
+            stack.append(self.name)
+        if ((len(stack) == 1 and isinstance(self,ObjectComponent)) or
+            (type(self) == ObjectComponent)):
+            self._CreateObjectFiles()
+            object_files.extend(self._objects)
+        for dependency in self._dependencies:
+            component = self._component_graph.get(dependency)
+            component._GetObjectsFiles(object_files, stack)
+        # We remove the component name from the stack.
+        if self.name in stack:
+            stack.pop()
 
     def _GetIncludePaths(self, include_paths, stack):
         """
@@ -354,7 +383,7 @@ class Component(object):
         for alias in self._alias_groups:
             self._env.Alias(alias, None, "Build group %s" % alias)
 
-    #TODO: Move this out of here! Could be into utils.py.
+    #TODO: Move this out of here and change its name! Could be into utils.py.
     def _FormatArgument(self, arg):
         """
             This method takes an iterable object as argument, which can
@@ -800,23 +829,10 @@ class ObjectComponent(SourcedComponent):
         self._CreateObjectFiles()
         # Create the installer.
         installer = self._CreateInstallerBuilder(self._objects)
+        # Create the group aliases.
+        self._CreateGroupAliases()
         self._builders['install'] = installer
         return installer
-
-    def GetObjectsFiles(self):
-        """
-            Description:
-                This method looks for the objects files that this component
-                needs to be built.
-            Arguments:
-                None.
-            Exceptions:
-                None.
-            Return:
-                A list with instance of the SCons Object() class.
-        """
-        self._CreateObjectFiles()
-        return self._objects + super(ObjectComponent, self).GetObjectsFiles()
 
     #
     # Private methods.
@@ -994,7 +1010,9 @@ class ProgramComponent(ObjectComponent):
         if self._builders['install'] is not None:
             return self._builders['install']
         # The target is the name of program to be created.
-        target = os.path.join(self._env['INSTALL_LIB_DIR'], self.name)
+        target = os.path.join(self._env['BUILD_DIR'], self.name)
+        target = os.path.join(target, 'bin')
+        target = os.path.join(target, self.name)
         # Create the list of the 'sources' files.
         sources = self.GetSourcesFiles() + self.GetIncludeFiles()
         # Create targets.
@@ -1018,15 +1036,13 @@ class ProgramComponent(ObjectComponent):
     #
 
     def _CreateProgramBuilder(self, target, sources=None):
+        sources = sources if sources is not None else []
         # Get include paths.
         includes = self.GetIncludePaths()
         # Get the libraries to link and their directories.
         (libs, libpaths) = self.GetLibs()
-        # Get the sources.
-        if sources is not None:
-            sources += self.GetObjectsFiles()
-        else:
-            sources = self.GetObjectsFiles()
+        # Get the objects files.
+        sources.extend(self.GetObjectsFiles())
         # Create an instance of the Program() builder.
         program_builder = self._env.Program(
             target,
@@ -1076,7 +1092,7 @@ class UnitTestComponent(ProgramComponent):
         flags = self._CheckForFlags()
         # Check for use 'mocko'.
         sources = []
-        if self._env.USE_MOCKO:
+        if self._env._USE_MOCKO:
             self._UseMocko(sources)
         # Create the builder that creates the test executable.
         program_builder = self._CreateProgramBuilder(target, sources)
@@ -1305,21 +1321,14 @@ class UnitTestComponent(ProgramComponent):
         return ready_to_commit
 
     def _UseMocko(self, sources):
-        # Path to the tests directory.
-        aux_path = os.path.join(self._env['BUILD_DIR'], self._project_name)
-        tests_dir = os.path.join(aux_path, 'tests')
         # Path to the list.mocko file.
-        mocko_list = os.path.join(tests_dir, 'list.mocko')
-        mocko_list = self._env.File(mocko_list)
+        mocko_list = self._dir.File('list.mocko')
         # Path to the mocko_bind.cpp file.
-        mocko_bind_cpp = os.path.join(tests_dir, 'mocko_bind.cpp')
-        mocko_bind_cpp = self._env.File(mocko_bind_cpp)
+        mocko_bind_cpp = self._dir.File('mocko_bind.cpp')
         # Path to the mocko_bind.h file.
-        mocko_bind_h = os.path.join(tests_dir, 'mocko_bind.h')
-        mocko_bind_h = self._env.File(mocko_bind_h)
+        mocko_bind_h = self._dir.File('mocko_bind.h')
         # Path to the mocko_bind.gdb file.
-        mocko_bind_gdb = os.path.join(tests_dir, 'mocko_bind.gdb')
-        mocko_bind_gdb = self._env.File(mocko_bind_gdb)
+        mocko_bind_gdb = self._dir.File('mocko_bind.gdb')
         # The 'mocko' executable.
         mocko_exe = self._env.Dir('$INSTALL_BIN_DIR').File('mocko')
         # Create an instance of the RunMocko() builder.
