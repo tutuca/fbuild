@@ -476,7 +476,7 @@ def _RTCCheckAstyle(env):
     report_file = os.path.join(env['INSTALL_REPORTS_DIR'], 'astyle-check')
     report_file = os.path.join(report_file, env['PROJECT_NAME'])
     report_file = os.path.join(report_file, 'AstyleCheckReport.diff')
-    cmd = "cat %s | grep -E '^\+' | grep -v +++ | grep -v 'for (auto'" % report_file
+    cmd = "cat %s | grep -E '^\+' | grep -v +++" % report_file
     return subprocess.call(cmd, shell=True, stdout=subprocess.PIPE) != 0
 
 

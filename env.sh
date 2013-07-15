@@ -43,8 +43,10 @@ fi
 
 if [ "$(which apt-get 2>/dev/null)" ]; then
     source ./site_scons/installer_aptget.sh
+    source ./site_scons/installer_extras_dbub.sh
 elif [ "$(which packer)" ]; then
     source ./site_scons/installer_packer.sh
+    source ./site_scons/installer_extras_dbub.sh
 else
     function check_install {
         if [ "$3" ]; then     
@@ -72,7 +74,7 @@ check_install doxygen
 if [ "$?" -ne "0" ]; then return $?; fi
 check_install dot
 if [ "$?" -ne "0" ]; then return $?; fi
-check_install astyle true 
+check_astyle_2_03
 if [ "$?" -ne "0" ]; then return $?; fi
 check_install svn true 
 if [ "$?" -ne "0" ]; then return $?; fi
@@ -89,10 +91,6 @@ if [ "$?" -ne "0" ]; then return $?; fi
 check_install lcov false
 if [ "$?" -ne "0" ]; then return $?; fi
 
-if [ "$(astyle -V 2>&1 | cut -f4 -d' ' | sed 's/\..*//' | bc)" -lt "2" ]; then
-    echo -e "\e[0;31m[error] AStyle version should be >= 2\e[0m"
-    return 1
-fi
 
 # Backward compatibility
 alias fbuild=scons
