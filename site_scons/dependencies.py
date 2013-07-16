@@ -215,8 +215,8 @@ class HG(Dependencies):
         Cprint('[hg] Checkout %s => %s' % (self.url, self.target), 'purple')
         rc = subprocess.call(['hg', 'clone', self.url, self.target])
         if rc != 0:
-            return Cformat('[error] hg failed to Checkout target %s from %s, ' +
-                           'error: %s' % (self.target, self.url, rc),
+            return Cformat('[error] hg failed to Checkout target {} from {},' +
+                           'error: {}'.format(self.target, self.url, rc),
                            'red')
         return self.AfterCheckout()
 
