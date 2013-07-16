@@ -163,8 +163,7 @@ class Dependencies(object):
                 Cprint('[info] execute post-checkout command: %s' % cmd, 'purple')
                 rc = subprocess.call(cmd, shell=True)
                 if rc != 0:
-                    return Cformat('[error] failed to execute post-checkout ' +
-                                   'command: %s, error: %s' % (cmd, rc),
+                    return Cformat('[error] failed to execute post-checkout command: %s, error: %s' % (cmd, rc),
                                    'red')
         return 0
 
@@ -214,9 +213,9 @@ class HG(Dependencies):
             os.makedirs(self.target)
         Cprint('[hg] Checkout %s => %s' % (self.url, self.target), 'purple')
         rc = subprocess.call(['hg', 'clone', self.url, self.target])
+        import pdb; pdb.set_trace()
         if rc != 0:
-            return Cformat('[error] hg failed to Checkout target {} from {},' +
-                           'error: {}'.format(self.target, self.url, rc),
+            return Cformat('[error] hg failed to Checkout target %s from %s, error: %s' % (self.target, self.url, rc),
                            'red')
         return self.AfterCheckout()
 
@@ -224,8 +223,7 @@ class HG(Dependencies):
         Cprint('[hg] updating %s => %s' % (self.url, self.target), 'purple')
         rc = subprocess.call("cd %s; hg pull -u" % self.target, shell=True)
         if rc != 0:
-            return Cformat('[error] hg failed to update target %s from %s, ' +
-                           'error: %s' % (self.target, self.url, rc),
+            return Cformat('[error] hg failed to update target %s from %s, error: %s' % (self.target, self.url, rc),
                            'red')
         return 0
 
@@ -245,6 +243,7 @@ class SVN(Dependencies):
         cmd = ['svn', 'checkout'] + (['--username', self.username] if self.username else []) + [self.url, self.target]
         rc = subprocess.call(cmd)
         if rc != 0:
+            
             return Cformat(
                 '[error] svn failed to checkout target %s from %s, error: %s'
                 % (self.target, self.url, rc),
@@ -256,6 +255,7 @@ class SVN(Dependencies):
         Cprint('[svn] updating %s => %s' % (self.url, self.target), 'purple')
         rc = subprocess.call("cd %s; svn update" % self.target, shell=True)
         if rc != 0:
+
             return Cformat(
                 '[error] svn failed to update target %s from %s, error: %s'
                 % (self.target, self.url, rc),
