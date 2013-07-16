@@ -213,7 +213,6 @@ class HG(Dependencies):
             os.makedirs(self.target)
         Cprint('[hg] Checkout %s => %s' % (self.url, self.target), 'purple')
         rc = subprocess.call(['hg', 'clone', self.url, self.target])
-        import pdb; pdb.set_trace()
         if rc != 0:
             return Cformat('[error] hg failed to Checkout target %s from %s, error: %s' % (self.target, self.url, rc),
                            'red')
