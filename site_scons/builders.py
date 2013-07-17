@@ -508,13 +508,22 @@ def _RTCCheckCppcheck(env):
 
 
 def _RTCCheckTests(env):
+    # Path to the report file.
     report_file = os.path.join(env['INSTALL_REPORTS_DIR'], 'test')
     report_file = os.path.join(report_file, env['PROJECT_NAME'])
     report_file = os.path.join(report_file, 'test-report.xml')
+    # Commands to be executed.
     cmd_failures = 'cat %s | grep "<testsuites" | grep -v "failures=\\"0\\""' % report_file
     cmd_errors = 'cat %s | grep "<testsuites" | grep -v "errors=\\"0\\""' % report_file
-    failures = subprocess.call(cmd_failures, shell=True, stdout=subprocess.PIPE) != 0
-    errors = subprocess.call(cmd_errors, shell=True, stdout=subprocess.PIPE) != 0
+    # Execute the commands.
+    failures_proc = subprocess.Popen(cmd_failures, shell=True, stdout=subprocess.PIPE)
+    errors_proc = subprocess.Popen(cmd_errors, shell=True, stdout=subprocess.PIPE)
+    # Read the output of the processes.
+    failures_proc.stdout.read()
+    errors_proc.stdout.read()
+    # Wait until the processes terminate.
+    failures = failures_proc.wait() != 0
+    errors = errors_proc.wait() != 0
     return failures and errors
 
 
