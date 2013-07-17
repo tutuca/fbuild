@@ -477,7 +477,9 @@ def _RTCCheckAstyle(env):
     report_file = os.path.join(report_file, env['PROJECT_NAME'])
     report_file = os.path.join(report_file, 'AstyleCheckReport.diff')
     cmd = "cat %s | grep -E '^\+' | grep -v +++ | grep -v 'for (auto'" % report_file
-    return subprocess.call(cmd, shell=True, stdout=subprocess.PIPE) != 0
+    astyle_proc = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE)
+    astyle_proc.stdout.read()
+    return astyle_proc.wait() != 0
 
 
 def _RTCCheckCppcheck(env):
