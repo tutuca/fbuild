@@ -259,8 +259,15 @@ class Component(object):
             self._CreateObjectFiles()
             object_files.extend(self._objects)
         for dependency in self._dependencies:
-            component = self._component_graph.get(dependency)
-            component._GetObjectsFiles(object_files, stack)
+            try:
+                component = self._component_graph[dependency]
+            except (IndexError, KeyError):
+                self._env.cerror(
+                    '[error] %s depends on %s which could not be found' %
+                    (self.name, dependency)
+                )
+            else:
+                component._GetObjectsFiles(object_files, stack)
         # We remove the component name from the stack.
         if self.name in stack:
             stack.pop()
