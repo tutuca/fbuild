@@ -623,7 +623,11 @@ class HeaderOnlyComponent(Component):
     def _CreateCppcheckTarget(self, sources):
         if self._builders['cppcheck'] is not None:
             return self._builders['cppcheck']
+        self._env['CPPCHECK_OPTIONS'] += [
+            '-I{}'.format(x) for x in self.GetIncludePaths()
+        ]
         # The target is the cppcheck report file.
+        
         target = self._env.Dir(self._env['INSTALL_REPORTS_DIR'])
         target = target.Dir('cppcheck').Dir(self.name)
         target = os.path.join(target.abspath, 'CppcheckReport')
