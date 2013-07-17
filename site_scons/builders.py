@@ -473,23 +473,37 @@ def _CheckAstyle(env, source, output_directory):
 
 
 def _RTCCheckAstyle(env):
+    # Path to the report file.
     report_file = os.path.join(env['INSTALL_REPORTS_DIR'], 'astyle-check')
     report_file = os.path.join(report_file, env['PROJECT_NAME'])
     report_file = os.path.join(report_file, 'AstyleCheckReport.diff')
+    # Command to be executed.
     cmd = "cat %s | grep -E '^\+' | grep -v +++ | grep -v 'for (auto'" % report_file
+    # Execute the command.
     astyle_proc = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE)
+    # Read the ouput of the process.
     astyle_proc.stdout.read()
+    # Wait until process terminates and return the status.
     return astyle_proc.wait() != 0
 
 
 def _RTCCheckCppcheck(env):
+    # Path to the report file.
     report_file = os.path.join(env['INSTALL_REPORTS_DIR'], 'cppcheck')
     report_file = os.path.join(report_file, env['PROJECT_NAME'])
     report_file = os.path.join(report_file, 'CppcheckReport.xml')
+    # Commands to be executed.
     cmd_error = 'cat %s | grep severity=\\"error\\"' % report_file
     cmd_warning = 'cat %s | grep severity=\\"warning\\"' % report_file
-    errors = subprocess.call(cmd_error, shell=True, stdout=subprocess.PIPE) != 0
-    warnings = subprocess.call(cmd_warning, shell=True, stdout=subprocess.PIPE) != 0
+    # Execute the commands.
+    errors_proc = subprocess.Popen(cmd_error, shell=True, stdout=subprocess.PIPE)
+    warnings_proc = subprocess.Popen(cmd_warning, shell=True, stdout=subprocess.PIPE)
+    # Read the output of the processes.
+    errors_proc.stdout.read()
+    warnings_proc.stdout.read()
+    # Wait until the processes terminate.
+    errors = errors_proc.wait() != 0
+    warnings = warnings_proc.wait() != 0
     return errors and warnings
 
 
