@@ -481,7 +481,7 @@ def _RTCCheckAstyle(env):
     cmd = "cat %s | grep -E '^\+' | grep -v +++ | grep -v 'for (auto'" % report_file
     # Execute the command.
     astyle_proc = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE)
-    # Read the ouput of the process.
+    # Read the output of the process.
     astyle_proc.stdout.read()
     # Wait until process terminates and return the status.
     return astyle_proc.wait() != 0
@@ -528,9 +528,16 @@ def _RTCCheckTests(env):
 
 
 def _RTCCheckValgrind(env):
+    # Path to the valgrind report.
     report_file = os.path.join(env['INSTALL_REPORTS_DIR'], 'valgrind')
     report_file = os.path.join(report_file, env['PROJECT_NAME'])
     report_file = os.path.join(report_file, 'valgrind-report.xml')
+    # Command to be executed.
     cmd = "cat %s | grep '<error>'" % report_file
-    return subprocess.call(cmd, shell=True, stdout=subprocess.PIPE) != 0
+    # Execute the command.
+    valgrind_proc = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE)
+    # Read the output of the process.
+    valgrind_proc.stdout.read()
+    # Wait until process terminates and return the status.
+    return valgrind_proc.wait() != 0
 
