@@ -103,14 +103,14 @@ def RunUnittest(env, target, source):
             cmd = "cd %s; gdb -x mocko_bind.gdb %s > %s" % (dir, appbin, t)
         else:
             cmd = "cd %s; ./%s --gtest_filter=%s > %s" % (dir, appbin, testsuite, t)
-        rc = subprocess.call(cmd, shell=True)
+        unittest_proc = subprocess.Popen(cmd, shell=True)
         subprocess.call("cat %s" % t, shell=True)
-        if rc:
-            env.cerror('[failed] %s, error: %s' % (t, rc))
+        if unittest_proc.wait():
+            env.cerror('[failed] %s, error: %s' % (t, unittest_proc.wait()))
         else:
             env.Cprint('[passed] %s' % t, 'green')
         tindex = tindex + 1
-    return 0
+    return unittest_proc.wait()
 
 
 def InitLcov(env, target, source):
