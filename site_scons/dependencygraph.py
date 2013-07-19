@@ -35,7 +35,107 @@ downloadedDependencies = False
 
 
 def init(env):
+    # SConsEnvironment.CreateObject = CreateObject
+    # SConsEnvironment.CreateProgram = CreateProgram
+    # SConsEnvironment.CreateExternalComponent = CreateExternalComponent
+    # SConsEnvironment.CreateStaticLibrary = CreateStaticLibrary
+    # SConsEnvironment.CreateSharedLibrary = CreateSharedLibrary
+    # SConsEnvironment.CreateHeaderOnlyLibrary = CreateHeaderOnlyLibrary
+    # SConsEnvironment.CreateTest = CreateTest
+    # SConsEnvironment.CreatePdfLaTeX = CreatePdfLaTeX
+    # SConsEnvironment.CreateAutoToolsProject = CreateAutoToolsProject
     pass
+
+
+# class ComponentDictionary(dict):
+
+#     def Add(self, component, check=True):
+#         if check:
+#             if not component.name.islower():
+#                 component.env.Cprint('[warn] modules names should be lower case: ' + component.name, 'yellow')
+#         # Its possible that a component is tried to be added twice because a new
+#         # dependency was downloaded and
+#         if component.name not in self:
+#             self[component.name] = component
+#             return component
+#         else:
+#             component.env.Cprint('[warn] component tried to be re-added %s' % component.name, 'red')
+
+# componentGraph = ComponentDictionary()
+
+
+# def CreateExternalComponent(env, name, ext_inc, libPath, deps, shouldBeLinked, aliasGroups=None):
+#     aliasGroups = aliasGroups if aliasGroups is not None else []
+#     return componentGraph.Add(ExternalComponent(componentGraph,
+#                                                 env,
+#                                                 name,
+#                                                 libPath,
+#                                                 deps,
+#                                                 ext_inc,
+#                                                 shouldBeLinked,
+#                                                 aliasGroups),
+#                                False)
+
+
+# def CreateHeaderOnlyLibrary(env, name, inc, deps, aliasGroups=None):
+#     aliasGroups = aliasGroups if aliasGroups is not None else []
+#     return componentGraph.Add(HeaderOnlyComponent(componentGraph,
+#                                            env,
+#                                            name,
+#                                            env.Dir('.'),
+#                                            deps,
+#                                            inc,
+#                                            aliasGroups))
+
+
+# def CreateStaticLibrary(env, name, inc, ext_inc, src, deps, aliasGroups=None):
+#     aliasGroups = aliasGroups if aliasGroups is not None else []
+#     return componentGraph.Add(StaticLibraryComponent(componentGraph,
+#                                               env,
+#                                               name,
+#                                               env.Dir('.'),
+#                                               deps,
+#                                               inc,
+#                                               ext_inc,
+#                                               src,
+#                                               aliasGroups))
+
+
+# def CreateSharedLibrary(env, name, inc, ext_inc, src, deps, aliasGroups=None):
+#     aliasGroups = aliasGroups if aliasGroups is not None else []
+#     return componentGraph.Add(DynamicLibraryComponent(componentGraph,
+#                                                env,
+#                                                name,
+#                                                env.Dir('.'),
+#                                                deps,
+#                                                inc,
+#                                                ext_inc,
+#                                                src,
+#                                                aliasGroups))
+
+
+# def CreateObject(env, name, inc, src, deps, aliasGroups=None):
+#     aliasGroups = aliasGroups if aliasGroups is not None else []
+#     return componentGraph.Add(ObjectComponent(componentGraph,
+#                                        env,
+#                                        name,
+#                                        env.Dir('.'),
+#                                        deps,
+#                                        inc,
+#                                        src,
+#                                        aliasGroups))
+
+
+# def CreateProgram(env, name, inc, src, deps, aliasGroups=None):
+#     aliasGroups = aliasGroups if aliasGroups is not None else []
+#     return componentGraph.Add(ProgramComponent(componentGraph,
+#                                         env,
+#                                         name,
+#                                         env.Dir('.'),
+#                                         deps,
+#                                         inc,
+#                                         src,
+#                                         aliasGroups))
 
 
 # def CreateTest(env, name, inc, src, deps, aliasGroups=None):

@@ -36,6 +36,7 @@ from componentsgraph import ComponentsGraph
 
 HEADERS_FILTER = ['*.h', '*.hpp']
 SOURCES_FILTER = ['*.c', '*.cpp', '*.cc']
+import ipdb; ipdb.set_trace()
 ENV = Import('env')
 DEPENDENCY_GRAPH = {}
 COMPONENT_GRAPH = ComponentsGraph() 
@@ -426,7 +427,7 @@ class ExternalComponent(Component):
 
     def __init__(self, name, dir, deps, inc, linkable, als=None):
         self._should_be_linked = linkable
-        super(Component, self).__init__(name, dir, deps, inc, [], als)
+        super(Component, self).__init__()
     #
     # Public methods.
     #
@@ -438,7 +439,7 @@ class ExternalComponent(Component):
         return []
 
 
-class HeaderOnlyComponent(Component):
+class HeaderOnlyLibrary(Component):
     """
         This class represents a header only component.
 
@@ -463,7 +464,8 @@ class HeaderOnlyComponent(Component):
     # Special methods.
     #
 
-    def __init__(self, name, dir, deps, inc, als=None):
+    def __init__(self, name, inc, deps , als=None):
+        dir = self._env.Dir('.')
         super(Component, self).__init__(self, name, dir, deps, inc, [], als)
         self._project_dir = self._env.Dir('WS_DIR').Dir(self.name)
         self._builders = {  # Maintain alphabetical order.
@@ -683,7 +685,7 @@ class HeaderOnlyComponent(Component):
         return astyle_builder
 
 
-class SourcedComponent(HeaderOnlyComponent):
+class SourcedComponent(HeaderOnlyLibrary):
     """
         This class represents a sourced component.
 
@@ -701,8 +703,8 @@ class SourcedComponent(HeaderOnlyComponent):
     # Special methods.
     #
 
-    def __init__(self, name, dir, deps, inc, ext_inc, src, als=None):
-        HeaderOnlyComponent.__init__(self, name, dir, deps, ext_inc, als)
+    def __init__(self, name, deps, inc, ext_inc, src, als=None):
+        super(HeaderOnlyLibrary, self).__init__(name, deps, ext_inc, als)
         # Because HeaderOnlyComponent doesn't have includes.
         self._includes = utils.format_argument(inc)
         # Check the 'src' argument.
@@ -811,8 +813,8 @@ class ObjectComponent(SourcedComponent):
     # Special methods.
     #
 
-    def __init__(self, name, dir, deps, inc, src, als=None):
-        super(SourcedComponent, self).__init__(self, name, dir, deps, inc, [], src, als)
+    def __init__(self, name, deps, inc, src, als=None):
+        super(SourcedComponent, self).__init__(self, name, deps, inc, [], src, als)
         # A list of builders of the class Object().
         self._objects = []
 
@@ -886,8 +888,8 @@ class StaticLibraryComponent(ObjectComponent):
     # Special methods.
     #
 
-    def __init__(self, name, dir, deps, inc, ext_inc, src, als=None):
-        super(ObjectComponent, self).__init__(self, name, dir, deps, inc, src, als)
+    def __init__(self, name, deps, inc, ext_inc, src, als=None):
+        super(ObjectComponent, self).__init__(self, name, deps, inc, src, als)
         self._should_be_linked = True
 
     #
