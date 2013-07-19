@@ -54,6 +54,26 @@ def FindFiles(env, fromDir, filters=None):
     return files
 
 
+def format_argument(arg):
+    """
+        This method takes an iterable object as argument, which can
+        contain str, Dir or more iterable objects and returns a list
+        with Dir objects.
+    """
+    if not isinstance(arg, (list, tuple, set)):
+        arg = [arg]
+    result = []
+    for element in arg:
+        if isinstance(element, str):
+            result.append(Dir(element))
+        elif isinstance(element, Dir):
+            result.append(element)
+        else:
+            # self._env.cerror("""[ERROR] {}: Initializing component. 
+            #     Argument must be of type str or Dir.""".format(name) )
+            raise TypeError('Argument must be of type str or Dir.')
+    return result
+
 #
 # TODO: Rewrite this method!!!!
 #
