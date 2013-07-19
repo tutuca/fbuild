@@ -372,7 +372,8 @@ def RunCppCheck(env, target, source):
         cmd = "cppcheck %s %s 2> %s.xml" % (options, files, report_file)
     else:
         cmd = "cppcheck %s %s | sed '/files checked /d' > %s.txt" % (options, files, report_file)
-    return subprocess.call(cmd, shell=True)
+    cppcheck_proc = subprocess.Popen(cmd, shell=True)
+    return cppcheck_proc.wait()
 
 
 def RunMocko(env, target, source):
