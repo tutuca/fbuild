@@ -104,7 +104,8 @@ def RunUnittest(env, target, source):
         else:
             cmd = "cd %s; ./%s --gtest_filter=%s > %s" % (dir, appbin, testsuite, t)
         unittest_proc = subprocess.Popen(cmd, shell=True)
-        subprocess.call("cat %s" % t, shell=True)
+        cat_proc = subprocess.Popen("cat %s" % t, shell=True)
+        cat_proc.wait()
         if unittest_proc.wait():
             env.cerror('[failed] %s, error: %s' % (t, unittest_proc.wait()))
         else:
