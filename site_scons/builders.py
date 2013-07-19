@@ -394,9 +394,9 @@ def RunMocko(env, target, source):
         print "> chdir", cwd
     # Execute mocko.
     os.chdir(directory)
-    ret_val = subprocess.call('%s %s' % (mocko, mocko_list), shell=True)
+    mocko_proc = subprocess.Popen('%s %s' % (mocko, mocko_list), shell=True)
     os.chdir(cwd)
-    return ret_val
+    return mocko_proc.wait()
 
 
 def RunReadyToCommit(env, target, source):
