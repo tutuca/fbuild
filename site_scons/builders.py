@@ -316,9 +316,10 @@ def RunCCCC(env, target, source):
     options = ' '.join([opt for opt in env['CCCC_OPTIONS']])
     # Create a string with the file names for cccc.
     files = ' '.join([f.abspath for f in source])
-    # Create the command to be pass to subprocess.call()
+    # Create the command to be executed.
     cmd = 'cccc %s %s' % (options, files)
-    return subprocess.call(cmd, shell=True)
+    cccc_proc = subprocess.Popen(cmd, shell=True)
+    return cccc_proc.wait()
 
 
 def RunCLOC(env, target, source):
@@ -348,9 +349,10 @@ def RunCLOC(env, target, source):
     options = ' '.join([opt for opt in env['CLOC_OPTIONS']])
     # Create a string with the file names for cloc.
     files = ' '.join([f.abspath for f in source])
-    # Create the command to be pass to subprocess.call()
+    # Create the command to be executed.
     cmd = 'cloc %s %s' % (options, files)
-    return subprocess.call(cmd, shell=True)
+    cloc_proc = subprocess.Popen(cmd, shell=True)
+    return cloc_proc.wait()
 
 
 def RunCppCheck(env, target, source):
@@ -367,7 +369,7 @@ def RunCppCheck(env, target, source):
     options = ' '.join([opt for opt in env['CPPCHECK_OPTIONS']])
     # We create a string with the files for cppcheck.
     files = ' '.join([f.abspath for f in source])
-    # Create the command to be pass to subprocess.call()
+    # Create the command to be executed.
     if 'xml' in options:
         cmd = "cppcheck %s %s 2> %s.xml" % (options, files, report_file)
     else:
