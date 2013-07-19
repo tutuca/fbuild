@@ -28,14 +28,32 @@ import os
 import abc
 
 from SCons import Node
-
+from SCons.Script.SConscript import SConsEnvironment
+from SCons.Script import Import
 import utils
 import fbuild_exceptions
-
+from componentsgraph import ComponentsGraph
 
 HEADERS_FILTER = ['*.h', '*.hpp']
 SOURCES_FILTER = ['*.c', '*.cpp', '*.cc']
+ENV = Import('env')
+DEPENDENCY_GRAPH = {}
+COMPONENT_GRAPH = ComponentsGraph() 
 
+
+class ComponentMeta(abc.ABCMeta):
+    """
+    Registers Components into the SConsEnvironment
+    """
+
+    def __init__(cls, name, bases, attrs):
+        # cls._component_graph.update
+        super(ComponentMeta, cls).__init__(name, bases, attrs)
+        if not hasattr(cls, '_component_graph'):
+            cls._component_graph = COMPONENT_GRAPH
+            cls._dependencies = DEPENDENCY_GRAPH
+            cls._env = ENV
+        setattr(SConsEnvironment, 'Create{}'.format(name), cls)
 
 
 class Component(object):
@@ -47,7 +65,7 @@ class Component(object):
     """
 
     # Make this class an abstract class.
-    __metaclass__ = abc.ABCMeta
+    __metaclass__ = ComponentMeta
 
     #
     # Public attributes.
@@ -89,17 +107,16 @@ class Component(object):
     # Special methods.
     #
 
-    def __init__(self, graph, env, name, dir, deps, inc, ext_inc, als=None):
+    def __init__(self, name, dir, dependencies, includes, ext_inc, als=None):
         # Check consistency for some types.
         self.name = name
-        self._env = env.Clone()
-        self._component_graph = graph
         self._dir = dir
-        self._dependencies = deps
-        self._includes = self._FormatArgument(inc)
-        self._external_includes = self._FormatArgument(ext_inc)
+        self._dependencies = dependencies
+        self._includes = utils.format_argument(includes)
+        self._external_includes = utils.format_argument(ext_inc)
         self._alias_groups = als if als is not None else []
-        self._env._USE_MOCKO = 'mocko' in deps
+        self._env._USE_MOCKO = 'mocko' in dependencies
+        self._components_graph.update({self.name: self})
 
     #
     # Public methods.
@@ -391,51 +408,31 @@ class Component(object):
             self._env.Alias(alias, None, "Build group %s" % alias)
 
     #TODO: Move this out of here and change its name! Could be into utils.py.
-    def _FormatArgument(self, arg):
-        """
-            This method takes an iterable object as argument, which can
-            contain str, Dir or more iterable objects and returns a list
-            with Dir objects.
-        """
-        if not isinstance(arg, (list, tuple, set)):
-            arg = [arg]
-        result = []
-        for element in arg:
-            if isinstance(element, str):
-                result.append(self._env.Dir(element))
-            elif isinstance(element, Node.FS.Dir):
-                result.append(element)
-            else:
-                msg1 = '[ERROR] %s: Initializing component. ' % self.name
-                msg2 = 'Argument must be of type str or Dir.'
-                self._env.cerror(msg1 + msg2)
-                raise TypeError('Argument must be of type str or Dir.')
-        return result
+
 
 
 class ExternalComponent(Component):
     """
-        This class represents an external component.
+    This class represents an external component.
 
-        External components are installed in the system rather than in the
-        fbuild install/ directory.
+    External components are installed in the system rather than in the
+    fbuild install/ directory.
     """
 
     #
     # Special methods.
     #
 
-    def __init__(self, graph, env, name, dir, deps, inc, linkable, als=None):
-        Component.__init__(self, graph, env, name, dir, deps, inc, [], als)
+    def __init__(self, name, dir, deps, inc, linkable, als=None):
         self._should_be_linked = linkable
-
+        super(Component, self).__init__(name, dir, deps, inc, [], als)
     #
     # Public methods.
     #
 
     def Process(self):
         """
-            This type of component no need to be built here.
+        This component has no need to be built here.
         """
         return []
 
@@ -465,8 +462,8 @@ class HeaderOnlyComponent(Component):
     # Special methods.
     #
 
-    def __init__(self, graph, env, name, dir, deps, inc, als=None):
-        Component.__init__(self, graph, env, name, dir, deps, inc, [], als)
+    def __init__(self, name, dir, deps, inc, als=None):
+        super(Component, self).__init__(self, name, dir, deps, inc, [], als)
         self._project_dir = self._env.Dir('WS_DIR').Dir(self.name)
         self._builders = {  # Maintain alphabetical order.
             'astyle': None,
@@ -623,11 +620,10 @@ class HeaderOnlyComponent(Component):
     def _CreateCppcheckTarget(self, sources):
         if self._builders['cppcheck'] is not None:
             return self._builders['cppcheck']
-        self._env['CPPCHECK_OPTIONS'] += [
-            '-I{}'.format(x) for x in self.GetIncludePaths()
-        ]
+        # self._env['CPPCHECK_OPTIONS'] += [
+        #     '-I{}'.format(x) for x in self.GetIncludePaths() # should be only project dependencies
+        # ]
         # The target is the cppcheck report file.
-        
         target = self._env.Dir(self._env['INSTALL_REPORTS_DIR'])
         target = target.Dir('cppcheck').Dir(self.name)
         target = os.path.join(target.abspath, 'CppcheckReport')
@@ -704,10 +700,10 @@ class SourcedComponent(HeaderOnlyComponent):
     # Special methods.
     #
 
-    def __init__(self, graph, env, name, dir, deps, inc, ext_inc, src, als=None):
-        HeaderOnlyComponent.__init__(self, graph, env, name, dir, deps, ext_inc, als)
+    def __init__(self, name, dir, deps, inc, ext_inc, src, als=None):
+        HeaderOnlyComponent.__init__(self, name, dir, deps, ext_inc, als)
         # Because HeaderOnlyComponent doesn't have includes.
-        self._includes = self._FormatArgument(inc)
+        self._includes = utils.format_argument(inc)
         # Check the 'src' argument.
         if not src:
             msg = "[ERROR] %s: No sources were specified for a" % self.name
@@ -814,8 +810,8 @@ class ObjectComponent(SourcedComponent):
     # Special methods.
     #
 
-    def __init__(self, graph, env, name, dir, deps, inc, src, als=None):
-        SourcedComponent.__init__(self, graph, env, name, dir, deps, inc, [], src, als)
+    def __init__(self, name, dir, deps, inc, src, als=None):
+        super(SourcedComponent, self).__init__(self, name, dir, deps, inc, [], src, als)
         # A list of builders of the class Object().
         self._objects = []
 
@@ -889,8 +885,8 @@ class StaticLibraryComponent(ObjectComponent):
     # Special methods.
     #
 
-    def __init__(self, graph, env, name, dir, deps, inc, ext_inc, src, als=None):
-        ObjectComponent.__init__(self, graph, env, name, dir, deps, inc, src, als)
+    def __init__(self, name, dir, deps, inc, ext_inc, src, als=None):
+        super(ObjectComponent, self).__init__(self, name, dir, deps, inc, src, als)
         self._should_be_linked = True
 
     #
@@ -948,8 +944,8 @@ class DynamicLibraryComponent(ObjectComponent):
     # Special methods.
     #
 
-    def __init__(self, graph, env, name, dir, deps, inc, ext_inc, src, als=None):
-        ObjectComponent.__init__(self, graph, env, name, dir, deps, inc, src, als)
+    def __init__(self, name, dir, deps, inc, ext_inc, src, als=None):
+        super(ObjectComponent, self).__init__(self, name, dir, deps, inc, src, als)
         self._should_be_linked = True
 
     #
@@ -1004,13 +1000,6 @@ class ProgramComponent(ObjectComponent):
     """
         This class represents a program (executable) component.
     """
-
-    #
-    # Special methods.
-    #
-
-    def __init__(self, graph, env, name, dir, deps, inc, src, als=None):
-        ObjectComponent.__init__(self, graph, env, name, dir, deps, inc, src, als)
 
     #
     # Public methods.
@@ -1082,8 +1071,8 @@ class UnitTestComponent(ProgramComponent):
     # Special methods.
     #
 
-    def __init__(self, graph, env, name, dir, deps, inc, src, als=None):
-        ProgramComponent.__init__(self, graph, env, name, dir, deps, inc, src, als)
+    def __init__(self, name, dir, deps, inc, src, als=None):
+        super(ProgramComponent, self).__init__(self, name, dir, deps, inc, src, als)
         self._project_name = name.split('@')[0]
 
     #
