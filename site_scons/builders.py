@@ -248,12 +248,12 @@ def AStyle(env, target, source):
     # Create the command for subprocess.call().
     cmd = "astyle -k1 --options=none --convert-tabs -bSKpUH %s" % file_list
     # Run astyle.
-    result = subprocess.call(cmd, shell=True)
-    if result != 0:
+    astyle_proc = subprocess.Popen(cmd, shell=True)
+    if astyle_proc.wait() != 0:
         env.cerror('[astyle] ERROR running astyle on: %s' % project_dir)
     else:
         env.Cprint('[astyle] OK on: %s' % project_dir, 'green')
-    return result
+    return astyle_proc.wait()
 
 
 def RunPdfLatex(env, target, source):
