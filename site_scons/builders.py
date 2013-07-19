@@ -267,11 +267,11 @@ def RunPdfLatex(env, target, source):
     if not os.path.exists(targetDir):
         #env.Execute(env.Mkdir(targetDir))
         os.mkdir(targetDir)
-    rt = subprocess.call('cd ' + pathHead + ' ; pdflatex ' + env['PDFLATEX_OPTIONS']
+    pdflates_proc = subprocess.Popen('cd ' + pathHead + ' ; pdflatex ' + env['PDFLATEX_OPTIONS']
         + ' -output-directory "' + tmpPdf2TexDir + '" ' + pathTail, shell=True)
     shutil.move(targetDir, tmpPdf2TexDir + pathTail[:-4] + ".pdf")
     shutil.rmtree(tmpPdf2TexDir)
-    return rt
+    return pdflates_proc.wait()
 
 
 def RunValgrind(env, target, source):
