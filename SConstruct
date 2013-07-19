@@ -18,16 +18,11 @@
 # along with fudepan-build.  If not, see <http://www.gnu.org/licenses/>.
 
 import extension_qt
-import SCons
+from SCons.Variables import  Variables
+from SCons.Environment import Environment
+from SCons.Script import Export
 
 env = Environment()
-
-hasQt = extension_qt.HasQt(env)
-
-if hasQt:
-    env = Environment(tools=['default', 'qt4'])
-
-env['QT_PRESENT'] = hasQt
 
 Export('env')
 
@@ -78,15 +73,12 @@ dependencies.init(env)
 import os_specifics_linux
 os_specifics_linux.init(env)
 
-# Add Qt
-if hasQt:
-    extension_qt.init(env)
-
 import fudepan
 fudepan.SetDefines(env)
 
 ## Walk over the tree finding components
-dependencygraph.WalkDirsForSconscripts(env, topdir = env['WS_DIR'],
+dependencygraph.WalkDirsForSconscripts(env, 
+                                       topdir = env['WS_DIR'],
                                        ignore = [
                                                  #'gmock/scons',
                                                  #'test_doc',
@@ -96,3 +88,11 @@ dependencygraph.WalkDirsForSconscripts(env, topdir = env['WS_DIR'],
                                                  #'test_static',
                                                  #'test_ut'
                                                 ])
+
+hasQt = extension_qt.HasQt(env)
+
+if hasQt:
+    env = Environment(tools=['default', 'qt4'])
+    extension_qt.init(env) 
+
+env['QT_PRESENT'] = hasQt
