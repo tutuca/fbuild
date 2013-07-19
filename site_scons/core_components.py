@@ -53,6 +53,7 @@ class ComponentMeta(abc.ABCMeta):
             cls._component_graph = COMPONENT_GRAPH
             cls._dependencies = DEPENDENCY_GRAPH
             cls._env = ENV
+            #TODO: Handle alias group
         setattr(SConsEnvironment, 'Create{}'.format(name), cls)
 
 
