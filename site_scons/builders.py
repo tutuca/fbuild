@@ -91,26 +91,25 @@ def PrintDummy(env, target, source):
 def RunUnittest(env, target, source):
     # Print message on the screen.
     env.Cprint('\n=== Running TESTS ===\n', 'green')
-    tindex = 0
-    for s in source:
-        t = target[tindex].abspath
-        app = s.abspath
-        (dir, appbin) = os.path.split(app)
-        testsuite = env.GetOption('testsuite')
-        if env.NEED_TEST_REPORT:
-            os.environ['GTEST_OUTPUT'] = env.test_report
-        if env._USE_MOCKO:
-            cmd = "cd %s; gdb -x mocko_bind.gdb %s > %s" % (dir, appbin, t)
-        else:
-            cmd = "cd %s; ./%s --gtest_filter=%s > %s" % (dir, appbin, testsuite, t)
-        rc = subprocess.call(cmd, shell=True)
-        subprocess.call("cat %s" % t, shell=True)
-        if rc:
-            env.cerror('[failed] %s, error: %s' % (t, rc))
-        else:
-            env.Cprint('[passed] %s' % t, 'green')
-        tindex = tindex + 1
-    return 0
+    # Get the test directory and the test executable.
+    test_dir, test_program = os.path.split(source[0].abspath)
+    # Get the test suite to be executed.
+    test_suite = env.GetOption('testsuite')
+    # Check if a report file is needed.
+    if env.NEED_TEST_REPORT:
+        os.environ['GTEST_OUTPUT'] = env.test_report
+    # Check if the test uses mocko or not.
+    if env._USE_MOCKO:
+        cmd = "cd %s; gdb -x mocko_bind.gdb %s" % (test_dir, test_program)
+    else:
+        cmd = "cd %s; ./%s --gtest_filter=%s" % (test_dir, test_program, test_suite)
+    # Execute the test.
+    test_proc = subprocess.Popen(cmd, shell=True)
+    if test_proc.wait():
+        env.cerror('\n\nTest result: *** FAILED ***\n\n')
+    else:
+        env.Cprint('\n\nTest result: *** PASSED ***\n\n', 'green')
+    return test_proc.wait()
 
 
 def InitLcov(env, target, source):
