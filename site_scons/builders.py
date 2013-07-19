@@ -451,7 +451,9 @@ def _CheckAstyle(env, source, output_directory):
     cmd = 'astyle -k1 --options=none --convert-tabs -bSKpUH %s' % files_str
     # To see if a file needs astyle we first apply astyle to the file and
     # check if it suffer some change.
-    if subprocess.call(cmd, shell=True, stdout=subprocess.PIPE) != 0:
+    astyle_proc = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE)
+    astyle_proc.stdout.read()
+    if astyle_proc.wait() != 0:
         # If astyle fails, we fail.
         return None
     # Check if astyle did some modifications.
