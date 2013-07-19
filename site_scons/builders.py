@@ -246,7 +246,7 @@ def AStyle(env, target, source):
     build_dir = env['BUILD_DIR']
     ws_dir = env['WS_DIR']
     file_list = ' '.join([f.abspath.replace(build_dir, ws_dir) for f in source if "tests/ref/" not in f.abspath])
-    # Create the command for subprocess.call().
+    # Create the command to be executed.
     cmd = "astyle -k1 --options=none --convert-tabs -bSKpUH %s" % file_list
     # Run astyle.
     astyle_proc = subprocess.Popen(cmd, shell=True)
@@ -451,7 +451,7 @@ def _CheckAstyle(env, source, output_directory):
     need_astyle = False
     # A list for the files that needs astyle.
     need_astyle_list = []
-    # Create the command for subprocess.call().
+    # Create the command to be executed.
     cmd = 'astyle -k1 --options=none --convert-tabs -bSKpUH %s' % files_str
     # To see if a file needs astyle we first apply astyle to the file and
     # check if it suffer some change.
