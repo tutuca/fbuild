@@ -292,10 +292,10 @@ def RunValgrind(env, target, source):
     rep = (env_var, val_opt, test, testsuite)
     cmd = '%s valgrind %s %s --gtest_filter=%s' % rep
     # Execute the command.
-    subprocess.call(cmd, shell=True)
+    valgrind_proc = subprocess.Popen(cmd, shell=True)
     # Get back to the previous directory.
     os.chdir(cwd)
-    return 0
+    return valgrind_proc.wait()
 
 
 def RunCCCC(env, target, source):
