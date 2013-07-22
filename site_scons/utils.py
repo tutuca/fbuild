@@ -60,10 +60,13 @@ def format_argument(arg):
         contain str, Dir or more iterable objects and returns a list
         with Dir objects.
     """
+    if arg is None: return
     if not isinstance(arg, (list, tuple, set)):
         arg = [arg]
     result = []
+    print arg
     for element in arg:
+
         if isinstance(element, str):
             result.append(Dir(element))
         elif isinstance(element, Dir):

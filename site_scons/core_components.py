@@ -29,15 +29,18 @@ import abc
 
 from SCons import Node
 from SCons.Script.SConscript import SConsEnvironment
-from SCons.Script import Import
 import utils
 import fbuild_exceptions
-from componentsgraph import ComponentsGraph
 
+from componentsgraph import ComponentsGraph
 HEADERS_FILTER = ['*.h', '*.hpp']
 SOURCES_FILTER = ['*.c', '*.cpp', '*.cc']
-import ipdb; ipdb.set_trace()
-ENV = Import('env')
+
+# TODO: Aquire `env` here. See http://stackoverflow.com/q/17756716/53468
+# from SCons.Script import Import
+# Import('env')
+# ENV = env
+
 DEPENDENCY_GRAPH = {}
 COMPONENT_GRAPH = ComponentsGraph() 
 
@@ -50,11 +53,6 @@ class ComponentMeta(abc.ABCMeta):
     def __init__(cls, name, bases, attrs):
         # cls._component_graph.update
         super(ComponentMeta, cls).__init__(name, bases, attrs)
-        if not hasattr(cls, '_component_graph'):
-            cls._component_graph = COMPONENT_GRAPH
-            cls._dependencies = DEPENDENCY_GRAPH
-            cls._env = ENV
-            #TODO: Handle alias group
         setattr(SConsEnvironment, 'Create{}'.format(name), cls)
 
 
@@ -100,8 +98,9 @@ class Component(object):
     _env = None
     # A list with the group of aliases to which the component belongs.
     _alias_groups = None
-    # A reference to the graph of components.
-    _component_graph = None
+    # References to graphs of components.
+    _component_graph = COMPONENT_GRAPH
+    _dependencies = DEPENDENCY_GRAPH
     # A boolean that tells if the component is linkable or not.
     _should_be_linked = False
 
@@ -109,17 +108,19 @@ class Component(object):
     # Special methods.
     #
 
-    def __init__(self, name, dir, dependencies, includes, ext_inc, als=None):
+    def __init__(self, env, name, dir, deps, includes, ext_inc, als=None):
         # Check consistency for some types.
+        super(Component, self ).__init__()
         self.name = name
+        self._env = env
         self._dir = dir
-        self._dependencies = dependencies
+        self._dependencies = deps
         self._includes = utils.format_argument(includes)
         self._external_includes = utils.format_argument(ext_inc)
         self._alias_groups = als if als is not None else []
-        self._env._USE_MOCKO = 'mocko' in dependencies
-        self._components_graph.update({self.name: self})
-
+        self._env._USE_MOCKO = 'mocko' in deps
+        self._component_graph.update({self.name: self})
+        #TODO: Handle alias group
     #
     # Public methods.
     #
@@ -425,9 +426,10 @@ class ExternalComponent(Component):
     # Special methods.
     #
 
-    def __init__(self, name, dir, deps, inc, linkable, als=None):
+    def __init__(self, env, name, dir, deps, inc, linkable, als=None):
+        super(ExternalComponent, self).__init__(env, name, dir, deps, inc, als)
         self._should_be_linked = linkable
-        super(Component, self).__init__()
+        
     #
     # Public methods.
     #
@@ -464,9 +466,9 @@ class HeaderOnlyLibrary(Component):
     # Special methods.
     #
 
-    def __init__(self, name, inc, deps , als=None):
-        dir = self._env.Dir('.')
-        super(Component, self).__init__(self, name, dir, deps, inc, [], als)
+    def __init__(self, env, name, inc, deps , als=None):
+        dir = env.Dir('.')
+        super(HeaderOnlyLibrary, self).__init__(env, name, dir, deps, inc, [], als)
         self._project_dir = self._env.Dir('WS_DIR').Dir(self.name)
         self._builders = {  # Maintain alphabetical order.
             'astyle': None,
@@ -703,8 +705,8 @@ class SourcedComponent(HeaderOnlyLibrary):
     # Special methods.
     #
 
-    def __init__(self, name, deps, inc, ext_inc, src, als=None):
-        super(HeaderOnlyLibrary, self).__init__(name, deps, ext_inc, als)
+    def __init__(self, env, name, deps, inc, ext_inc, src, als=None):
+        super(SourcedComponent, self).__init__(env, name, deps, ext_inc, als)
         # Because HeaderOnlyComponent doesn't have includes.
         self._includes = utils.format_argument(inc)
         # Check the 'src' argument.
@@ -813,8 +815,8 @@ class ObjectComponent(SourcedComponent):
     # Special methods.
     #
 
-    def __init__(self, name, deps, inc, src, als=None):
-        super(SourcedComponent, self).__init__(self, name, deps, inc, [], src, als)
+    def __init__(self, env, name, deps, inc, src, als=None):
+        super(ObjectComponent, self).__init__(env, name, deps, inc, [], src, als)
         # A list of builders of the class Object().
         self._objects = []
 
@@ -888,8 +890,8 @@ class StaticLibraryComponent(ObjectComponent):
     # Special methods.
     #
 
-    def __init__(self, name, deps, inc, ext_inc, src, als=None):
-        super(ObjectComponent, self).__init__(self, name, deps, inc, src, als)
+    def __init__(self, env, name, deps, inc, ext_inc, src, als=None):
+        super(StaticLibraryComponent, self).__init__(env, name, deps, inc, src, als)
         self._should_be_linked = True
 
     #
@@ -947,8 +949,8 @@ class DynamicLibraryComponent(ObjectComponent):
     # Special methods.
     #
 
-    def __init__(self, name, dir, deps, inc, ext_inc, src, als=None):
-        super(ObjectComponent, self).__init__(self, name, dir, deps, inc, src, als)
+    def __init__(self, env, name, dir, deps, inc, ext_inc, src, als=None):
+        super(DynamicLibraryComponent, self).__init__(env, name, dir, deps, inc, src, als)
         self._should_be_linked = True
 
     #
@@ -1074,8 +1076,8 @@ class UnitTestComponent(ProgramComponent):
     # Special methods.
     #
 
-    def __init__(self, name, dir, deps, inc, src, als=None):
-        super(ProgramComponent, self).__init__(self, name, dir, deps, inc, src, als)
+    def __init__(self, env, name, dir, deps, inc, src, als=None):
+        super(UnitTestComponent, self).__init__(env, name, dir, deps, inc, src, als)
         self._project_name = name.split('@')[0]
 
     #
