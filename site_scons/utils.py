@@ -28,7 +28,7 @@ import fnmatch
 import sys
 import os
 
-from SCons.Node.FS import Dir
+from SCons.Node.FS import Dir, File
 import fbuild_exceptions
 
 
@@ -64,12 +64,11 @@ def format_argument(arg):
     if not isinstance(arg, (list, tuple, set)):
         arg = [arg]
     result = []
-    print arg
     for element in arg:
 
         if isinstance(element, str):
             result.append(Dir(element))
-        elif isinstance(element, Dir):
+        elif isinstance(element, (Dir, File)):
             result.append(element)
         else:
             # self._env.cerror("""[ERROR] {}: Initializing component. 

@@ -47,117 +47,6 @@ def init(env):
     pass
 
 
-# class ComponentDictionary(dict):
-
-#     def Add(self, component, check=True):
-#         if check:
-#             if not component.name.islower():
-#                 component.env.Cprint('[warn] modules names should be lower case: ' + component.name, 'yellow')
-#         # Its possible that a component is tried to be added twice because a new
-#         # dependency was downloaded and
-#         if component.name not in self:
-#             self[component.name] = component
-#             return component
-#         else:
-#             component.env.Cprint('[warn] component tried to be re-added %s' % component.name, 'red')
-
-# componentGraph = ComponentDictionary()
-
-
-# def CreateExternalComponent(env, name, ext_inc, libPath, deps, shouldBeLinked, aliasGroups=None):
-#     aliasGroups = aliasGroups if aliasGroups is not None else []
-#     return componentGraph.Add(ExternalComponent(componentGraph,
-#                                                 env,
-#                                                 name,
-#                                                 libPath,
-#                                                 deps,
-#                                                 ext_inc,
-#                                                 shouldBeLinked,
-#                                                 aliasGroups),
-#                                False)
-
-
-# def CreateHeaderOnlyLibrary(env, name, inc, deps, aliasGroups=None):
-#     aliasGroups = aliasGroups if aliasGroups is not None else []
-#     return componentGraph.Add(HeaderOnlyComponent(componentGraph,
-#                                            env,
-#                                            name,
-#                                            env.Dir('.'),
-#                                            deps,
-#                                            inc,
-#                                            aliasGroups))
-
-
-# def CreateStaticLibrary(env, name, inc, ext_inc, src, deps, aliasGroups=None):
-#     aliasGroups = aliasGroups if aliasGroups is not None else []
-#     return componentGraph.Add(StaticLibraryComponent(componentGraph,
-#                                               env,
-#                                               name,
-#                                               env.Dir('.'),
-#                                               deps,
-#                                               inc,
-#                                               ext_inc,
-#                                               src,
-#                                               aliasGroups))
-
-
-# def CreateSharedLibrary(env, name, inc, ext_inc, src, deps, aliasGroups=None):
-#     aliasGroups = aliasGroups if aliasGroups is not None else []
-#     return componentGraph.Add(DynamicLibraryComponent(componentGraph,
-#                                                env,
-#                                                name,
-#                                                env.Dir('.'),
-#                                                deps,
-#                                                inc,
-#                                                ext_inc,
-#                                                src,
-#                                                aliasGroups))
-
-
-# def CreateObject(env, name, inc, src, deps, aliasGroups=None):
-#     aliasGroups = aliasGroups if aliasGroups is not None else []
-#     return componentGraph.Add(ObjectComponent(componentGraph,
-#                                        env,
-#                                        name,
-#                                        env.Dir('.'),
-#                                        deps,
-#                                        inc,
-#                                        src,
-#                                        aliasGroups))
-
-
-# def CreateProgram(env, name, inc, src, deps, aliasGroups=None):
-#     aliasGroups = aliasGroups if aliasGroups is not None else []
-#     return componentGraph.Add(ProgramComponent(componentGraph,
-#                                         env,
-#                                         name,
-#                                         env.Dir('.'),
-#                                         deps,
-#                                         inc,
-#                                         src,
-#                                         aliasGroups))
-
-
-# def CreateTest(env, name, inc, src, deps, aliasGroups=None):
-#     aliasGroups = aliasGroups if aliasGroups is not None else []
-#     # Change the name so we can add the component to the graph.
-#     testName = '%s@test' % name
-#     # The test automatically depends on the thing that is testing
-#     if name not in deps:
-#         deps.append(name)
-#     else:
-#         msg = '[WARNING] %s: In test SConscript - Project added as a dependency of its test.' % name
-#         env.Cprint(msg, 'yellow')
-#     return componentGraph.Add(UnitTestComponent(componentGraph,
-#                                          env,
-#                                          testName,
-#                                          env.Dir('.'),
-#                                          deps,
-#                                          inc,
-#                                          src,
-#                                          aliasGroups))
-
-
 # def CreatePdfLaTeX(env, name, latexfile='', options='', aliasGroups=None):
 #     aliasGroups = aliasGroups if aliasGroups is not None else []
 #     docName = name + ':pdf:' + latexfile
@@ -235,7 +124,7 @@ def WalkDirsForSconscripts(env, topdir, ignore=None):
             COMPONENT_GRAPH.update(originalGraph)
             for component in env.ExternalDependenciesCreateComponentsDict.keys():
                 d = {'env': env}
-                exec env.ExternalDependenciesCreateComponentsDict[component] in d
+                exec env.ExternalDependenciesCreateComponentsDictg[component] in d
 
     # Step 2: real processing we have everything loaded in the dependency graph
     # now we process it

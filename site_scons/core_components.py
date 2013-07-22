@@ -42,10 +42,11 @@ SOURCES_FILTER = ['*.c', '*.cpp', '*.cc']
 # ENV = env
 
 DEPENDENCY_GRAPH = {}
-COMPONENT_GRAPH = ComponentsGraph() 
+COMPONENT_GRAPH = ComponentsGraph()
 
 
 class ComponentMeta(abc.ABCMeta):
+
     """
     Registers Components into the SConsEnvironment
     """
@@ -53,10 +54,15 @@ class ComponentMeta(abc.ABCMeta):
     def __init__(cls, name, bases, attrs):
         # cls._component_graph.update
         super(ComponentMeta, cls).__init__(name, bases, attrs)
-        setattr(SConsEnvironment, 'Create{}'.format(name), cls)
+        aliases = attrs.get('_alias')
+        template = 'Create{}'.format
+        if isinstance(aliases, tuple):
+            [setattr(SConsEnvironment, template(a), cls) for a in aliases]
+        setattr(SConsEnvironment, template(name), cls)
 
 
 class Component(object):
+
     """
         This class represents a component in the component graph.
 
@@ -76,6 +82,8 @@ class Component(object):
     #
     # Private attributes.
     #
+    # The other names this Component is allowed to register it self as.
+    _alias = None
     # The directory where the component lives (instance of SCons Dir class).
     _dir = None
     # A list with names of the components from which it depends.
@@ -110,7 +118,7 @@ class Component(object):
 
     def __init__(self, env, name, dir, deps, includes, ext_inc, als=None):
         # Check consistency for some types.
-        super(Component, self ).__init__()
+        super(Component, self).__init__()
         self.name = name
         self._env = env
         self._dir = dir
@@ -120,7 +128,7 @@ class Component(object):
         self._alias_groups = als if als is not None else []
         self._env._USE_MOCKO = 'mocko' in deps
         self._component_graph.update({self.name: self})
-        #TODO: Handle alias group
+        # TODO: Handle alias group
     #
     # Public methods.
     #
@@ -168,13 +176,15 @@ class Component(object):
             self._GetLibs(self._libs, self._libpaths, [], 0)
         except fbuild_exceptions.CircularDependencyError, error:
             msg = (' -> ').join(error[0])
-            self._env.cerror('[error] A dependency cycle was found:\n  %s' % msg)
+            self._env.cerror(
+                '[error] A dependency cycle was found:\n  %s' % msg)
         # Remember:
         #   t[0]  ->  depth.
         #   t[1]  ->  name.
         # This function tells if the tuple depth (t[0]) is the maximum in
         # self._libs.
-        IsMax = lambda t: len([x for x in self._libs if (x[1] == t[1]) and (x[0] > t[0])]) == 0
+        IsMax = lambda t: len(
+            [x for x in self._libs if (x[1] == t[1]) and (x[0] > t[0])]) == 0
         # This function tells if the tuple name (t[1]) is unique in
         # self._libs.
         Unique = lambda t: len([x for x in self._libs if x[1] == t[1]]) == 1
@@ -204,7 +214,8 @@ class Component(object):
             self._GetIncludePaths(self._include_paths, [])
         except fbuild_exceptions.CircularDependencyError, error:
             msg = (' -> ').join(error[0])
-            self._env.cerror('[error] A dependency cycle was found:\n  %s' % msg)
+            self._env.cerror(
+                '[error] A dependency cycle was found:\n  %s' % msg)
         return list(self._include_paths)
 
     def GetIncludeFiles(self):
@@ -255,7 +266,8 @@ class Component(object):
             self._GetObjectsFiles(self._object_files, [])
         except fbuild_exceptions.CircularDependencyError, error:
             msg = (' -> ').join(error[0])
-            self._env.cerror('[error] A dependency cycle was found:\n  %s' % msg)
+            self._env.cerror(
+                '[error] A dependency cycle was found:\n  %s' % msg)
         return self._object_files
 
     # Private methods.
@@ -274,8 +286,8 @@ class Component(object):
         else:
             # We add the component name to the stack.
             stack.append(self.name)
-        if ((len(stack) == 1 and isinstance(self,ObjectComponent)) or
-            (type(self) == ObjectComponent)):
+        if ((len(stack) == 1 and isinstance(self, ObjectComponent)) or
+                (type(self) == ObjectComponent)):
             self._CreateObjectFiles()
             object_files.extend(self._objects)
         for dependency in self._dependencies:
@@ -318,7 +330,8 @@ class Component(object):
                 # For any other component we use the _includes list.
                 for path in self._includes:
                     include_paths.add(path)
-            # We also add the install/include/ and the build/project/ directories.
+            # We also add the install/include/ and the build/project/
+            # directories.
             include_paths.add(self._env.Dir('$INSTALL_HEADERS_DIR').abspath)
             include_paths.add(self._dir.abspath)
         else:
@@ -410,11 +423,11 @@ class Component(object):
         for alias in self._alias_groups:
             self._env.Alias(alias, None, "Build group %s" % alias)
 
-    #TODO: Move this out of here and change its name! Could be into utils.py.
-
+    # TODO: Move this out of here and change its name! Could be into utils.py.
 
 
 class ExternalComponent(Component):
+
     """
     This class represents an external component.
 
@@ -429,7 +442,7 @@ class ExternalComponent(Component):
     def __init__(self, env, name, dir, deps, inc, linkable, als=None):
         super(ExternalComponent, self).__init__(env, name, dir, deps, inc, als)
         self._should_be_linked = linkable
-        
+
     #
     # Public methods.
     #
@@ -442,6 +455,7 @@ class ExternalComponent(Component):
 
 
 class HeaderOnlyLibrary(Component):
+
     """
         This class represents a header only component.
 
@@ -466,9 +480,10 @@ class HeaderOnlyLibrary(Component):
     # Special methods.
     #
 
-    def __init__(self, env, name, inc, deps , als=None):
+    def __init__(self, env, name, inc, deps, als=None):
         dir = env.Dir('.')
-        super(HeaderOnlyLibrary, self).__init__(env, name, dir, deps, inc, [], als)
+        super(HeaderOnlyLibrary, self).__init__(
+            env, name, dir, deps, inc, [], als)
         self._project_dir = self._env.Dir('WS_DIR').Dir(self.name)
         self._builders = {  # Maintain alphabetical order.
             'astyle': None,
@@ -626,7 +641,7 @@ class HeaderOnlyLibrary(Component):
         if self._builders['cppcheck'] is not None:
             return self._builders['cppcheck']
         # self._env['CPPCHECK_OPTIONS'] += [
-        #     '-I{}'.format(x) for x in self.GetIncludePaths() # should be only project dependencies
+        # '-I{}'.format(x) for x in self.GetIncludePaths() # should be only project dependencies
         # ]
         # The target is the cppcheck report file.
         target = self._env.Dir(self._env['INSTALL_REPORTS_DIR'])
@@ -688,6 +703,7 @@ class HeaderOnlyLibrary(Component):
 
 
 class SourcedComponent(HeaderOnlyLibrary):
+
     """
         This class represents a sourced component.
 
@@ -706,14 +722,15 @@ class SourcedComponent(HeaderOnlyLibrary):
     #
 
     def __init__(self, env, name, deps, inc, ext_inc, src, als=None):
-        super(SourcedComponent, self).__init__(env, name, deps, ext_inc, als)
+        super(SourcedComponent, self).__init__(env, name, deps, ext_inc, als=als)
         # Because HeaderOnlyComponent doesn't have includes.
         self._includes = utils.format_argument(inc)
         # Check the 'src' argument.
         if not src:
             msg = "[ERROR] %s: No sources were specified for a" % self.name
             self._env.cerror("%s SourcedComponent object." % msg)
-            raise ValueError("No sources were specified for a SourcedComponent object.")
+            raise ValueError(
+                "No sources were specified for a SourcedComponent object.")
         # Initialize the source files.
         self._InitSourcesFileList(src)
 
@@ -800,6 +817,7 @@ class SourcedComponent(HeaderOnlyLibrary):
 
 
 class ObjectComponent(SourcedComponent):
+
     """
         This class represents a set of objects files, from which other
         component can depend to be built.
@@ -815,11 +833,12 @@ class ObjectComponent(SourcedComponent):
     # Special methods.
     #
 
-    def __init__(self, env, name, deps, inc, src, als=None):
-        super(ObjectComponent, self).__init__(env, name, deps, inc, [], src, als)
+    def __init__(self, env, name, dir, deps, inc, src, als=None):
         # A list of builders of the class Object().
         self._objects = []
-
+        import ipdb; ipdb.set_trace()
+        super(ObjectComponent, self).__init__(env, name, dir, deps, 
+            inc, [], src, als)
     #
     # Public methods.
     #
@@ -882,6 +901,7 @@ class ObjectComponent(SourcedComponent):
 
 
 class StaticLibraryComponent(ObjectComponent):
+
     """
         This class represents a static library component.
     """
@@ -891,7 +911,8 @@ class StaticLibraryComponent(ObjectComponent):
     #
 
     def __init__(self, env, name, deps, inc, ext_inc, src, als=None):
-        super(StaticLibraryComponent, self).__init__(env, name, deps, inc, src, als)
+        super(StaticLibraryComponent, self).__init__(
+            env, name, deps, inc, src, als)
         self._should_be_linked = True
 
     #
@@ -941,6 +962,7 @@ class StaticLibraryComponent(ObjectComponent):
 
 
 class DynamicLibraryComponent(ObjectComponent):
+
     """
         This class represents a shared library component.
     """
@@ -950,7 +972,8 @@ class DynamicLibraryComponent(ObjectComponent):
     #
 
     def __init__(self, env, name, dir, deps, inc, ext_inc, src, als=None):
-        super(DynamicLibraryComponent, self).__init__(env, name, dir, deps, inc, src, als)
+        super(DynamicLibraryComponent, self).__init__(
+            env, name, dir, deps, inc, src, als)
         self._should_be_linked = True
 
     #
@@ -1002,10 +1025,12 @@ class DynamicLibraryComponent(ObjectComponent):
 
 
 class ProgramComponent(ObjectComponent):
+
     """
         This class represents a program (executable) component.
     """
 
+    _alias = ('Program', )
     #
     # Public methods.
     #
@@ -1062,6 +1087,7 @@ class ProgramComponent(ObjectComponent):
 
 
 class UnitTestComponent(ProgramComponent):
+
     """
         This class represents a test component.
     """
@@ -1069,16 +1095,22 @@ class UnitTestComponent(ProgramComponent):
     #
     # Private attributes.
     #
-    # The name of the project from which the test component depends.
     _project_name = None
-
+    _alias = ('Program', )
     #
     # Special methods.
     #
 
-    def __init__(self, env, name, dir, deps, inc, src, als=None):
-        super(UnitTestComponent, self).__init__(env, name, dir, deps, inc, src, als)
-        self._project_name = name.split('@')[0]
+    def __init__(self, env, name, dir, deps, inc, src, als):
+        test_name = '%s@test' % name
+        self._project_name = name
+        if name not in deps:
+            deps.append(name)
+        else:
+            msg = '[WARNING] %s: In test SConscript - Project added as a dependency of its test.' % name
+            env.Cprint(msg, 'yellow')
+        super(UnitTestComponent, self).__init__(env, test_name, dir, deps, inc, src, als=als)
+        
 
     #
     # Public methods.
@@ -1089,7 +1121,8 @@ class UnitTestComponent(ProgramComponent):
         if self._builders['install'] is not None:
             return self._builders['install']
         # Create the target.
-        target = os.path.join(self._dir.abspath, '%s_test' % self._project_name)
+        target = os.path.join(
+            self._dir.abspath, '%s_test' % self._project_name)
         # File to store the test results.
         passed_file_name = '%s.passed' % self._project_name
         run_test_target = os.path.join(self._dir.abspath, passed_file_name)
@@ -1102,7 +1135,8 @@ class UnitTestComponent(ProgramComponent):
         # Create the builder that creates the test executable.
         program_builder = self._CreateProgramBuilder(target, sources)
         # Creante an instance of the RunUnittest() builder.
-        run_test_builder = self._env.RunUnittest(run_test_target, program_builder)
+        run_test_builder = self._env.RunUnittest(
+            run_test_target, program_builder)
         # Check if the user want to run the tests anyway.
         if self._env.GetOption('forcerun'):
             self._env.AlwaysBuild(run_test_builder)
@@ -1122,7 +1156,8 @@ class UnitTestComponent(ProgramComponent):
         self._CreateValgrindTarget(program_builder)
         self._CreateCoverageTarget(run_test_target, program_builder)
         self._CreateJenkinsTarget(flags, run_test_target, program_builder)
-        self._CreateReadyToCommitTtarget(flags, run_test_target, program_builder)
+        self._CreateReadyToCommitTtarget(
+            flags, run_test_target, program_builder)
         self._builders['install'] = run_test_builder
         # Return the builder that execute the test.
         return run_test_builder
@@ -1134,7 +1169,7 @@ class UnitTestComponent(ProgramComponent):
         jenkins = utils.WasTargetInvoked('%s:jenkins' % self._project_name)
         coverage = utils.WasTargetInvoked('%s:coverage' % self._project_name)
         rtc = (utils.WasTargetInvoked('%s:rtc' % self._project_name) or
-              utils.WasTargetInvoked('%s:ready-to-commit' % self._project_name))
+               utils.WasTargetInvoked('%s:ready-to-commit' % self._project_name))
         # Create the dictionary of flags.
         result = {
             'jenkins': jenkins,
@@ -1143,12 +1178,13 @@ class UnitTestComponent(ProgramComponent):
         }
         # Check for needed reports.
         self._env.NEED_COVERAGE = jenkins or coverage
-        self._env.NEED_TEST_REPORT =  jenkins or rtc
+        self._env.NEED_TEST_REPORT = jenkins or rtc
         self._env.NEED_CLOC_XML = jenkins
         self._env.NEED_VALGRIND_REPORT = jenkins or rtc
         self._env.NEED_CPPCKET_XML = jenkins or rtc
         # Add flags to the environment for gtest and gmock.
-        aux = [f for f in self._env['CXXFLAGS'] if f not in ['-ansi', '-pedantic']]
+        aux = [f for f in self._env['CXXFLAGS']
+               if f not in ['-ansi', '-pedantic']]
         aux.append('-Wno-sign-compare')
         CXXFLAGS = aux
         if not '-ggdb3' in CXXFLAGS:
@@ -1163,7 +1199,8 @@ class UnitTestComponent(ProgramComponent):
         if self._env.NEED_COVERAGE:
             flags = ['--coverage']
             self._env.Append(CXXFLAGS=flags, CFLAGS=flags, LINKFLAGS=flags)
-            project_component._env.Append(CXXFLAGS=flags, CFLAGS=flags, LINKFLAGS=flags)
+            project_component._env.Append(
+                CXXFLAGS=flags, CFLAGS=flags, LINKFLAGS=flags)
         # Check if we need the output of cloc in xml file.
         if self._env.NEED_CLOC_XML:
             project_component._env.Replace(CLOC_OUTPUT_FORMAT='xml')
