@@ -32,8 +32,7 @@ from SCons.Script.SConscript import SConsEnvironment
 import utils
 import fbuild_exceptions
 
-from componentsgraph import COMPONENT_GRAPH, DEPENDENCY_GRAPH
-
+from componentsgraph import DEPENDENCY_GRAPH, COMPONENT_GRAPH
 HEADERS_FILTER = ['*.h', '*.hpp']
 SOURCES_FILTER = ['*.c', '*.cpp', '*.cc']
 
@@ -833,10 +832,9 @@ class ObjectComponent(SourcedComponent):
 
     def __init__(self, env, name, dir, deps, inc, src, als=None):
         # A list of builders of the class Object().
-        self._objects = []
-        import ipdb; ipdb.set_trace()
         super(ObjectComponent, self).__init__(env, name, dir, deps, 
-            inc, [], src, als)
+            inc, [], src, als=als)
+        self._objects = []
     #
     # Public methods.
     #
@@ -901,16 +899,16 @@ class ObjectComponent(SourcedComponent):
 class StaticLibraryComponent(ObjectComponent):
 
     """
-        This class represents a static library component.
+    This class represents a static library component.
     """
 
     #
     # Special methods.
     #
 
-    def __init__(self, env, name, deps, inc, ext_inc, src, als=None):
+    def __init__(self, env, name, deps, inc, ext_inc, src, als):
         super(StaticLibraryComponent, self).__init__(
-            env, name, deps, inc, src, als)
+            env, name, deps, inc, src, als=als)
         self._should_be_linked = True
 
     #
@@ -971,7 +969,7 @@ class DynamicLibraryComponent(ObjectComponent):
 
     def __init__(self, env, name, dir, deps, inc, ext_inc, src, als=None):
         super(DynamicLibraryComponent, self).__init__(
-            env, name, dir, deps, inc, src, als)
+            env, name, dir, deps, inc, src, als=als)
         self._should_be_linked = True
 
     #

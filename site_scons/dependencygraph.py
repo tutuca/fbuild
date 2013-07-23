@@ -26,7 +26,7 @@
 import fnmatch
 import os
 
-from componentsgraph import COMPONENT_GRAPH
+from core_components import COMPONENT_GRAPH
 
 import fbuild_exceptions
 
