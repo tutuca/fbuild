@@ -32,7 +32,8 @@ from SCons.Script.SConscript import SConsEnvironment
 import utils
 import fbuild_exceptions
 
-from componentsgraph import ComponentsGraph
+from componentsgraph import COMPONENT_GRAPH, DEPENDENCY_GRAPH
+
 HEADERS_FILTER = ['*.h', '*.hpp']
 SOURCES_FILTER = ['*.c', '*.cpp', '*.cc']
 
@@ -40,9 +41,6 @@ SOURCES_FILTER = ['*.c', '*.cpp', '*.cc']
 # from SCons.Script import Import
 # Import('env')
 # ENV = env
-
-DEPENDENCY_GRAPH = {}
-COMPONENT_GRAPH = ComponentsGraph()
 
 
 class ComponentMeta(abc.ABCMeta):

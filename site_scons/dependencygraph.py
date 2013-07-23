@@ -26,7 +26,7 @@
 import fnmatch
 import os
 
-from core_components import COMPONENT_GRAPH
+from componentsgraph import COMPONENT_GRAPH
 
 import fbuild_exceptions
 
@@ -35,42 +35,7 @@ downloadedDependencies = False
 
 
 def init(env):
-    # SConsEnvironment.CreateObject = CreateObject
-    # SConsEnvironment.CreateProgram = CreateProgram
-    # SConsEnvironment.CreateExternalComponent = CreateExternalComponent
-    # SConsEnvironment.CreateStaticLibrary = CreateStaticLibrary
-    # SConsEnvironment.CreateSharedLibrary = CreateSharedLibrary
-    # SConsEnvironment.CreateHeaderOnlyLibrary = CreateHeaderOnlyLibrary
-    # SConsEnvironment.CreateTest = CreateTest
-    # SConsEnvironment.CreatePdfLaTeX = CreatePdfLaTeX
-    # SConsEnvironment.CreateAutoToolsProject = CreateAutoToolsProject
-    pass
-
-
-# def CreatePdfLaTeX(env, name, latexfile='', options='', aliasGroups=None):
-#     aliasGroups = aliasGroups if aliasGroups is not None else []
-#     docName = name + ':pdf:' + latexfile
-#     latexfile = env['INSTALL_DOC_DIR'] + "/" + name + ":doc/latex/" + latexfile
-#     env['PDFLATEX_OPTIONS'] = options
-#     return componentGraph.Add(PdfLaTeXComponent(componentGraph,
-#                                     env,
-#                                     docName,
-#                                     env.Dir('.'),
-#                                     latexfile,
-#                                     aliasGroups))
-
-
-#def CreateAutoToolsProject(env, name, ext_dir, lib_targets, configurationFile, aliasGroups=None):
-    #if aliasGroups == None:
-        #aliasGroups = []
-    #return componentGraph.Add(AutoToolsProjectComponent(componentGraph,
-                                        #env,
-                                        #name,
-                                        #env.Dir('.'),
-                                        #ext_dir,
-                                        #lib_targets,
-                                        #configurationFile,
-                                        #aliasGroups))
+    return env
 
 
 def WalkDirsForSconscripts(env, topdir, ignore=None):

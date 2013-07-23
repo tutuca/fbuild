@@ -19,3 +19,6 @@ class ComponentsGraph(dict):
             component.env.Cprint(
                 '[warn] component tried to be re-added {}'.format(key), 
                 'yellow')
+
+DEPENDENCY_GRAPH = {}
+COMPONENT_GRAPH = ComponentsGraph()
