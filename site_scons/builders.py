@@ -148,7 +148,6 @@ def RunLcov(env, target, source):
         cmd = 'lcov --remove %(coverage_file)s "*%(project_dep)s*" -o %(coverage_file)s' % data
         commands_list.append(cmd)
     commands_list.append('genhtml --highlight --legend --output-directory %(output_dir)s %(coverage_file)s' % data)
-    import ipdb; ipdb.set_trace()
     result = ChainCalls(env, commands_list, env.GetOption('verbose'))
     if result == 0:
         env.Cprint('lcov report in: %s' % indexFile, 'green')
