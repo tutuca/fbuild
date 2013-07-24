@@ -172,7 +172,8 @@ def ChainCalls(env, cmds, silent=True):
             if not silent:
                 print '>>', cmd
             #errors always shows
-            cmd_proc = subprocess.Popen(cmd, stdout=stdout, shell=True)
+            cmd_proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
+            cmd_proc.stdout.read()
         if cmd_proc.wait():
             env.cerror('error executing: %s' % cmd)
             return cmd_proc.wait()
