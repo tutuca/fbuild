@@ -160,10 +160,11 @@ class Component(object):
         Unique = lambda t: len([x for x in self._libs if x[1] == t[1]]) == 1
         # Remove from the list the duplicated names.
         aux = [t for t in self._libs if Unique(t) or IsMax(t)]
+        aux = utils.RemoveDuplicates(aux)
         aux.sort()
         # Create the self._libs list.
         self._libs = [t[1] for t in aux]
-        return (utils.RemoveDuplicates(self._libs), self._libpaths)
+        return (self._libs, self._libpaths)
 
     def GetIncludePaths(self):
         """
