@@ -124,7 +124,7 @@ class Dependencies(object):
             self.inatllChecker = ''
         if self.component_type:
             # Create the cal to 'CreateExternalLibraryComponent()'.
-            pcall = "env.CreateExternalComponent(env, '%s',%s,%s,[%s],%s)"
+            pcall = "env.CreateExternalComponent('%s',[%s],%s,%s,%s)"
             # External components no need external includes.
             ext = ''
             # External components no need a directory since now they are install
@@ -141,7 +141,7 @@ class Dependencies(object):
             else:
                 link = 'False'
             # Create the string that with the python call.
-            self.create_ext_lib_component = pcall % (name, path, deps, ext, link)
+            self.create_ext_lib_component = pcall % (name, ext, path, deps, link)
         else:
             self.create_ext_lib_component = ''
 
@@ -467,11 +467,10 @@ def _CreateExternalDependenciesTargets(env):
                 external_dependencies[componentName] = dep
     # Check if each component is already installed.
     for component in external_dependencies.keys():
-        comp = external_dependencies[component]
-        if comp.CheckInstall():
+        if external_dependencies[component].CheckInstall():
             # If it's installed we have to add the component to the graph by
             # adding a call to 'CreateExternalLibraryComponent()'.
-            pcall = comp.create_ext_lib_component
+            pcall = external_dependencies[component].create_ext_lib_component
             # Add it to the list of calls.
             env.ExternalDependenciesCreateComponentsDict[component] = pcall
 
@@ -628,8 +627,8 @@ def CheckoutDependency(env, source, target):
     else:
         dep = projects[depname]
     result = dep.Checkout()
-    st = dep.create_ext_lib_component
-    if st:
+    if dep.create_ext_lib_component:
+        st = dep.create_ext_lib_component
         env.ExternalDependenciesCreateComponentsDict[depname] = st
     # Remove the temporary directory.
     os.system('rm -rf %s' % TMP_DIR)
@@ -653,8 +652,8 @@ def CheckoutDependencyNow(depname, env):
         dep = projects.get(depname)
     if dep:
         result = dep.Checkout() == 0
-        st = dep.create_ext_lib_component
-        if st:
+        if dep.create_ext_lib_component:
+            st = dep.create_ext_lib_component
             env.ExternalDependenciesCreateComponentsDict[depname] = st
     else:
         result = False

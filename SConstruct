@@ -24,6 +24,13 @@ from SCons.Script import Export
 
 env = Environment()
 
+hasQt = extension_qt.HasQt(env)
+
+if hasQt:
+    env = Environment(tools=['default', 'qt4'])
+
+env['QT_PRESENT'] = hasQt
+
 Export('env')
 
 vars = Variables('SConfig')
@@ -60,10 +67,24 @@ helpfromaliases.init(env)
 # Include the builders
 import builders
 builders.init(env)
+import dependencies
+dependencies.init(env)
 
 # Include the graph dependency solver
 import dependencygraph
 dependencygraph.init(env)
+dependencygraph.WalkDirsForSconscripts(env, topdir = env['WS_DIR'],
+                                       ignore = [
+                                                 #'gmock/scons',
+                                                 #'test_doc',
+                                                 #'test_program',
+                                                 #'test_qt',
+                                                 #'test_shared',
+                                                 #'test_static',
+                                                 #'test_ut'
+                                                ])
+
+
 
 # Include the dependencies checkout and update system
 import dependencies
@@ -75,19 +96,6 @@ os_specifics_linux.init(env)
 
 import fudepan
 fudepan.SetDefines(env)
-
-## Walk over the tree finding components
-dependencygraph.WalkDirsForSconscripts(env, 
-                                       topdir = env['WS_DIR'],
-                                       ignore = [
-                                                 #'gmock/scons',
-                                                 #'test_doc',
-                                                 #'test_program',
-                                                 #'test_qt',
-                                                 #'test_shared',
-                                                 #'test_static',
-                                                 #'test_ut'
-                                                ])
 
 hasQt = extension_qt.HasQt(env)
 

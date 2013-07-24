@@ -25,18 +25,18 @@
 
 import fnmatch
 import os
-
-from core_components import COMPONENT_GRAPH
-
+from core_components import *
 import fbuild_exceptions
+from componentsgraph import COMPONENT_GRAPH
 
 
 downloadedDependencies = False
 
 
 def init(env):
-    return env
+    pass
 
+componentGraph = COMPONENT_GRAPH
 
 def WalkDirsForSconscripts(env, topdir, ignore=None):
     global componentGraph
@@ -48,10 +48,11 @@ def WalkDirsForSconscripts(env, topdir, ignore=None):
     # if we find a download dependency, we download it and re-process
     # everything to be sure that all the components are downloaded and
     # loaded in the dependency graph Initial set to pass the loop test
-    originalGraph = COMPONENT_GRAPH.copy()
-
+    originalGraph = componentGraph.copy()
     for component in env.ExternalDependenciesCreateComponentsDict.keys():
-        exec env.ExternalDependenciesCreateComponentsDict[component] in {'env': env}
+        exec env.ExternalDependenciesCreateComponentsDict[component] in {
+            'env': env, 
+            }
 
     downloadedDependencies = True
     while downloadedDependencies:
@@ -76,7 +77,7 @@ def WalkDirsForSconscripts(env, topdir, ignore=None):
                     )
                     env = env2
         # Check if there is a component that we dont know how to build
-        for component in COMPONENT_GRAPH:
+        for component in componentGraph.GetComponentsNames():
             downloadedDependencies = _InstallComponentAndDep(env, component, [])
             if downloadedDependencies:
                 break
@@ -85,32 +86,35 @@ def WalkDirsForSconscripts(env, topdir, ignore=None):
             # is added by another component (i.e.: gtest_main is added by gmock)
         if downloadedDependencies:
             # Reset this to allow it to reparse those that were already added
-            COMPONENT_GRAPH.clear()
-            COMPONENT_GRAPH.update(originalGraph)
+            componentGraph.clear()
+            componentGraph.update(originalGraph)
             for component in env.ExternalDependenciesCreateComponentsDict.keys():
                 d = {'env': env}
-                exec env.ExternalDependenciesCreateComponentsDictg[component] in d
+                exec env.ExternalDependenciesCreateComponentsDict[component] in d
 
     # Step 2: real processing we have everything loaded in the dependency graph
     # now we process it
-    [component.Process() for component in COMPONENT_GRAPH.values()]
+
+    for componentName in componentGraph.GetComponentsNames():
+        component = componentGraph.get(componentName)
+        component.Process()
 
 
 def _InstallComponentAndDep(env, component_name, depsToInstall):
     """
         This method search recursively for dependencies to install.
     """
-    global COMPONENT_GRAPH
+    global componentGraph
     global downloadedDependencies
     downloadedDependencies = False
-    component = COMPONENT_GRAPH.get(component_name)
+    component = componentGraph.get(component_name)
     # Get dependency list for component.
     if component is not None:
         dep_list_comp = component._dependencies
     else:
         dep_list_comp = env.GetComponentDeps(component_name)
     # We remove from the list dependencies already installed.
-    dep_list_comp = [dep for dep in dep_list_comp if COMPONENT_GRAPH.get(dep) is None]
+    dep_list_comp = [dep for dep in dep_list_comp if componentGraph.get(dep) is None]
     # If dependency list is empty, then we can download the component.
     if not dep_list_comp and component is None:
         downloadedDependencies = env.CheckoutDependencyNow(component_name, env)

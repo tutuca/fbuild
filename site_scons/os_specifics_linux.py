@@ -22,7 +22,9 @@
     This file has linux specific modules.
 """
 
+from componentsgraph import COMPONENT_GRAPH
 
 def init(env):
     for module in ['pthread', 'dl', 'gcov']:
-        env.CreateExternalComponent(env, module, env.Dir('/usr/lib'), [], [], True)
+
+        env.CreateExternalComponent(COMPONENT_GRAPH, env, module, env.Dir('/usr/lib'), [], [], True)
