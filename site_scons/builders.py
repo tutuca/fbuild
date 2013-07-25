@@ -181,7 +181,7 @@ def RunDoxygen(env, target, source):
     cmdOutput = os.path.join(target, 'doxyfile_generation.output')
     cmd = "cd %s; doxygen %s > %s" % (projectDir, projectDoxyFile, cmdOutput)
     doxygen_proc = subprocess.Popen(cmd, shell=True)
-    if env.GetOption('printresults'):
+    if env.GetOption('verbose'):
         doxygen_results_proc = subprocess.Popen("cat %s" % cmdOutput, shell=True)
         doxygen_results_proc.wait()
     os.remove(projectDoxyFile)
