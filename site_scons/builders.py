@@ -180,16 +180,15 @@ def RunDoxygen(env, target, source):
     # Create the command to be executed.
     cmdOutput = os.path.join(target, 'doxyfile_generation.output')
     cmd = "cd %s; doxygen %s > %s" % (projectDir, projectDoxyFile, cmdOutput)
-    doxygen_proc = subprocess.Popen(cmd, shell=True)
-    if env.GetOption('printresults'):
-        doxygen_results_proc = subprocess.Popen("cat %s" % cmdOutput, shell=True)
-        doxygen_results_proc.wait()
+    doxygen_proc = subprocess.call(cmd, shell=True)
+    if not env.GetOption('verbose'):
+        doxygen_results_proc = subprocess.call("cat %s" % cmdOutput, shell=True)
     os.remove(projectDoxyFile)
-    if doxygen_proc.wait():
-        env.cerror('[failed] %s, error: %s' % (target, doxygen_proc.wait()))
+    if doxygen_proc:
+        env.cerror('\n[FAILED] %s, error: %s\n' % (target, doxygen_proc))
     else:
-        env.Cprint('[generated] %s' % target, 'green')
-    return doxygen_proc.wait()
+        env.Cprint('\n[GENERATED] %s/html/index.html\n' % target, 'green')
+    return doxygen_proc
 
 
 def AStyleCheck(env, target, source):
