@@ -181,14 +181,14 @@ def RunDoxygen(env, target, source):
     cmdOutput = os.path.join(target, 'doxyfile_generation.output')
     cmd = "cd %s; doxygen %s > %s" % (projectDir, projectDoxyFile, cmdOutput)
     doxygen_proc = subprocess.Popen(cmd, shell=True)
-    if env.GetOption('verbose'):
+    if env.GetOption('printresults'):
         doxygen_results_proc = subprocess.Popen("cat %s" % cmdOutput, shell=True)
         doxygen_results_proc.wait()
     os.remove(projectDoxyFile)
     if doxygen_proc.wait():
-        env.cerror('[failed] %s, error: %s' % (target, doxygen_proc.wait()))
+        env.cerror('[FAILED] %s, error: %s' % (target, doxygen_proc.wait()))
     else:
-        env.Cprint('[generated] %s' % target, 'green')
+        env.Cprint('[GENERATED] %s/html/index.html\n' % target, 'green')
     return doxygen_proc.wait()
 
 
