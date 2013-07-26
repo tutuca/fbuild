@@ -160,11 +160,10 @@ class Component(object):
         Unique = lambda t: len([x for x in self._libs if x[1] == t[1]]) == 1
         # Remove from the list the duplicated names.
         aux = [t for t in self._libs if Unique(t) or IsMax(t)]
-        aux = utils.RemoveDuplicates(aux)
         aux.sort()
         # Create the self._libs list.
         self._libs = [t[1] for t in aux]
-        return (self._libs, self._libpaths)
+        return (utils.RemoveDuplicates(self._libs), self._libpaths)
 
     def GetIncludePaths(self):
         """
@@ -477,6 +476,7 @@ class HeaderOnlyComponent(Component):
             'coverage': None,
             'cppcheck': None,
             'doc': None,
+            'hello': None,
             'install': None,
             'jenkins': None,
             'ready-to-commit': None,
@@ -1030,6 +1030,7 @@ class ProgramComponent(ObjectComponent):
         self._CreateClocTarget(sources)
         self._CreateCppcheckTarget(sources)
         self._CreateDocTarget()
+        self._CreateHelloTarget(sources)
         # Create the program builder.
         program_builder = self._CreateProgramBuilder(target)
         # Create an instance of the Install() builder.
@@ -1043,6 +1044,24 @@ class ProgramComponent(ObjectComponent):
     # Private methods.
     #
 
+    def _CreateHelloTarget(self, sources):
+        if self._builders['hello'] is not None:
+            return self._builders['hello']
+        target = self._env.Dir(self.name)
+        # Create an instance of the Hello() builder.
+        hello_builder = self._env.Hello(target, sources)
+        # hello can always be build.
+        self._env.AlwaysBuild(hello_builder)
+        # Create the alias.
+        name = '%s:hello' % self.name
+        deps = [hello_builder]
+        msg = "Say hello to your project"
+        self._env.Alias(name, deps, msg)
+        # Save the builder into the builder dictionary.
+        self._builders['hello'] = hello_builder
+        # Return the builder instance.
+        return hello_builder
+    
     def _CreateProgramBuilder(self, target, sources=None):
         sources = sources if sources is not None else []
         # Get include paths.
@@ -1212,12 +1231,7 @@ class UnitTestComponent(ProgramComponent):
         project_deps = self._dependencies + project_component._dependencies
         project_deps = utils.RemoveDuplicates(project_deps)
         project_deps.remove(self._project_name)
-        for dep in project_deps:
-            dep_component = self._component_graph.get(dep)
-            project_deps += dep_component._dependencies
-        project_deps = utils.RemoveDuplicates(project_deps)
         self._env['PROJECT_DEPS'] = project_deps
-
         # Targets and sources for builder InitLcov().
         init_lcov_target = os.path.join(self._dir.abspath, 'coverage_data')
         init_lcov_soureces = [program_builder]
