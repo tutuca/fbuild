@@ -437,6 +437,11 @@ def RunInfo(env, target, source):
     #Take project info
     name = target[0].name
     sources_list = source
+    # Print the project info
+    env.Cprint("The project is %s" % name, "green")
+    env.Cprint("List of sources/headers of the project:", "green")
+    for x in sources_list:
+        env.Cprint(x.name, "cyan")
 
 def _CheckAstyle(env, source, output_directory):
     # Create a temporary directory.
