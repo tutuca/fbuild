@@ -28,14 +28,36 @@ import os
 import abc
 
 from SCons import Node
-
+from SCons.Script.SConscript import SConsEnvironment
+from componentsgraph import COMPONENT_GRAPH
 import utils
 import fbuild_exceptions
+
 
 
 HEADERS_FILTER = ['*.h', '*.hpp']
 SOURCES_FILTER = ['*.c', '*.cpp', '*.cc']
 
+class ComponentMeta(abc.ABCMeta):
+
+    """
+    Registers Components into the SConsEnvironment
+    """
+    
+    def __init__(cls, name, bases, attrs):
+        # cls._component_graph.update
+        super(ComponentMeta, cls).__init__(name, bases, attrs)
+        aliases = attrs.get('_alias')
+        template = 'Create{}'.format
+        
+        def component_factory(self, *args, **kwargs):
+            COMPONENT_GRAPH.update(
+                {name: cls(COMPONENT_GRAPH, self, *args, **kwargs)})
+        
+        if isinstance(aliases, tuple):
+            [setattr(SConsEnvironment, template(a), component_factory) for a in aliases]
+        
+        setattr(SConsEnvironment, template(name), component_factory)
 
 
 class Component(object):
@@ -47,7 +69,7 @@ class Component(object):
     """
 
     # Make this class an abstract class.
-    __metaclass__ = abc.ABCMeta
+    __metaclass__ = ComponentMeta
 
     #
     # Public attributes.
@@ -89,17 +111,17 @@ class Component(object):
     # Special methods.
     #
 
-    def __init__(self, graph, env, name, dir, deps, inc, ext_inc, als=None):
+    def __init__(self, env, name, dir, deps, inc, ext_inc, als=None):
         # Check consistency for some types.
         self.name = name
         self._env = env.Clone()
-        self._component_graph = graph
         self._dir = dir
         self._dependencies = deps
-        self._includes = self._FormatArgument(inc)
-        self._external_includes = self._FormatArgument(ext_inc)
+        self._includes = utils.format_argument(inc)
+        self._external_includes = utils.format_argument(ext_inc)
         self._alias_groups = als if als is not None else []
         self._env._USE_MOCKO = 'mocko' in deps
+        
 
     #
     # Public methods.
@@ -391,28 +413,6 @@ class Component(object):
         for alias in self._alias_groups:
             self._env.Alias(alias, None, "Build group %s" % alias)
 
-    #TODO: Move this out of here and change its name! Could be into utils.py.
-    def _FormatArgument(self, arg):
-        """
-            This method takes an iterable object as argument, which can
-            contain str, Dir or more iterable objects and returns a list
-            with Dir objects.
-        """
-        if not isinstance(arg, (list, tuple, set)):
-            arg = [arg]
-        result = []
-        for element in arg:
-            if isinstance(element, str):
-                result.append(self._env.Dir(element))
-            elif isinstance(element, Node.FS.Dir):
-                result.append(element)
-            else:
-                msg1 = '[ERROR] %s: Initializing component. ' % self.name
-                msg2 = 'Argument must be of type str or Dir.'
-                self._env.cerror(msg1 + msg2)
-                raise TypeError('Argument must be of type str or Dir.')
-        return result
-
 
 class ExternalComponent(Component):
     """
@@ -427,7 +427,8 @@ class ExternalComponent(Component):
     #
 
     def __init__(self, graph, env, name, dir, deps, inc, linkable, als=None):
-        Component.__init__(self, graph, env, name, dir, deps, inc, [], als)
+        import ipdb; ipdb.set_trace()
+        super(ExternalComponent, self).__init__(graph, env, name, dir, deps, inc, [], als)
         self._should_be_linked = linkable
 
     #
@@ -475,12 +476,12 @@ class HeaderOnlyComponent(Component):
             'cccc': None,
             'cloc': None,
             'coverage': None,
-            'cppcheck': None,
             'doc': None,
             'install': None,
             'jenkins': None,
             'ready-to-commit': None,
             'test': None,
+            'static-analysis': None,
             'valgrind': None
         }
 
@@ -513,6 +514,7 @@ class HeaderOnlyComponent(Component):
         self._CreateClocTarget(headers)
         self._CreateCppcheckTarget(headers)
         self._CreateDocTarget()
+        self._CreateStaticAnalysisTarget()
         # Create the installer.
         installer = self._CreateInstallerBuilder([])
         # Create the alias group.
@@ -624,7 +626,11 @@ class HeaderOnlyComponent(Component):
     def _CreateCppcheckTarget(self, sources):
         if self._builders['cppcheck'] is not None:
             return self._builders['cppcheck']
+        self._env['CPPCHECK_OPTIONS'] += [
+            '-I{}'.format(x) for x in self.GetIncludePaths()
+        ]
         # The target is the cppcheck report file.
+        
         target = self._env.Dir(self._env['INSTALL_REPORTS_DIR'])
         target = target.Dir('cppcheck').Dir(self.name)
         target = os.path.join(target.abspath, 'CppcheckReport')
@@ -682,6 +688,28 @@ class HeaderOnlyComponent(Component):
         # Return the builder instance.
         return astyle_builder
 
+    def _CreateStaticAnalysisTarget(self, sources):
+        if self._builders['static-analysis'] is not None:
+            return self._builders['static-analysis']
+        self._env['CPPCHECK_OPTIONS'] += [
+            '-I{}'.format(x) for x in self.GetIncludePaths()
+        ]
+        target = self._env.Dir(self._env['INSTALL_REPORTS_DIR'])
+        target = target.Dir('static_analisis').Dir(self.name)
+        target = os.path.join(target.abspath, 'static_analysis_reports')
+        # Create an instance of the RunStaticAnalysis() builder.
+        static_analysis_builder = self._env.RunStaticAnalysis(target, sources)
+        # cppcheck can always be build.
+        self._env.AlwaysBuild(static_analysis_builder)
+        # Create the alias.
+        name = "%s:static-analysis" % self.name
+        deps = [static_analysis_builder]
+        msg = 'Run static analysis for %s, checks for C and C++ sources' % self.name
+        self._env.Alias(name, deps, msg)
+        # Save the builder into the builder dictionary.
+        self._builders['static-analysis'] = static_analysis_builder
+        # Return the builder instance.
+        return static_analysis_builder
 
 class SourcedComponent(HeaderOnlyComponent):
     """
@@ -704,7 +732,7 @@ class SourcedComponent(HeaderOnlyComponent):
     def __init__(self, graph, env, name, dir, deps, inc, ext_inc, src, als=None):
         HeaderOnlyComponent.__init__(self, graph, env, name, dir, deps, ext_inc, als)
         # Because HeaderOnlyComponent doesn't have includes.
-        self._includes = self._FormatArgument(inc)
+        self._includes = utils.format_argument(inc)
         # Check the 'src' argument.
         if not src:
             msg = "[ERROR] %s: No sources were specified for a" % self.name
@@ -812,7 +840,7 @@ class ObjectComponent(SourcedComponent):
     #
 
     def __init__(self, graph, env, name, dir, deps, inc, src, als=None):
-        SourcedComponent.__init__(self, graph, env, name, dir, deps, inc, [], src, als)
+        super(ObjectComponent, self).__init__(graph, env, name, dir, deps, inc, [], src, als)
         # A list of builders of the class Object().
         self._objects = []
 
@@ -887,7 +915,7 @@ class StaticLibraryComponent(ObjectComponent):
     #
 
     def __init__(self, graph, env, name, dir, deps, inc, ext_inc, src, als=None):
-        ObjectComponent.__init__(self, graph, env, name, dir, deps, inc, src, als)
+        super(StaticLibraryComponent, self).__init__(graph, env, name, dir, deps, inc, src, als)
         self._should_be_linked = True
 
     #
@@ -946,7 +974,7 @@ class DynamicLibraryComponent(ObjectComponent):
     #
 
     def __init__(self, graph, env, name, dir, deps, inc, ext_inc, src, als=None):
-        ObjectComponent.__init__(self, graph, env, name, dir, deps, inc, src, als)
+        super(DynamicLibraryComponent, self).__init__(graph, env, name, dir, deps, inc, src, als)
         self._should_be_linked = True
 
     #
@@ -1007,7 +1035,7 @@ class ProgramComponent(ObjectComponent):
     #
 
     def __init__(self, graph, env, name, dir, deps, inc, src, als=None):
-        ObjectComponent.__init__(self, graph, env, name, dir, deps, inc, src, als)
+        super(ProgramComponent).__init__(self, graph, env, name, dir, deps, inc, src, als)
 
     #
     # Public methods.
@@ -1074,14 +1102,21 @@ class UnitTestComponent(ProgramComponent):
     #
     # The name of the project from which the test component depends.
     _project_name = None
+    _alias = ('Program', )
 
     #
     # Special methods.
     #
 
-    def __init__(self, graph, env, name, dir, deps, inc, src, als=None):
-        ProgramComponent.__init__(self, graph, env, name, dir, deps, inc, src, als)
-        self._project_name = name.split('@')[0]
+    def __init__(self, env, name, dir, deps, inc, src, als):
+        test_name = '%s@test' % name
+        self._project_name = name
+        if name not in deps:
+            deps.append(name)
+        else:
+            msg = '[WARNING] %s: In test SConscript - Project added as a dependency of its test.' % name
+            env.Cprint(msg, 'yellow')
+        super(UnitTestComponent, self).__init__(env, test_name, dir, deps, inc, src, als=als)
 
     #
     # Public methods.
