@@ -82,7 +82,9 @@ def init(env):
     #-
     bldReadyToCommit = Builder(action=SCons.Action.Action(RunReadyToCommit, PrintDummy))
     env.Append(BUILDERS={'RunReadyToCommit': bldReadyToCommit})
-
+    #-
+    bldInfo = Builder(action=SCons.Action.Action(RunInfo, PrintDummy))
+    env.Append(BUILDERS={'RunInfo': bldInfo})
 
 def PrintDummy(env, target, source):
     return ""
@@ -192,6 +194,7 @@ def RunDoxygen(env, target, source):
 
 
 def AStyleCheck(env, target, source):
+    import ipdb; ipdb.set_trace()
     # Print message on the screen.
     env.Cprint('\n=== Running ASTYLE-CHECK ===\n', 'green')
     # Get the report file.
@@ -430,6 +433,10 @@ def RunReadyToCommit(env, target, source):
     print ""  # Just an empty line.
     return 0
 
+def RunInfo(env, target, source):
+    #Take project info
+    name = target[0].name
+    sources_list = source
 
 def _CheckAstyle(env, source, output_directory):
     # Create a temporary directory.
