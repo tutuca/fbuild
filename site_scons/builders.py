@@ -36,9 +36,6 @@ from utils import ChainCalls
 
 
 def init(env):
-    bldHello = Builder(action=SCons.Action.Action(Hello, PrintDummy))
-    env.Append(BUILDERS={'Hello': bldHello})
-  
     bldRUT = Builder(action=SCons.Action.Action(RunUnittest, PrintDummy))
     env.Append(BUILDERS={'RunUnittest': bldRUT})
     #-
@@ -86,19 +83,10 @@ def init(env):
     bldReadyToCommit = Builder(action=SCons.Action.Action(RunReadyToCommit, PrintDummy))
     env.Append(BUILDERS={'RunReadyToCommit': bldReadyToCommit})
 
-def Hello(env, target, source):
-    # Project name
-    name = target[0].name
-    # Print the project name
-    env.Cprint('\nHello fbuild from ' + name + '!!!\n', 'blue')
-    #Check if the flag was set
-    if GetOption('list'):
-        for x in source:
-            env.Cprint(x.name, 'cyan')
-    return 0
 
 def PrintDummy(env, target, source):
     return ""
+
 
 def RunUnittest(env, target, source):
     # Print message on the screen.
@@ -150,9 +138,9 @@ def RunLcov(env, target, source):
     }
     commands_list = [
         'rm -f %(coverage_file)s' % data,
-        'lcov --no-checksum --directory %(project_dir)s -b . --capture --output-file %(coverage_file)s' % data,
-        'lcov --no-checksum --directory %(project_dir)s -b . --capture --output-file %(coverage_file)s' % data,
+        'lcov --no-checksum --directory %(project_dir)s -b . --capture --ignore-error source --output-file %(coverage_file)s' % data,
         'lcov --remove %(coverage_file)s "*usr/include*" -o %(coverage_file)s' % data,
+        'lcov --remove %(coverage_file)s "*install/*" -o %(coverage_file)s' % data,
         'lcov --remove %(coverage_file)s "*/tests/*" -o %(coverage_file)s' % data
     ]
     for dep in env['PROJECT_DEPS']:
@@ -192,16 +180,15 @@ def RunDoxygen(env, target, source):
     # Create the command to be executed.
     cmdOutput = os.path.join(target, 'doxyfile_generation.output')
     cmd = "cd %s; doxygen %s > %s" % (projectDir, projectDoxyFile, cmdOutput)
-    doxygen_proc = subprocess.Popen(cmd, shell=True)
-    if env.GetOption('printresults'):
-        doxygen_results_proc = subprocess.Popen("cat %s" % cmdOutput, shell=True)
-        doxygen_results_proc.wait()
+    doxygen_proc = subprocess.call(cmd, shell=True)
+    if not env.GetOption('verbose'):
+        doxygen_results_proc = subprocess.call("cat %s" % cmdOutput, shell=True)
     os.remove(projectDoxyFile)
-    if doxygen_proc.wait():
-        env.cerror('[failed] %s, error: %s' % (target, doxygen_proc.wait()))
+    if doxygen_proc:
+        env.cerror('\n[FAILED] %s, error: %s\n' % (target, doxygen_proc))
     else:
-        env.Cprint('[generated] %s' % target, 'green')
-    return doxygen_proc.wait()
+        env.Cprint('\n[GENERATED] %s/html/index.html\n' % target, 'green')
+    return doxygen_proc
 
 
 def AStyleCheck(env, target, source):
