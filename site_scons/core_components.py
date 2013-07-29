@@ -844,6 +844,8 @@ class ObjectComponent(SourcedComponent):
         SourcedComponent.__init__(self, graph, env, name, dir, deps, inc, [], src, als)
         # A list of builders of the class Object().
         self._objects = []
+        # Set the project type
+        self._project_type = 'Object'
 
     #
     # Public methods.
@@ -853,6 +855,8 @@ class ObjectComponent(SourcedComponent):
         # Check if the component was already processed.
         if self._builders['install'] is not None:
             return self._builders['install']
+        # Set the project type
+        self._env['PROJECT_TYPE'] = self._project_type
         # Create the list of the 'sources' files.
         sources = self.GetSourcesFiles() + self.GetIncludeFiles()
         # Create targets.
@@ -919,6 +923,8 @@ class StaticLibraryComponent(ObjectComponent):
     def __init__(self, graph, env, name, dir, deps, inc, ext_inc, src, als=None):
         ObjectComponent.__init__(self, graph, env, name, dir, deps, inc, src, als)
         self._should_be_linked = True
+        # Set the project type
+        self._project_type = 'Static Library'
 
     #
     # Public methods.
@@ -928,6 +934,8 @@ class StaticLibraryComponent(ObjectComponent):
         # Check if the component was already processed.
         if self._builders['install'] is not None:
             return self._builders['install']
+        # Set the project type
+        self._env['PROJECT_TYPE'] = self._project_type
         # The target is the name of library to be created.
         target = os.path.join(self._dir.abspath, self.name)
         # Create the list of the 'sources' files.
@@ -979,6 +987,8 @@ class DynamicLibraryComponent(ObjectComponent):
     def __init__(self, graph, env, name, dir, deps, inc, ext_inc, src, als=None):
         ObjectComponent.__init__(self, graph, env, name, dir, deps, inc, src, als)
         self._should_be_linked = True
+        # Set the project type
+        self._project_type = 'Dynamic Library'
 
     #
     # Public methods.
@@ -988,6 +998,8 @@ class DynamicLibraryComponent(ObjectComponent):
         # Check if the component was already processed.
         if self._builders['install'] is not None:
             return self._builders['install']
+        # Set the project type
+        self._env['PROJECT_TYPE'] = self._project_type
         # The target is the name of library to be created.
         target = os.path.join(self._dir.abspath, self.name)
         # Create the list of the 'sources' files.
@@ -1040,6 +1052,8 @@ class ProgramComponent(ObjectComponent):
 
     def __init__(self, graph, env, name, dir, deps, inc, src, als=None):
         ObjectComponent.__init__(self, graph, env, name, dir, deps, inc, src, als)
+        # Set the project type
+        self._project_type = 'Program'
 
     #
     # Public methods.
@@ -1049,6 +1063,8 @@ class ProgramComponent(ObjectComponent):
         # Check if the component was already processed.
         if self._builders['install'] is not None:
             return self._builders['install']
+        # Set the project type
+        self._env['PROJECT_TYPE'] = self._project_type
         # The target is the name of program to be created.
         target = os.path.join(self._env['BUILD_DIR'], self.name)
         target = os.path.join(target, 'bin')
