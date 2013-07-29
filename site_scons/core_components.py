@@ -759,6 +759,7 @@ class SourcedComponent(HeaderOnlyComponent):
             self._CreateClocTarget(sources)
             self._CreateCppcheckTarget(sources)
             self._CreateDocTarget()
+            self._CreateInfoTarget(sources)
             self._builders['install'] = True
         # We retuen an empty list because a sourced has nothing to install.
         return []
@@ -852,6 +853,7 @@ class ObjectComponent(SourcedComponent):
         self._CreateClocTarget(sources)
         self._CreateCppcheckTarget(sources)
         self._CreateDocTarget()
+        self._CreateInfoTarget(sources)
         # Initialize the object file list.
         self._CreateObjectFiles()
         # Create the installer.
@@ -928,6 +930,7 @@ class StaticLibraryComponent(ObjectComponent):
         self._CreateClocTarget(sources)
         self._CreateCppcheckTarget(sources)
         self._CreateDocTarget()
+        self._CreateInfoTarget(sources)
         # Create a static library builder.
         slib_builder = self._CreateStaticLibraryBuilder(target)
         # Create an installer builders.
@@ -987,6 +990,7 @@ class DynamicLibraryComponent(ObjectComponent):
         self._CreateClocTarget(sources)
         self._CreateCppcheckTarget(sources)
         self._CreateDocTarget()
+        self._CreateInfoTarget(sources)
         # Create the shared library builder.
         dlib_builder = self._CreateSharedLibraryBuilder(target)
         # Create the installer builder.
@@ -1049,6 +1053,7 @@ class ProgramComponent(ObjectComponent):
         self._CreateClocTarget(sources)
         self._CreateCppcheckTarget(sources)
         self._CreateDocTarget()
+        self._CreateInfoTarget(sources)
         # Create the program builder.
         program_builder = self._CreateProgramBuilder(target)
         # Create an instance of the Install() builder.
