@@ -668,7 +668,7 @@ class HeaderOnlyComponent(Component):
     def _CreateAstyleTarget(self, sources):
         if self._builders['astyle'] is not None:
             return self._builders['astyle']
-        # We use the prject directory as the target.
+        # We use the project directory as the target.
         target = self._env.Dir(self._env['WS_DIR']).Dir(self.name)
         # Create an instance of the RunAStyle() builder.
         astyle_builder = self._env.RunAStyle(target, sources)
@@ -685,7 +685,22 @@ class HeaderOnlyComponent(Component):
         return astyle_builder
 
     def _CreateInfoTarget(self, sources):
-        pass
+        if self._builders['info'] is not None:
+            return self._builders['info']
+        target = self._env.Dir(self.name)
+        # Create an instance of the RunInfo() builder.
+        info_builder = self._env.RunInfo(target, sources)
+        # Info can always be executed.
+        self._env.AlwaysBuild(info_builder)
+        # Create the alias.
+        name = '%s:info' % self.name
+        deps = [info_builder]
+        msg = "See the %s project info" % self.name
+        self._env.Alias(name, deps, msg)
+        # Save the builder into the builder dictionary.
+        self._builders['info'] = info_builder
+        # Return the builder instance.
+        return info_builder
 
 class SourcedComponent(HeaderOnlyComponent):
     """
