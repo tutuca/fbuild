@@ -461,6 +461,8 @@ class HeaderOnlyComponent(Component):
     # A dictionary with the builder of the component that can have a target
     # like 'project:target'.
     _builders = None
+    # The string with the project type
+    _project_type = ''
 
     #
     # Special methods.
@@ -484,6 +486,8 @@ class HeaderOnlyComponent(Component):
             'test': None,
             'valgrind': None
         }
+        # Set the project type
+        self._project_type = 'Headers only'
 
     #
     # Public methods.
@@ -505,6 +509,8 @@ class HeaderOnlyComponent(Component):
         # Check if the component was already processed.
         if self._builders['install'] is not None:
             return self._builders['install']
+        # Save the project type into environment
+        self._env['PROJECT_TYPE'] = self._project_type
         # Look for the sources of this component.
         headers = self.GetIncludeFiles()
         # Create targets.
@@ -731,7 +737,8 @@ class SourcedComponent(HeaderOnlyComponent):
             raise ValueError("No sources were specified for a SourcedComponent object.")
         # Initialize the source files.
         self._InitSourcesFileList(src)
-
+        # Set the project type
+        self._project_type = 'Sourced'
     #
     # Public methods.
     #
@@ -750,6 +757,8 @@ class SourcedComponent(HeaderOnlyComponent):
         """
         # Check if the component was already processed.
         if self._builders['install'] is None:
+            # Set the project type
+            self._env['PROJECT_TYPE'] = self._project_type
             # Create the list of the 'sources' files.
             sources = self.GetSourcesFiles() + self.GetIncludeFiles()
             # Create targets.
@@ -761,7 +770,7 @@ class SourcedComponent(HeaderOnlyComponent):
             self._CreateDocTarget()
             self._CreateInfoTarget(sources)
             self._builders['install'] = True
-        # We retuen an empty list because a sourced has nothing to install.
+        # We return an empty list because a sourced has nothing to install.
         return []
 
     def GetSourcesFiles(self):
