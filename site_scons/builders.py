@@ -439,8 +439,8 @@ def RunInfo(env, target, source):
     sources_list = source
     project_type = env['PROJECT_TYPE']
     # Print the project info
-    env.Cprint("The project is: %s" % name, "green")
-    env.Cprint("The project type is: %s" % project_type, "green")
+    env.Cprint("The Project is: %s" % name, "green")
+    env.Cprint("The Project type is: %s" % project_type, "green")
     env.Cprint("List of sources/headers of the project:", "green")
     for x in sources_list:
         env.Cprint(x.name, "cyan")

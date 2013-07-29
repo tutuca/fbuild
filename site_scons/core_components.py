@@ -461,8 +461,6 @@ class HeaderOnlyComponent(Component):
     # A dictionary with the builder of the component that can have a target
     # like 'project:target'.
     _builders = None
-    # The string with the project type
-    _project_type = ''
 
     #
     # Special methods.
@@ -487,7 +485,7 @@ class HeaderOnlyComponent(Component):
             'valgrind': None
         }
         # Set the project type
-        self._project_type = 'Headers only'
+        self._env['PROJECT_TYPE'] = 'Headers only'
 
     #
     # Public methods.
@@ -509,8 +507,6 @@ class HeaderOnlyComponent(Component):
         # Check if the component was already processed.
         if self._builders['install'] is not None:
             return self._builders['install']
-        # Save the project type into environment
-        self._env['PROJECT_TYPE'] = self._project_type
         # Look for the sources of this component.
         headers = self.GetIncludeFiles()
         # Create targets.
@@ -701,7 +697,7 @@ class HeaderOnlyComponent(Component):
         # Create the alias.
         name = '%s:info' % self.name
         deps = [info_builder]
-        msg = "See the %s project info" % self.name
+        msg = "Shows information about the  project."
         self._env.Alias(name, deps, msg)
         # Save the builder into the builder dictionary.
         self._builders['info'] = info_builder
@@ -738,7 +734,7 @@ class SourcedComponent(HeaderOnlyComponent):
         # Initialize the source files.
         self._InitSourcesFileList(src)
         # Set the project type
-        self._project_type = 'Sourced'
+        self._env['PROJECT_TYPE'] = 'Sourced'
     #
     # Public methods.
     #
@@ -757,8 +753,6 @@ class SourcedComponent(HeaderOnlyComponent):
         """
         # Check if the component was already processed.
         if self._builders['install'] is None:
-            # Set the project type
-            self._env['PROJECT_TYPE'] = self._project_type
             # Create the list of the 'sources' files.
             sources = self.GetSourcesFiles() + self.GetIncludeFiles()
             # Create targets.
@@ -845,7 +839,7 @@ class ObjectComponent(SourcedComponent):
         # A list of builders of the class Object().
         self._objects = []
         # Set the project type
-        self._project_type = 'Object'
+        self._env['PROJECT_TYPE'] = 'Object'
 
     #
     # Public methods.
@@ -855,8 +849,6 @@ class ObjectComponent(SourcedComponent):
         # Check if the component was already processed.
         if self._builders['install'] is not None:
             return self._builders['install']
-        # Set the project type
-        self._env['PROJECT_TYPE'] = self._project_type
         # Create the list of the 'sources' files.
         sources = self.GetSourcesFiles() + self.GetIncludeFiles()
         # Create targets.
@@ -924,7 +916,7 @@ class StaticLibraryComponent(ObjectComponent):
         ObjectComponent.__init__(self, graph, env, name, dir, deps, inc, src, als)
         self._should_be_linked = True
         # Set the project type
-        self._project_type = 'Static Library'
+        self._env['PROJECT_TYPE'] = 'Static Library'
 
     #
     # Public methods.
@@ -934,8 +926,6 @@ class StaticLibraryComponent(ObjectComponent):
         # Check if the component was already processed.
         if self._builders['install'] is not None:
             return self._builders['install']
-        # Set the project type
-        self._env['PROJECT_TYPE'] = self._project_type
         # The target is the name of library to be created.
         target = os.path.join(self._dir.abspath, self.name)
         # Create the list of the 'sources' files.
@@ -988,7 +978,7 @@ class DynamicLibraryComponent(ObjectComponent):
         ObjectComponent.__init__(self, graph, env, name, dir, deps, inc, src, als)
         self._should_be_linked = True
         # Set the project type
-        self._project_type = 'Dynamic Library'
+        self._env['PROJECT_TYPE'] = 'Dynamic Library'
 
     #
     # Public methods.
@@ -998,8 +988,6 @@ class DynamicLibraryComponent(ObjectComponent):
         # Check if the component was already processed.
         if self._builders['install'] is not None:
             return self._builders['install']
-        # Set the project type
-        self._env['PROJECT_TYPE'] = self._project_type
         # The target is the name of library to be created.
         target = os.path.join(self._dir.abspath, self.name)
         # Create the list of the 'sources' files.
@@ -1053,7 +1041,7 @@ class ProgramComponent(ObjectComponent):
     def __init__(self, graph, env, name, dir, deps, inc, src, als=None):
         ObjectComponent.__init__(self, graph, env, name, dir, deps, inc, src, als)
         # Set the project type
-        self._project_type = 'Program'
+        self._env['PROJECT_TYPE'] = 'Program'
 
     #
     # Public methods.
@@ -1063,8 +1051,6 @@ class ProgramComponent(ObjectComponent):
         # Check if the component was already processed.
         if self._builders['install'] is not None:
             return self._builders['install']
-        # Set the project type
-        self._env['PROJECT_TYPE'] = self._project_type
         # The target is the name of program to be created.
         target = os.path.join(self._env['BUILD_DIR'], self.name)
         target = os.path.join(target, 'bin')
