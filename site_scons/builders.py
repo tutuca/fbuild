@@ -28,7 +28,7 @@ import subprocess
 import os.path
 import shutil
 import os
-
+from glob import glob
 from SCons.Script import *
 import SCons.Builder
 
@@ -83,7 +83,7 @@ def init(env):
     bldReadyToCommit = Builder(action=SCons.Action.Action(RunReadyToCommit, PrintDummy))
     env.Append(BUILDERS={'RunReadyToCommit': bldReadyToCommit})
     #-
-    bldStaticAnalysis = Builder(action=SCons.Action(RunStaticAnalysis, PrintDummy))
+    bldStaticAnalysis = Builder(action=SCons.Action.Action(RunStaticAnalysis, PrintDummy))
     env.Append(BUILDERS={'RunStaticAnalysis': bldStaticAnalysis})
 
 
@@ -374,11 +374,23 @@ def RunCppCheck(env, target, source):
 
 def RunStaticAnalysis(env, target, source):
     # Print message on the screen.
+    def find_sources(dirs, ext):
+        out = []
+        for s in dirs:
+            if ext in s.name:
+                out.append(s.abspath)
+        print out
+        return ''.join(out)
+
     env.Cprint('\n=== Running Static Code Analysis ===\n', 'green')
-    # Find C and C++ files and Headers
-    # Run splint on C files
-    # Run cppcheck on C++ files
+    target_name = target[0].name
+    cppcheck_report = target_name + 'CPP'
+    cppcheck_options = ' '.join([opt for opt in env['CPPCHECK_OPTIONS']])
+    splint_report = target_name + 'C'
+    cppcheck_rc = _RunCppCheck(cppcheck_report, find_sources(source, '.cpp'), cppcheck_options)
+    splint_rc = _RunSplint(splint_report, find_sources(source, '.c'))
     # Return the output of both builders
+    return cppcheck_rc and splint_rc
 
 
 def RunMocko(env, target, source):
@@ -435,15 +447,18 @@ def RunReadyToCommit(env, target, source):
     return 0
 
 def _RunCppCheck(report_file, files, options):
+    if not files: return 0
     if 'xml' in options:
         cmd = "cppcheck %s %s 2> %s.xml" % (options, files, report_file)
     else:
         cmd = "cppcheck %s %s | sed '/files checked /d' > %s.txt" % (options, files, report_file)
+    print cmd
     cppcheck_proc = subprocess.Popen(cmd, shell=True)
     return cppcheck_proc.wait()
 
-def _RunSplint(report_file, files, options):
-    cmd = "splint %s %s > %s.txt" % (options, files, report_file)
+def _RunSplint(report_file, files):
+    if not files: return 0
+    cmd = "splint %s > %s.txt" % (files, report_file)
     splint_proc = subprocess.Popen(cmd, shell=True)
     return splint_proc.wait()
 
