@@ -477,6 +477,7 @@ class HeaderOnlyComponent(Component):
             'coverage': None,
             'cppcheck': None,
             'doc': None,
+            'info': None,
             'install': None,
             'jenkins': None,
             'ready-to-commit': None,
@@ -513,6 +514,7 @@ class HeaderOnlyComponent(Component):
         self._CreateClocTarget(headers)
         self._CreateCppcheckTarget(headers)
         self._CreateDocTarget()
+        self._CreateInfoTarget(headers)
         # Create the installer.
         installer = self._CreateInstallerBuilder([])
         # Create the alias group.
@@ -682,6 +684,8 @@ class HeaderOnlyComponent(Component):
         # Return the builder instance.
         return astyle_builder
 
+    def _CreateInfoTarget(self, sources):
+        pass
 
 class SourcedComponent(HeaderOnlyComponent):
     """
