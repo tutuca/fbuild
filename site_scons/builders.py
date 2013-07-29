@@ -164,33 +164,33 @@ def RunDoxygen(env, target, source):
     doxyTamplate = source[0].abspath
     # Path to the doc/project directory.
     target = target[0].abspath
+    targetName = os.path.basename(target)
     # Create the doc/project directory.
     os.mkdir(target)
     # Path to the project directory.
     projectDir, __ = os.path.split(source[1].abspath)
     # Path yo doxygen file for thise project.
     projectDoxyFile = projectDir + '/__tmp_doxyfile'
+
     # Copy the doxygen file template to the project directory.
-    fsrc = open(doxyTamplate, 'r')
-    doxygenSrc = fsrc.read()
-    fsrc.close()
-    targetName = os.path.basename(target)
-    ftgt = open(projectDoxyFile, "w")
-    ftgt.write(doxygenSrc.replace('$PROJECT_NAME', targetName)
-                         .replace('$OUTPUT_DIR', target))
-    ftgt.flush()
-    ftgt.close()
-    # Create the command for the subprocess.call()
-    cmdOutput = os.path.join(target, 'doxyfile_generation.output')
-    cmd = "cd %s; doxygen %s > %s" % (projectDir, projectDoxyFile, cmdOutput)
-    rc = subprocess.call(cmd, shell=True)
-    if env.GetOption('printresults'):
-        subprocess.call("cat %s" % cmdOutput, shell=True)
-    os.remove(projectDoxyFile)
+    with open(doxyTamplate, 'r') as fsrc:
+        doxygenSrc = fsrc.read()
+    with open(projectDoxyFile, "w") as ftgt:
+        ftgt.write(doxygenSrc.replace('$PROJECT_NAME', targetName)
+                             .replace('$OUTPUT_DIR', target))
+    # Create the command to be executed.
+    output_file = os.path.join(target, 'doxyfile_generation.output')
+    doxygen_proc = subprocess.Popen("doxygen %s > %s" % (projectDoxyFile, output_file), 
+        shell=True, cwd=projectDir)
+    rc = doxygen_proc.wait()
     if rc:
-        env.cerror('[failed] %s, error: %s' % (target, rc))
+        env.cerror('[FAILED] %s, error: %s' % (target, rc))
     else:
-        env.Cprint('[generated] %s' % target, 'green')
+        env.Cprint('[GENERATED] %s/html/index.html\n' % target, 'green')
+    if not env.GetOption('verbose'):
+        doxygen_results_proc = subprocess.Popen("cat %s" % output_file, shell=True)
+        doxygen_results_proc.wait()
+    os.remove(projectDoxyFile)
     return rc
 
 
