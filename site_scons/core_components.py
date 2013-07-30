@@ -486,7 +486,7 @@ class HeaderOnlyComponent(Component):
             'valgrind': None
         }
         # Set the project type
-        self._env['PROJECT_TYPE'] = self._Type()
+        self._env['PROJECT_TYPE'] = self._GetProjectType()
 
     #
     # Public methods.
@@ -553,9 +553,9 @@ class HeaderOnlyComponent(Component):
     # Private methods.
     #
 
-    def _Type(self):
+    def _GetProjectType(self):
         # Take the name class and remove the word "Component"
-        name = self.__class__.__name__.replace("Component", "")
+        name = type(self).__name__.replace("Component", "")
         # Transform from CamelCase to Camel Case
         return sub('(?!^)([A-Z]+)', r' \1', name)
         
