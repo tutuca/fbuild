@@ -374,14 +374,15 @@ def RunCppCheck(env, target, source):
 
 def RunStaticAnalysis(env, target, source):
     # Print message on the screen.
-    find_sources = lambda dirs, ext: ''.join([s for s in dirs if ext in s.name])
+    
     env.Cprint('\n=== Running Static Code Analysis ===\n', 'green')
     target_name = target[0].name
     cppcheck_report = target_name + 'CPP'
     cppcheck_options = ' '.join([opt for opt in env['CPPCHECK_OPTIONS']])
     splint_report = target_name + 'C'
-    cppcheck_rc = _RunCppCheck(cppcheck_report, find_sources(source, '.cpp'), cppcheck_options)
-    splint_rc = _RunSplint(splint_report, find_sources(source, '.c'))
+    cppcheck_rc = _RunCppCheck(cppcheck_report, _FindSources(source, ['.cpp', '.cc', '.h', '.hh']), cppcheck_options)
+    print cppcheck_rc
+    splint_rc = _RunSplint(splint_report, _FindSources(source, ['.c']))
     # Return the output of both builders
     return cppcheck_rc and splint_rc
 
@@ -533,3 +534,11 @@ def _RTCCheckValgrind(env):
     report_file = os.path.join(report_file, 'valgrind-report.xml')
     cmd = "cat %s | grep '<error>'" % report_file
     return subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE) != 0
+
+def _FindSources(dirs, extensions):
+    out = []
+    for s in dirs:
+        name, ext = os.path.splitext(s.name)
+        if ext in extensions:
+            out.append(s.abspath)
+    return ' '.join(out)
