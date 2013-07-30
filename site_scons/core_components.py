@@ -557,8 +557,8 @@ class HeaderOnlyComponent(Component):
         # Take the name class and remove the word "Component"
         name = self.__class__.__name__.replace("Component", "")
         # Transform from CamelCase to Camel Case
-        s1 = sub('(.)([A-Z][a-z]+)', r'\1 \2', name)
-        return sub('([a-z0-9])([A-Z])', r'\1 \2', s1)
+        return sub('(?!^)([A-Z]+)', r' \1', name)
+        
 
     def _CreateDocTarget(self):
         if self._builders['doc'] is not None:
