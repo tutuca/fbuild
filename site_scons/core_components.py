@@ -28,6 +28,7 @@ import os
 import abc
 
 from SCons import Node
+from re import sub
 
 import utils
 import fbuild_exceptions
@@ -485,7 +486,7 @@ class HeaderOnlyComponent(Component):
             'valgrind': None
         }
         # Set the project type
-        self._env['PROJECT_TYPE'] = 'Headers only'
+        self._env['PROJECT_TYPE'] = self._Type()
 
     #
     # Public methods.
@@ -551,6 +552,13 @@ class HeaderOnlyComponent(Component):
     #
     # Private methods.
     #
+
+    def _Type(self):
+        # Take the name class and remove the word "Component"
+        name = self.__class__.__name__.replace("Component", "")
+        # Transform from CamelCase to Camel Case
+        s1 = sub('(.)([A-Z][a-z]+)', r'\1 \2', name)
+        return sub('([a-z0-9])([A-Z])', r'\1 \2', s1)
 
     def _CreateDocTarget(self):
         if self._builders['doc'] is not None:
@@ -733,8 +741,7 @@ class SourcedComponent(HeaderOnlyComponent):
             raise ValueError("No sources were specified for a SourcedComponent object.")
         # Initialize the source files.
         self._InitSourcesFileList(src)
-        # Set the project type
-        self._env['PROJECT_TYPE'] = 'Sourced'
+
     #
     # Public methods.
     #
@@ -838,8 +845,6 @@ class ObjectComponent(SourcedComponent):
         SourcedComponent.__init__(self, graph, env, name, dir, deps, inc, [], src, als)
         # A list of builders of the class Object().
         self._objects = []
-        # Set the project type
-        self._env['PROJECT_TYPE'] = 'Object'
 
     #
     # Public methods.
@@ -915,8 +920,6 @@ class StaticLibraryComponent(ObjectComponent):
     def __init__(self, graph, env, name, dir, deps, inc, ext_inc, src, als=None):
         ObjectComponent.__init__(self, graph, env, name, dir, deps, inc, src, als)
         self._should_be_linked = True
-        # Set the project type
-        self._env['PROJECT_TYPE'] = 'Static Library'
 
     #
     # Public methods.
@@ -977,8 +980,6 @@ class DynamicLibraryComponent(ObjectComponent):
     def __init__(self, graph, env, name, dir, deps, inc, ext_inc, src, als=None):
         ObjectComponent.__init__(self, graph, env, name, dir, deps, inc, src, als)
         self._should_be_linked = True
-        # Set the project type
-        self._env['PROJECT_TYPE'] = 'Dynamic Library'
 
     #
     # Public methods.
@@ -1040,8 +1041,6 @@ class ProgramComponent(ObjectComponent):
 
     def __init__(self, graph, env, name, dir, deps, inc, src, als=None):
         ObjectComponent.__init__(self, graph, env, name, dir, deps, inc, src, als)
-        # Set the project type
-        self._env['PROJECT_TYPE'] = 'Program'
 
     #
     # Public methods.
