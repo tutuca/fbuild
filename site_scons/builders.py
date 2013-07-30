@@ -374,14 +374,7 @@ def RunCppCheck(env, target, source):
 
 def RunStaticAnalysis(env, target, source):
     # Print message on the screen.
-    def find_sources(dirs, ext):
-        out = []
-        for s in dirs:
-            if ext in s.name:
-                out.append(s.abspath)
-        print out
-        return ''.join(out)
-
+    find_sources = lambda dirs, ext: ''.join([s for s in dirs if ext in s.name])
     env.Cprint('\n=== Running Static Code Analysis ===\n', 'green')
     target_name = target[0].name
     cppcheck_report = target_name + 'CPP'
@@ -447,20 +440,20 @@ def RunReadyToCommit(env, target, source):
     return 0
 
 def _RunCppCheck(report_file, files, options):
-    if not files: return 0
-    if 'xml' in options:
-        cmd = "cppcheck %s %s 2> %s.xml" % (options, files, report_file)
-    else:
-        cmd = "cppcheck %s %s | sed '/files checked /d' > %s.txt" % (options, files, report_file)
-    print cmd
-    cppcheck_proc = subprocess.Popen(cmd, shell=True)
-    return cppcheck_proc.wait()
+    if files:
+        if 'xml' in options:
+            cmd = "cppcheck %s %s 2> %s.xml" % (options, files, report_file)
+        else:
+            cmd = "cppcheck %s %s | sed '/files checked /d' > %s.txt" % (options, files, report_file)
+        print cmd
+        cppcheck_proc = subprocess.Popen(cmd, shell=True)
+        return cppcheck_proc.wait()
 
 def _RunSplint(report_file, files):
-    if not files: return 0
-    cmd = "splint %s > %s.txt" % (files, report_file)
-    splint_proc = subprocess.Popen(cmd, shell=True)
-    return splint_proc.wait()
+    if files:
+        cmd = "splint %s > %s.txt" % (files, report_file)
+        splint_proc = subprocess.Popen(cmd, shell=True)
+        return splint_proc.wait()
 
 def _CheckAstyle(env, source, output_directory):
     # Create a temporary directory.
