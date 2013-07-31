@@ -439,11 +439,13 @@ def RunInfo(env, target, source):
     sources_list = source
     project_type = env['PROJECT_TYPE']
     # Print the project info
-    env.Cprint("----------- %s -----------" % name, "blue")
-    env.Cprint("The Project type is: %s" % project_type, "green")
-    env.Cprint("List of sources/headers:", "green")
-    for x in sources_list:
-        env.Cprint(x.name, "cyan")
+    env.Cprint("\n----------- %s -----------\n" % name, "blue")
+    env.CprintSameLine([("The Project type is: ", "end"), ("%s \n" % project_type, "green")])
+    env.Cprint("List of headers/sources:", "end")
+    for element in sources_list:
+        env.Cprint(element.name, "cyan")
+    # New line at the end of the target
+    env.Cprint("","end")
 
 def _CheckAstyle(env, source, output_directory):
     # Create a temporary directory.
