@@ -28,7 +28,7 @@ import subprocess
 import os.path
 import shutil
 import os
-
+from glob import glob
 from SCons.Script import *
 import SCons.Builder
 
@@ -82,6 +82,9 @@ def init(env):
     #-
     bldReadyToCommit = Builder(action=SCons.Action.Action(RunReadyToCommit, PrintDummy))
     env.Append(BUILDERS={'RunReadyToCommit': bldReadyToCommit})
+    #-
+    bldStaticAnalysis = Builder(action=SCons.Action.Action(RunStaticAnalysis, PrintDummy))
+    env.Append(BUILDERS={'RunStaticAnalysis': bldStaticAnalysis})
 
 
 def PrintDummy(env, target, source):
@@ -138,9 +141,9 @@ def RunLcov(env, target, source):
     }
     commands_list = [
         'rm -f %(coverage_file)s' % data,
-        'lcov --no-checksum --directory %(project_dir)s -b . --capture --ignore-error source --output-file %(coverage_file)s' % data,
+        'lcov --no-checksum --directory %(project_dir)s -b . --capture --output-file %(coverage_file)s' % data,
+        'lcov --no-checksum --directory %(project_dir)s -b . --capture --output-file %(coverage_file)s' % data,
         'lcov --remove %(coverage_file)s "*usr/include*" -o %(coverage_file)s' % data,
-        'lcov --remove %(coverage_file)s "*install/*" -o %(coverage_file)s' % data,
         'lcov --remove %(coverage_file)s "*/tests/*" -o %(coverage_file)s' % data
     ]
     for dep in env['PROJECT_DEPS']:
@@ -244,15 +247,15 @@ def AStyle(env, target, source):
     build_dir = env['BUILD_DIR']
     ws_dir = env['WS_DIR']
     file_list = ' '.join([f.abspath.replace(build_dir, ws_dir) for f in source if "tests/ref/" not in f.abspath])
-    # Create the command to be executed.
+    # Create the command for subprocess.call().
     cmd = "astyle -k1 --options=none --convert-tabs -bSKpUH %s" % file_list
     # Run astyle.
-    astyle_proc = subprocess.Popen(cmd, shell=True)
-    if astyle_proc.wait() != 0:
+    result = subprocess.call(cmd, shell=True)
+    if result != 0:
         env.cerror('[astyle] ERROR running astyle on: %s' % project_dir)
     else:
         env.Cprint('[astyle] OK on: %s' % project_dir, 'green')
-    return astyle_proc.wait()
+    return result
 
 
 def RunPdfLatex(env, target, source):
@@ -266,11 +269,11 @@ def RunPdfLatex(env, target, source):
     if not os.path.exists(targetDir):
         #env.Execute(env.Mkdir(targetDir))
         os.mkdir(targetDir)
-    pdflates_proc = subprocess.Popen('cd ' + pathHead + ' ; pdflatex ' + env['PDFLATEX_OPTIONS']
+    rt = subprocess.call('cd ' + pathHead + ' ; pdflatex ' + env['PDFLATEX_OPTIONS']
         + ' -output-directory "' + tmpPdf2TexDir + '" ' + pathTail, shell=True)
     shutil.move(targetDir, tmpPdf2TexDir + pathTail[:-4] + ".pdf")
     shutil.rmtree(tmpPdf2TexDir)
-    return pdflates_proc.wait()
+    return rt
 
 
 def RunValgrind(env, target, source):
@@ -291,10 +294,10 @@ def RunValgrind(env, target, source):
     rep = (env_var, val_opt, test, testsuite)
     cmd = '%s valgrind %s %s --gtest_filter=%s' % rep
     # Execute the command.
-    valgrind_proc = subprocess.Popen(cmd, shell=True)
+    subprocess.call(cmd, shell=True)
     # Get back to the previous directory.
     os.chdir(cwd)
-    return valgrind_proc.wait()
+    return 0
 
 
 def RunCCCC(env, target, source):
@@ -315,10 +318,9 @@ def RunCCCC(env, target, source):
     options = ' '.join([opt for opt in env['CCCC_OPTIONS']])
     # Create a string with the file names for cccc.
     files = ' '.join([f.abspath for f in source])
-    # Create the command to be executed.
+    # Create the command to be pass to subprocess.call()
     cmd = 'cccc %s %s' % (options, files)
-    cccc_proc = subprocess.Popen(cmd, shell=True)
-    return cccc_proc.wait()
+    return subprocess.call(cmd, shell=True)
 
 
 def RunCLOC(env, target, source):
@@ -348,10 +350,9 @@ def RunCLOC(env, target, source):
     options = ' '.join([opt for opt in env['CLOC_OPTIONS']])
     # Create a string with the file names for cloc.
     files = ' '.join([f.abspath for f in source])
-    # Create the command to be executed.
+    # Create the command to be pass to subprocess.call()
     cmd = 'cloc %s %s' % (options, files)
-    cloc_proc = subprocess.Popen(cmd, shell=True)
-    return cloc_proc.wait()
+    return subprocess.call(cmd, shell=True)
 
 
 def RunCppCheck(env, target, source):
@@ -368,13 +369,21 @@ def RunCppCheck(env, target, source):
     options = ' '.join([opt for opt in env['CPPCHECK_OPTIONS']])
     # We create a string with the files for cppcheck.
     files = ' '.join([f.abspath for f in source])
-    # Create the command to be executed.
-    if 'xml' in options:
-        cmd = "cppcheck %s %s 2> %s.xml" % (options, files, report_file)
-    else:
-        cmd = "cppcheck %s %s | sed '/files checked /d' > %s.txt" % (options, files, report_file)
-    cppcheck_proc = subprocess.Popen(cmd, shell=True)
-    return cppcheck_proc.wait()
+    # Create the command to be pass to subprocess.call()
+    return _RunCppCheck(target, files, options)
+
+def RunStaticAnalysis(env, target, source):
+    # Print message on the screen.
+    find_sources = lambda dirs, ext: ''.join([s for s in dirs if ext in s.name])
+    env.Cprint('\n=== Running Static Code Analysis ===\n', 'green')
+    target_name = target[0].name
+    cppcheck_report = target_name + 'CPP'
+    cppcheck_options = ' '.join([opt for opt in env['CPPCHECK_OPTIONS']])
+    splint_report = target_name + 'C'
+    cppcheck_rc = _RunCppCheck(cppcheck_report, find_sources(source, '.cpp'), cppcheck_options)
+    splint_rc = _RunSplint(splint_report, find_sources(source, '.c'))
+    # Return the output of both builders
+    return cppcheck_rc and splint_rc
 
 
 def RunMocko(env, target, source):
@@ -396,9 +405,9 @@ def RunMocko(env, target, source):
         print "> chdir", cwd
     # Execute mocko.
     os.chdir(directory)
-    mocko_proc = subprocess.Popen('%s %s' % (mocko, mocko_list), shell=True)
+    ret_val = subprocess.call('%s %s' % (mocko, mocko_list), shell=True)
     os.chdir(cwd)
-    return mocko_proc.wait()
+    return ret_val
 
 
 def RunReadyToCommit(env, target, source):
@@ -430,6 +439,21 @@ def RunReadyToCommit(env, target, source):
     print ""  # Just an empty line.
     return 0
 
+def _RunCppCheck(report_file, files, options):
+    if files:
+        if 'xml' in options:
+            cmd = "cppcheck %s %s 2> %s.xml" % (options, files, report_file)
+        else:
+            cmd = "cppcheck %s %s | sed '/files checked /d' > %s.txt" % (options, files, report_file)
+        print cmd
+        cppcheck_proc = subprocess.Popen(cmd, shell=True)
+        return cppcheck_proc.wait()
+
+def _RunSplint(report_file, files):
+    if files:
+        cmd = "splint %s > %s.txt" % (files, report_file)
+        splint_proc = subprocess.Popen(cmd, shell=True)
+        return splint_proc.wait()
 
 def _CheckAstyle(env, source, output_directory):
     # Create a temporary directory.
@@ -449,13 +473,11 @@ def _CheckAstyle(env, source, output_directory):
     need_astyle = False
     # A list for the files that needs astyle.
     need_astyle_list = []
-    # Create the command to be executed.
+    # Create the command for subprocess.call().
     cmd = 'astyle -k1 --options=none --convert-tabs -bSKpUH %s' % files_str
     # To see if a file needs astyle we first apply astyle to the file and
     # check if it suffer some change.
-    astyle_proc = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE)
-    astyle_proc.stdout.read()
-    if astyle_proc.wait() != 0:
+    if subprocess.call(cmd, shell=True, stdout=subprocess.PIPE) != 0:
         # If astyle fails, we fail.
         return None
     # Check if astyle did some modifications.
@@ -476,71 +498,38 @@ def _CheckAstyle(env, source, output_directory):
 
 
 def _RTCCheckAstyle(env):
-    # Path to the report file.
     report_file = os.path.join(env['INSTALL_REPORTS_DIR'], 'astyle-check')
     report_file = os.path.join(report_file, env['PROJECT_NAME'])
     report_file = os.path.join(report_file, 'AstyleCheckReport.diff')
-    # Command to be executed.
-    cmd = "cat %s | grep -E '^\+' | grep -v +++ | grep -v 'for (auto'" % report_file
-    # Execute the command.
-    astyle_proc = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE)
-    # Read the output of the process.
-    astyle_proc.stdout.read()
-    # Wait until process terminates and return the status.
-    return astyle_proc.wait() != 0
+    cmd = "cat %s | grep -E '^\+' | grep -v +++" % report_file
+    return subprocess.call(cmd, shell=True, stdout=subprocess.PIPE) != 0
 
 
 def _RTCCheckCppcheck(env):
-    # Path to the report file.
     report_file = os.path.join(env['INSTALL_REPORTS_DIR'], 'cppcheck')
     report_file = os.path.join(report_file, env['PROJECT_NAME'])
     report_file = os.path.join(report_file, 'CppcheckReport.xml')
-    # Commands to be executed.
     cmd_error = 'cat %s | grep severity=\\"error\\"' % report_file
     cmd_warning = 'cat %s | grep severity=\\"warning\\"' % report_file
-    # Execute the commands.
-    errors_proc = subprocess.Popen(cmd_error, shell=True, stdout=subprocess.PIPE)
-    warnings_proc = subprocess.Popen(cmd_warning, shell=True, stdout=subprocess.PIPE)
-    # Read the output of the processes.
-    errors_proc.stdout.read()
-    warnings_proc.stdout.read()
-    # Wait until the processes terminate.
-    errors = errors_proc.wait() != 0
-    warnings = warnings_proc.wait() != 0
+    errors = subprocess.call(cmd_error, shell=True, stdout=subprocess.PIPE) != 0
+    warnings = subprocess.call(cmd_warning, shell=True, stdout=subprocess.PIPE) != 0
     return errors and warnings
 
 
 def _RTCCheckTests(env):
-    # Path to the report file.
     report_file = os.path.join(env['INSTALL_REPORTS_DIR'], 'test')
     report_file = os.path.join(report_file, env['PROJECT_NAME'])
     report_file = os.path.join(report_file, 'test-report.xml')
-    # Commands to be executed.
     cmd_failures = 'cat %s | grep "<testsuites" | grep -v "failures=\\"0\\""' % report_file
     cmd_errors = 'cat %s | grep "<testsuites" | grep -v "errors=\\"0\\""' % report_file
-    # Execute the commands.
-    failures_proc = subprocess.Popen(cmd_failures, shell=True, stdout=subprocess.PIPE)
-    errors_proc = subprocess.Popen(cmd_errors, shell=True, stdout=subprocess.PIPE)
-    # Read the output of the processes.
-    failures_proc.stdout.read()
-    errors_proc.stdout.read()
-    # Wait until the processes terminate.
-    failures = failures_proc.wait() != 0
-    errors = errors_proc.wait() != 0
+    failures = subprocess.call(cmd_failures, shell=True, stdout=subprocess.PIPE) != 0
+    errors = subprocess.call(cmd_errors, shell=True, stdout=subprocess.PIPE) != 0
     return failures and errors
 
 
 def _RTCCheckValgrind(env):
-    # Path to the valgrind report.
     report_file = os.path.join(env['INSTALL_REPORTS_DIR'], 'valgrind')
     report_file = os.path.join(report_file, env['PROJECT_NAME'])
     report_file = os.path.join(report_file, 'valgrind-report.xml')
-    # Command to be executed.
     cmd = "cat %s | grep '<error>'" % report_file
-    # Execute the command.
-    valgrind_proc = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE)
-    # Read the output of the process.
-    valgrind_proc.stdout.read()
-    # Wait until process terminates and return the status.
-    return valgrind_proc.wait() != 0
-
+    return subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE) != 0
