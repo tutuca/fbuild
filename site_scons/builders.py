@@ -436,15 +436,27 @@ def RunReadyToCommit(env, target, source):
 def RunInfo(env, target, source):
     #Take project info
     name = target[0].name
-    sources_list = source
     project_type = env['PROJECT_TYPE']
     # Print the project info
     env.Cprint("\n----------- %s -----------\n" % name, "blue")
     env.CprintSameLine([("The Project type is: ", "end"), ("%s \n" % project_type, "green")])
-    env.Cprint("List of headers/sources:", "end")
-    for element in sources_list:
-        env.Cprint(element.name, "cyan")
-    # New line at the end of the target
+    headers_list = []
+    sources_list = []
+    # Separate sources and headers
+    for element in source:
+        if ".h" in element.name or ".hpp" in element.name:
+            headers_list.append(element.name)
+        else:
+            sources_list.append(element.name)
+    env.Cprint("List of headers:", "end")
+    for hdr in headers_list:
+        env.Cprint(hdr, "cyan")
+    # New line at the end of the headers
+    env.Cprint("","end")
+    env.Cprint("List of sources:", "end")
+    for src in sources_list:
+        env.Cprint(src, "purple")
+    # New line at the end of the sources
     env.Cprint("","end")
 
 def _CheckAstyle(env, source, output_directory):
