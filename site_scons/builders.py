@@ -144,7 +144,8 @@ def RunLcov(env, target, source):
         'lcov --no-checksum --directory %(project_dir)s -b . --capture --output-file %(coverage_file)s' % data,
         'lcov --no-checksum --directory %(project_dir)s -b . --capture --output-file %(coverage_file)s' % data,
         'lcov --remove %(coverage_file)s "*usr/include*" -o %(coverage_file)s' % data,
-        'lcov --remove %(coverage_file)s "*/tests/*" -o %(coverage_file)s' % data
+        'lcov --remove %(coverage_file)s "*/tests/*" -o %(coverage_file)s' % data,
+        # 'lcov --remove %(coverage_file)s "*/install/*" -o %(coverage_file)s' % data
     ]
     for dep in env['PROJECT_DEPS']:
         data['project_dep'] = dep
