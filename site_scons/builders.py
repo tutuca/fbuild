@@ -36,6 +36,7 @@ from utils import ChainCalls
 
 
 HEADERS = [".h", ".hpp"]
+SOURCES = [".c", "cpp"]
 
 def init(env):
     bldRUT = Builder(action=SCons.Action.Action(RunUnittest, PrintDummy))
@@ -442,8 +443,8 @@ def RunInfo(env, target, source):
     env.Cprint("\n----------- %s -----------\n" % name, "blue")
     env.CprintSameLine([("The Project type is: ", "end"), ("%s \n" % project_type, "green")])
     # Separate sources and headers
-    headers_list = [x.name for x in source if _CheckHeader(HEADERS, x.name)]
-    sources_list = [x.name for x in source if not _CheckHeader(HEADERS, x.name)]
+    headers_list = [x.name for x in source for y in HEADERS if x.name.endswith(y)]
+    sources_list = [x.name for x in source for y in SOURCES if x.name.endswith(y)]
     # Print headers and sources
     if headers_list:
         env.Cprint("List of headers:", "end")
