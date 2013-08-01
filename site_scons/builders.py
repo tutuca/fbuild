@@ -196,7 +196,6 @@ def RunDoxygen(env, target, source):
 
 
 def AStyleCheck(env, target, source):
-    import ipdb; ipdb.set_trace()
     # Print message on the screen.
     env.Cprint('\n=== Running ASTYLE-CHECK ===\n', 'green')
     # Get the report file.
@@ -442,24 +441,22 @@ def RunInfo(env, target, source):
     # Print the project info
     env.Cprint("\n----------- %s -----------\n" % name, "blue")
     env.CprintSameLine([("The Project type is: ", "end"), ("%s \n" % project_type, "green")])
-    headers_list = []
-    sources_list = []
     # Separate sources and headers
-    for element in source:
-        if _CheckHeader(HEADERS, element.name):
-            headers_list.append(element.name)
-        else:
-            sources_list.append(element.name)
-    env.Cprint("List of headers:", "end")
-    for hdr in headers_list:
-        env.Cprint(hdr, "cyan")
-    # New line at the end of the headers
-    env.Cprint("","end")
-    env.Cprint("List of sources:", "end")
-    for src in sources_list:
-        env.Cprint(src, "purple")
-    # New line at the end of the sources
-    env.Cprint("","end")
+    headers_list = [x.name for x in source if _CheckHeader(HEADERS, x.name)]
+    sources_list = [x.name for x in source if not _CheckHeader(HEADERS, x.name)]
+    # Print headers and sources
+    if headers_list:
+        env.Cprint("List of headers:", "end")
+        for hdr in headers_list:
+            env.Cprint(hdr, "cyan")
+        # New line at the end of the headers
+        env.Cprint("","end")
+    if sources_list:
+        env.Cprint("List of sources:", "end")
+        for src in sources_list:
+            env.Cprint(src, "purple")
+        # New line at the end of the sources
+        env.Cprint("","end")
 
 def _CheckAstyle(env, source, output_directory):
     # Create a temporary directory.
