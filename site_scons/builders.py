@@ -35,6 +35,8 @@ import SCons.Builder
 from utils import ChainCalls
 
 
+HEADERS = [".h", ".hpp"]
+
 def init(env):
     bldRUT = Builder(action=SCons.Action.Action(RunUnittest, PrintDummy))
     env.Append(BUILDERS={'RunUnittest': bldRUT})
@@ -444,7 +446,7 @@ def RunInfo(env, target, source):
     sources_list = []
     # Separate sources and headers
     for element in source:
-        if ".h" in element.name or ".hpp" in element.name:
+        if _CheckHeader(HEADERS, element.name):
             headers_list.append(element.name)
         else:
             sources_list.append(element.name)
@@ -572,3 +574,8 @@ def _RTCCheckValgrind(env):
     # Wait until process terminates and return the status.
     return valgrind_proc.wait() != 0
 
+def _CheckHeader(headers_list, name):
+    for element in headers_list:
+        if element in name:
+            return True
+    return False

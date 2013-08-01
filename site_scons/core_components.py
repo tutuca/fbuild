@@ -705,7 +705,7 @@ class HeaderOnlyComponent(Component):
         # Create the alias.
         name = '%s:info' % self.name
         deps = [info_builder]
-        msg = "Shows information about the  project."
+        msg = "Shows information about the project."
         self._env.Alias(name, deps, msg)
         # Save the builder into the builder dictionary.
         self._builders['info'] = info_builder
