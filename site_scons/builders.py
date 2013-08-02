@@ -88,6 +88,9 @@ def init(env):
     #-
     bldInfo = Builder(action=SCons.Action.Action(RunInfo, PrintDummy))
     env.Append(BUILDERS={'RunInfo': bldInfo})
+	#-
+    bldStaticAnalysis = Builder(action=SCons.Action.Action(RunStaticAnalysis, PrintDummy))
+    env.Append(BUILDERS={'RunStaticAnalysis': bldStaticAnalysis})
 
 def PrintDummy(env, target, source):
     return ""
@@ -382,6 +385,20 @@ def RunCppCheck(env, target, source):
     return cppcheck_proc.wait()
 
 
+def RunStaticAnalysis(env, target, source):
+    # Print message on the screen.
+    find_sources = lambda dirs, ext: ''.join([s for s in dirs if ext in s.name])
+    env.Cprint('\n=== Running Static Code Analysis ===\n', 'green')
+    target_name = target[0].name
+    cppcheck_report = target_name + 'CPP'
+    cppcheck_options = ' '.join([opt for opt in env['CPPCHECK_OPTIONS']])
+    splint_report = target_name + 'C'
+    cppcheck_rc = _RunCppCheck(cppcheck_report, find_sources(source, '.cpp'), cppcheck_options)
+    splint_rc = _RunSplint(splint_report, find_sources(source, '.c'))
+    # Return the output of both builders
+    return cppcheck_rc and splint_rc
+
+
 def RunMocko(env, target, source):
     # Print message on the screen.
     env.Cprint('\n=== Running MOCKO ===\n', 'green')
@@ -434,6 +451,21 @@ def RunReadyToCommit(env, target, source):
         env.Cprint('VALGRIND : [ERROR]', 'red')
     print ""  # Just an empty line.
     return 0
+def _RunCppCheck(report_file, files, options):
+    if files:
+        if 'xml' in options:
+            cmd = "cppcheck %s %s 2> %s.xml" % (options, files, report_file)
+        else:
+            cmd = "cppcheck %s %s | sed '/files checked /d' > %s.txt" % (options, files, report_file)
+        print cmd
+        cppcheck_proc = subprocess.Popen(cmd, shell=True)
+        return cppcheck_proc.wait()
+
+def _RunSplint(report_file, files):
+    if files:
+        cmd = "splint %s > %s.txt" % (files, report_file)
+        splint_proc = subprocess.Popen(cmd, shell=True)
+        return splint_proc.wait()
 
 def RunInfo(env, target, source):
     #Take project info
@@ -572,8 +604,3 @@ def _RTCCheckValgrind(env):
     # Wait until process terminates and return the status.
     return valgrind_proc.wait() != 0
 
-def _CheckHeader(headers_list, name):
-    for element in headers_list:
-        if element in name:
-            return True
-    return False

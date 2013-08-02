@@ -476,12 +476,12 @@ class HeaderOnlyComponent(Component):
             'cccc': None,
             'cloc': None,
             'coverage': None,
-            'cppcheck': None,
             'doc': None,
             'info': None,
             'install': None,
             'jenkins': None,
             'ready-to-commit': None,
+            'static-analysis': None,
             'test': None,
             'valgrind': None
         }
@@ -515,7 +515,7 @@ class HeaderOnlyComponent(Component):
         self._CreateAstyleTarget(headers)
         self._CreateCCCCTarget(headers)
         self._CreateClocTarget(headers)
-        self._CreateCppcheckTarget(headers)
+        self._CreateStaticAnalysisTarget(headers)
         self._CreateDocTarget()
         self._CreateInfoTarget(headers)
         # Create the installer.
@@ -633,26 +633,26 @@ class HeaderOnlyComponent(Component):
         # Return the builder instance.
         return cloc_builder
 
-    def _CreateCppcheckTarget(self, sources):
-        if self._builders['cppcheck'] is not None:
-            return self._builders['cppcheck']
-        # The target is the cppcheck report file.
+    def _CreateStaticAnalysisTarget(self, sources):
+        if self._builders['static-analysis'] is not None:
+            return self._builders['static-analysis']
+        # The target is the static-analysis report file.
         target = self._env.Dir(self._env['INSTALL_REPORTS_DIR'])
-        target = target.Dir('cppcheck').Dir(self.name)
-        target = os.path.join(target.abspath, 'CppcheckReport')
-        # Create an instance of the RunCppCheck() builder.
-        cppcheck_builder = self._env.RunCppCheck(target, sources)
-        # cppcheck can always be build.
-        self._env.AlwaysBuild(cppcheck_builder)
+        target = target.Dir('static-analysis').Dir(self.name)
+        target = os.path.join(target.abspath, 'StaticAnalysisReport')
+        # Create an instance of the RunStaticAnalysis() builder.
+        analysis_builder = self._env.RunStaticAnalysis(target, sources)
+        # static-analysis can always be build.
+        self._env.AlwaysBuild(analysis_builder)
         # Create the alias.
-        name = "%s:cppcheck" % self.name
-        deps = [cppcheck_builder]
-        msg = 'Run cppcheck for %s' % self.name
+        name = "%s:static-analysis" % self.name
+        deps = [analysis_builder]
+        msg = 'Run static analysis for %s' % self.name
         self._env.Alias(name, deps, msg)
         # Save the builder into the builder dictionary.
-        self._builders['cppcheck'] = cppcheck_builder
+        self._builders['static-analysis'] = analysis_builder
         # Return the builder instance.
-        return cppcheck_builder
+        return analysis_builder
 
     def _CreateAstyleCheckTarget(self, sources):
         if self._builders['astyle-check'] is not None:
@@ -767,7 +767,7 @@ class SourcedComponent(HeaderOnlyComponent):
             self._CreateAstyleTarget(sources)
             self._CreateCCCCTarget(sources)
             self._CreateClocTarget(sources)
-            self._CreateCppcheckTarget(sources)
+            self._CreateStaticAnalysisTarget(sources)
             self._CreateDocTarget()
             self._CreateInfoTarget(sources)
             self._builders['install'] = True
@@ -861,7 +861,7 @@ class ObjectComponent(SourcedComponent):
         self._CreateAstyleTarget(sources)
         self._CreateCCCCTarget(sources)
         self._CreateClocTarget(sources)
-        self._CreateCppcheckTarget(sources)
+        self._CreateStaticAnalysisTarget(sources)
         self._CreateDocTarget()
         self._CreateInfoTarget(sources)
         # Initialize the object file list.
@@ -938,7 +938,7 @@ class StaticLibraryComponent(ObjectComponent):
         self._CreateAstyleTarget(sources)
         self._CreateCCCCTarget(sources)
         self._CreateClocTarget(sources)
-        self._CreateCppcheckTarget(sources)
+        self._CreateStaticAnalysisTarget(sources)
         self._CreateDocTarget()
         self._CreateInfoTarget(sources)
         # Create a static library builder.
@@ -998,7 +998,7 @@ class DynamicLibraryComponent(ObjectComponent):
         self._CreateAstyleTarget(sources)
         self._CreateCCCCTarget(sources)
         self._CreateClocTarget(sources)
-        self._CreateCppcheckTarget(sources)
+        self._CreateStaticAnalysisTarget(sources)
         self._CreateDocTarget()
         self._CreateInfoTarget(sources)
         # Create the shared library builder.
@@ -1061,7 +1061,7 @@ class ProgramComponent(ObjectComponent):
         self._CreateAstyleTarget(sources)
         self._CreateCCCCTarget(sources)
         self._CreateClocTarget(sources)
-        self._CreateCppcheckTarget(sources)
+        self._CreateStaticAnalysisTarget(sources)
         self._CreateDocTarget()
         self._CreateInfoTarget(sources)
         # Create the program builder.
@@ -1306,7 +1306,7 @@ class UnitTestComponent(ProgramComponent):
             includes = project_component.GetIncludeFiles()
             source = sources + includes
             astyle_check = project_component._CreateAstyleCheckTarget(source)
-            cppcheck = project_component._CreateCppcheckTarget(source)
+            cppcheck = project_component._CreateStaticAnalysisTarget(source)
             cccc = project_component._CreateCCCCTarget(source)
             cloc = project_component._CreateClocTarget(source)
             doc = project_component._CreateDocTarget()
@@ -1355,7 +1355,7 @@ class UnitTestComponent(ProgramComponent):
             includes = project_component.GetIncludeFiles()
             source = sources + includes
             astyle_check = project_component._CreateAstyleCheckTarget(source)
-            cppcheck = project_component._CreateCppcheckTarget(source)
+            cppcheck = project_component._CreateStaticAnalysisTarget(source)
             valgrind = self._CreateValgrindTarget(program_builder)
             run_test = self._env.RunUnittest(run_test_target, program_builder)
             # Create dependencies.
