@@ -88,9 +88,13 @@ def init(env):
     #-
     bldInfo = Builder(action=SCons.Action.Action(RunInfo, PrintDummy))
     env.Append(BUILDERS={'RunInfo': bldInfo})
-	#-
+    #-
     bldStaticAnalysis = Builder(action=SCons.Action.Action(RunStaticAnalysis, PrintDummy))
     env.Append(BUILDERS={'RunStaticAnalysis': bldStaticAnalysis})
+    #-
+    bldAddressSanitizer = Builder(action=SCons.Action.Action(RunASan, PrintDummy))
+    env.Append(BUILDERS={'RunASan': bldAddressSanitizer})
+    env['ASAN_OPTIONS'] = 'ASAN_OPTIONS=verbosity=1:log_path=none'
 
 def PrintDummy(env, target, source):
     return ""
@@ -303,6 +307,15 @@ def RunValgrind(env, target, source):
     # Get back to the previous directory.
     os.chdir(cwd)
     return valgrind_proc.wait()
+
+
+def RunASan(env, target, source):
+    env.Cprint('\n=== Running Address Sanitizer ===\n', 'green')
+    # Get the test executable file
+    executable = source[0].abspath
+    # Create the command for clang
+    clang_cmd = 'clang -fsanitize=address -O1 -fno-omit-frame-pointer \
+                -g %s' % executable
 
 
 def RunCCCC(env, target, source):
