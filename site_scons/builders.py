@@ -571,9 +571,3 @@ def _RTCCheckValgrind(env):
     valgrind_proc.stdout.read()
     # Wait until process terminates and return the status.
     return valgrind_proc.wait() != 0
-
-def _CheckHeader(headers_list, name):
-    for element in headers_list:
-        if element in name:
-            return True
-    return False
