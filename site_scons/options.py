@@ -42,3 +42,11 @@ def init(env):
         default="*",
         help='Specifies the test suite that will be run. Default is all tests suit.'
     )
+
+    AddOption(
+        '--list',
+        dest='list',
+        action='store_true',
+        default=False,
+        help='Show the source/header list of the project'
+    )

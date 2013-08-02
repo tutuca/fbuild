@@ -28,6 +28,7 @@ import os
 import abc
 
 from SCons import Node
+from re import sub
 
 import utils
 import fbuild_exceptions
@@ -476,6 +477,7 @@ class HeaderOnlyComponent(Component):
             'cloc': None,
             'coverage': None,
             'doc': None,
+            'info': None,
             'install': None,
             'jenkins': None,
             'ready-to-commit': None,
@@ -483,6 +485,8 @@ class HeaderOnlyComponent(Component):
             'test': None,
             'valgrind': None
         }
+        # Set the project type
+        self._env['PROJECT_TYPE'] = self._GetProjectType()
 
     #
     # Public methods.
@@ -513,6 +517,7 @@ class HeaderOnlyComponent(Component):
         self._CreateClocTarget(headers)
         self._CreateStaticAnalysisTarget(headers)
         self._CreateDocTarget()
+        self._CreateInfoTarget(headers)
         # Create the installer.
         installer = self._CreateInstallerBuilder([])
         # Create the alias group.
@@ -547,6 +552,13 @@ class HeaderOnlyComponent(Component):
     #
     # Private methods.
     #
+
+    def _GetProjectType(self):
+        # Take the name class and remove the word "Component"
+        name = type(self).__name__.replace("Component", "")
+        # Transform from CamelCase to Camel Case
+        return sub('(?!^)([A-Z]+)', r' \1', name)
+        
 
     def _CreateDocTarget(self):
         if self._builders['doc'] is not None:
@@ -666,7 +678,7 @@ class HeaderOnlyComponent(Component):
     def _CreateAstyleTarget(self, sources):
         if self._builders['astyle'] is not None:
             return self._builders['astyle']
-        # We use the prject directory as the target.
+        # We use the project directory as the target.
         target = self._env.Dir(self._env['WS_DIR']).Dir(self.name)
         # Create an instance of the RunAStyle() builder.
         astyle_builder = self._env.RunAStyle(target, sources)
@@ -682,6 +694,23 @@ class HeaderOnlyComponent(Component):
         # Return the builder instance.
         return astyle_builder
 
+    def _CreateInfoTarget(self, sources):
+        if self._builders['info'] is not None:
+            return self._builders['info']
+        target = self._env.Dir(self.name)
+        # Create an instance of the RunInfo() builder.
+        info_builder = self._env.RunInfo(target, sources)
+        # Info can always be executed.
+        self._env.AlwaysBuild(info_builder)
+        # Create the alias.
+        name = '%s:info' % self.name
+        deps = [info_builder]
+        msg = "Shows information about the project."
+        self._env.Alias(name, deps, msg)
+        # Save the builder into the builder dictionary.
+        self._builders['info'] = info_builder
+        # Return the builder instance.
+        return info_builder
 
 class SourcedComponent(HeaderOnlyComponent):
     """
@@ -740,8 +769,9 @@ class SourcedComponent(HeaderOnlyComponent):
             self._CreateClocTarget(sources)
             self._CreateStaticAnalysisTarget(sources)
             self._CreateDocTarget()
+            self._CreateInfoTarget(sources)
             self._builders['install'] = True
-        # We retuen an empty list because a sourced has nothing to install.
+        # We return an empty list because a sourced has nothing to install.
         return []
 
     def GetSourcesFiles(self):
@@ -833,6 +863,7 @@ class ObjectComponent(SourcedComponent):
         self._CreateClocTarget(sources)
         self._CreateStaticAnalysisTarget(sources)
         self._CreateDocTarget()
+        self._CreateInfoTarget(sources)
         # Initialize the object file list.
         self._CreateObjectFiles()
         # Create the installer.
@@ -909,6 +940,7 @@ class StaticLibraryComponent(ObjectComponent):
         self._CreateClocTarget(sources)
         self._CreateStaticAnalysisTarget(sources)
         self._CreateDocTarget()
+        self._CreateInfoTarget(sources)
         # Create a static library builder.
         slib_builder = self._CreateStaticLibraryBuilder(target)
         # Create an installer builders.
@@ -968,6 +1000,7 @@ class DynamicLibraryComponent(ObjectComponent):
         self._CreateClocTarget(sources)
         self._CreateStaticAnalysisTarget(sources)
         self._CreateDocTarget()
+        self._CreateInfoTarget(sources)
         # Create the shared library builder.
         dlib_builder = self._CreateSharedLibraryBuilder(target)
         # Create the installer builder.
@@ -1030,6 +1063,7 @@ class ProgramComponent(ObjectComponent):
         self._CreateClocTarget(sources)
         self._CreateStaticAnalysisTarget(sources)
         self._CreateDocTarget()
+        self._CreateInfoTarget(sources)
         # Create the program builder.
         program_builder = self._CreateProgramBuilder(target)
         # Create an instance of the Install() builder.

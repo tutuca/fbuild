@@ -59,6 +59,7 @@ def init(env):
     if env.GetOption('verbose'):
         PrettyMessages(env)
     env.Cprint = Cprint
+    env.CprintSameLine = CprintSameLine
     env.cdebug = lambda m: Cprint(m, 'green')
     env.cwarn = lambda m: Cprint(m, 'yellow')
     env.cerror = lambda m: Cprint(m, 'red')
@@ -77,6 +78,16 @@ def AskUser(message, color, alternatives):
 def Cprint(msg, color):
     print Cformat(msg, color)
 
+def CprintSameLine(list_msg):
+    length = len(list_msg)
+    count = 1
+    for element in list_msg:
+        msg, color = element
+        if (count < length):
+            print Cformat(msg, color),
+        else:
+            print Cformat(msg, color)
+        count = count + 1
 
 def Cformat(msg, color):
     return '%s%s%s' % (colors[color], msg, colors['end'])
