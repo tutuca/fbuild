@@ -30,7 +30,6 @@
 
 import SCons.Builder
 from SCons.Script.SConscript import SConsEnvironment
-from SCons.Script import *
 from SCons.Script import Builder
 
 

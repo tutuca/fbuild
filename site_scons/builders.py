@@ -29,61 +29,60 @@ import os.path
 import shutil
 import os
 from glob import glob
-from SCons.Script import *
-import SCons.Builder
+from SCons.Builder import Builder
+from SCons.Action import Action
 
 from utils import ChainCalls
 
-
 def init(env):
-    bldRUT = Builder(action=SCons.Action.Action(RunUnittest, PrintDummy))
+    bldRUT = Builder(action=Action(RunUnittest, PrintDummy))
     env.Append(BUILDERS={'RunUnittest': bldRUT})
     #-
-    bldInitLcov = Builder(action=SCons.Action.Action(InitLcov, PrintDummy))
+    bldInitLcov = Builder(action=Action(InitLcov, PrintDummy))
     env.Append(BUILDERS={'InitLcov': bldInitLcov})
     #-
-    bldRLcov = Builder(action=SCons.Action.Action(RunLcov, PrintDummy))
+    bldRLcov = Builder(action=Action(RunLcov, PrintDummy))
     env.Append(BUILDERS={'RunLcov': bldRLcov})
     #-
-    bldDoxygen = Builder(action=SCons.Action.Action(RunDoxygen, PrintDummy))
+    bldDoxygen = Builder(action=Action(RunDoxygen, PrintDummy))
     env.Append(BUILDERS={'RunDoxygen': bldDoxygen})
     env['DEFAULT_DOXYFILE'] = env.File('#/conf/doxygenTemplate').abspath
     #-
-    bldAStyleCheck = Builder(action=SCons.Action.Action(AStyleCheck, PrintDummy))
+    bldAStyleCheck = Builder(action=Action(AStyleCheck, PrintDummy))
     env.Append(BUILDERS={'RunAStyleCheck': bldAStyleCheck})
     #-
-    bldAStyle = Builder(action=SCons.Action.Action(AStyle, PrintDummy))
+    bldAStyle = Builder(action=Action(AStyle, PrintDummy))
     env.Append(BUILDERS={'RunAStyle': bldAStyle})
     #-
-    bldPdfLatex = Builder(action=SCons.Action.Action(RunPdfLatex, PrintDummy))
+    bldPdfLatex = Builder(action=Action(RunPdfLatex, PrintDummy))
     env.Append(BUILDERS={'RunPdfLatex':  bldPdfLatex})
     env['PDFLATEX_OPTIONS'] = ''
     #-
-    bldValgrind = Builder(action=SCons.Action.Action(RunValgrind, PrintDummy))
+    bldValgrind = Builder(action=Action(RunValgrind, PrintDummy))
     env.Append(BUILDERS={'RunValgrind': bldValgrind})
     env['VALGRIND_OPTIONS'] = ' --leak-check=full --show-reachable=yes ' + \
                               '--error-limit=no --track-origins=yes'
     #-
-    bldCCCC = Builder(action=SCons.Action.Action(RunCCCC, PrintDummy))
+    bldCCCC = Builder(action=Action(RunCCCC, PrintDummy))
     env.Append(BUILDERS={'RunCCCC':  bldCCCC})
     env['CCCC_OPTIONS'] = []
     #-
-    bldCLOC = Builder(action=SCons.Action.Action(RunCLOC, PrintDummy))
+    bldCLOC = Builder(action=Action(RunCLOC, PrintDummy))
     env.Append(BUILDERS={'RunCLOC':  bldCLOC})
     env['CLOC_OUTPUT_FORMAT'] = 'txt'  # txt | sql | xml
     env['CLOC_OPTIONS'] = []
     #-
-    bldCppCheck = Builder(action=SCons.Action.Action(RunCppCheck, PrintDummy))
+    bldCppCheck = Builder(action=Action(RunCppCheck, PrintDummy))
     env.Append(BUILDERS={'RunCppCheck': bldCppCheck})
     env['CPPCHECK_OPTIONS'] = [' --enable=all ']
     #-
-    bldMocko = Builder(action=SCons.Action.Action(RunMocko, PrintDummy))
+    bldMocko = Builder(action=Action(RunMocko, PrintDummy))
     env.Append(BUILDERS={'RunMocko': bldMocko})
     #-
-    bldReadyToCommit = Builder(action=SCons.Action.Action(RunReadyToCommit, PrintDummy))
+    bldReadyToCommit = Builder(action=Action(RunReadyToCommit, PrintDummy))
     env.Append(BUILDERS={'RunReadyToCommit': bldReadyToCommit})
     #-
-    bldStaticAnalysis = Builder(action=SCons.Action.Action(RunStaticAnalysis, PrintDummy))
+    bldStaticAnalysis = Builder(action=Action(RunStaticAnalysis, PrintDummy))
     env.Append(BUILDERS={'RunStaticAnalysis': bldStaticAnalysis})
 
 
