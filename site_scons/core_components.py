@@ -141,7 +141,7 @@ class Component(object):
         else:
             self._libs = []
             self._libpaths = []
-        # Append some strandars paths to this variable.
+        # Append some standard paths to this variable.
         self._libpaths.append(self._env['INSTALL_LIB_DIR'])
         # Look for the libs and its paths.
         try:
@@ -149,19 +149,13 @@ class Component(object):
         except fbuild_exceptions.CircularDependencyError, error:
             msg = (' -> ').join(error[0])
             self._env.cerror('[error] A dependency cycle was found:\n  %s' % msg)
-        # Remember:
-        #   t[0]  ->  depth.
-        #   t[1]  ->  name.
-        # This function tells if the tuple depth (t[0]) is the maximum in
+        # This function tells if the tuple depth is the maximum in
         # self._libs.
-        IsMax = lambda t: len([x for x in self._libs if (x[1] == t[1]) and (x[0] > t[0])]) == 0
-        # This function tells if the tuple name (t[1]) is unique in
-        # self._libs.
-        Unique = lambda t: len([x for x in self._libs if x[1] == t[1]]) == 1
+        IsMax = lambda depth, name: len([(d, n) for (d, n) in self._libs 
+                                              if (n == name) and (d > depth)]) == 0
         # Remove from the list the duplicated names.
-        aux = [t for t in self._libs if Unique(t) or IsMax(t)]
-        aux = utils.RemoveDuplicates(aux)
-        aux.sort()
+        aux = [t for t in self._libs if IsMax(*t)]
+        aux = utils.RemoveDuplicates(aux).sort()
         # Create the self._libs list.
         self._libs = [t[1] for t in aux]
         return (self._libs, self._libpaths)
