@@ -313,15 +313,7 @@ def RunASan(env, target, source):
     env.Cprint('\n=== Running Address Sanitizer ===\n', 'green')
     # Get the test executable file
     executable = source[0].abspath
-    # 
-    file_out = 'a.out'
-    # Create the command for clang
-    clang_cmd = 'clang -fsanitize=address -O1 -fno-omit-frame-pointer -o %s -g %s' % (file_out, executable)
-    asan_cmd = env["ASAN_OPTIONS"] + ' ./%s' % file_out
-    # Execute clang
-    clang_proc = subprocess.Popen(clang_cmd, shell=True)
-    # Wait for clang process
-    clang_proc.wait()
+    asan_cmd = env["ASAN_OPTIONS"] + ' ./%s' % executable
     # Execute Address Sanitizer
     asan_proc = subprocess.Popen(asan_cmd, shell=True)
     return asan_proc.wait()

@@ -1174,11 +1174,13 @@ class UnitTestComponent(ProgramComponent):
         coverage = utils.WasTargetInvoked('%s:coverage' % self._project_name)
         rtc = (utils.WasTargetInvoked('%s:rtc' % self._project_name) or
               utils.WasTargetInvoked('%s:ready-to-commit' % self._project_name))
+        asan = utils.WasTargetInvoked('%s:asan' % self._project_name)
         # Create the dictionary of flags.
         result = {
             'jenkins': jenkins,
             'coverage': coverage,
-            'ready-to-commit': rtc
+            'ready-to-commit': rtc,
+            'asan': asan
         }
         # Check for needed reports.
         self._env.NEED_COVERAGE = jenkins or coverage
@@ -1186,6 +1188,7 @@ class UnitTestComponent(ProgramComponent):
         self._env.NEED_CLOC_XML = jenkins
         self._env.NEED_VALGRIND_REPORT = jenkins or rtc
         self._env.NEED_CPPCKET_XML = jenkins or rtc
+        self._env.NEED_ASAN = asan
         # Add flags to the environment for gtest and gmock.
         aux = [f for f in self._env['CXXFLAGS'] if f not in ['-ansi', '-pedantic']]
         aux.append('-Wno-sign-compare')
@@ -1221,6 +1224,13 @@ class UnitTestComponent(ProgramComponent):
             report_file = '%s/valgrind-report.xml' % valgrind_report_dir.abspath
             flags = ' --xml=yes --xml-file=%s ' % report_file
             self._env.Append(VALGRIND_OPTIONS=flags)
+        # Check if necessary change the compiler for ASan.
+        if self._env.NEED_ASAN:
+            # Set clang as compiler
+            compiler = '~/Documents/clang/clang+llvm-3.3-amd64-Ubuntu-12.04.2/bin/clang'
+            # Set flags for address sanitizer
+            flags = ['-fsanitize=address', '-O1', '-fno-omit-frame-pointer', '-g']
+            project_component._env.Append(CC=compiler, CXX=compiler, CXXFLAGS=flags, CFLAGS=flags, LINKFLAGS=flags)
         return result
 
     def _CreateValgrindTarget(self, program_builder):
@@ -1240,15 +1250,15 @@ class UnitTestComponent(ProgramComponent):
     def _CreateASanTarget(self, program_builder):
         if self._builders['asan'] is not None:
             return self._builders['asan']
-        target = '%s:asan' % self._project_name
+        target = self._env.Dir('asan')
         # Create an instance of the RunASan() builder.
         run_asan_builder = self._env.RunASan(target, program_builder)
         # Create the alias.
-        name = target
+        name = '%s:asan' % self._project_name
         deps = [run_asan_builder]
         msg = 'Run address sanitizer for %s test' % self._project_name
         self._env.Alias(name, deps, msg)
-        self._builders['valgrind'] = run_asan_builder
+        self._builders['asan'] = run_asan_builder
         return run_asan_builder
 
     def _CreateCoverageTarget(self, target, program_builder):
