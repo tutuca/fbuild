@@ -316,8 +316,7 @@ def RunASan(env, target, source):
     # 
     file_out = 'a.out'
     # Create the command for clang
-    clang_cmd = 'clang -fsanitize=address -O1 -fno-omit-frame-pointer \
-                -o %s -g %s' % (file_out, executable)
+    clang_cmd = 'clang -fsanitize=address -O1 -fno-omit-frame-pointer -o %s -g %s' % (file_out, executable)
     asan_cmd = env["ASAN_OPTIONS"] + ' ./%s' % file_out
     # Execute clang
     clang_proc = subprocess.Popen(clang_cmd, shell=True)

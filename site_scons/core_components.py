@@ -471,6 +471,7 @@ class HeaderOnlyComponent(Component):
         Component.__init__(self, graph, env, name, dir, deps, inc, [], als)
         self._project_dir = self._env.Dir('WS_DIR').Dir(self.name)
         self._builders = {  # Maintain alphabetical order.
+            'asan': None,
             'astyle': None,
             'astyle-check': None,
             'cccc': None,
@@ -1157,6 +1158,7 @@ class UnitTestComponent(ProgramComponent):
         self._CreateGroupAliases()
         # Create targets.
         self._CreateValgrindTarget(program_builder)
+        self._CreateASanTarget(program_builder)
         self._CreateCoverageTarget(run_test_target, program_builder)
         self._CreateJenkinsTarget(flags, run_test_target, program_builder)
         self._CreateReadyToCommitTtarget(flags, run_test_target, program_builder)
@@ -1234,6 +1236,20 @@ class UnitTestComponent(ProgramComponent):
         self._env.Alias(name, deps, msg)
         self._builders['valgrind'] = run_valgrind_builder
         return run_valgrind_builder
+        
+    def _CreateASanTarget(self, program_builder):
+        if self._builders['asan'] is not None:
+            return self._builders['asan']
+        target = '%s:asan' % self._project_name
+        # Create an instance of the RunASan() builder.
+        run_asan_builder = self._env.RunASan(target, program_builder)
+        # Create the alias.
+        name = target
+        deps = [run_asan_builder]
+        msg = 'Run address sanitizer for %s test' % self._project_name
+        self._env.Alias(name, deps, msg)
+        self._builders['valgrind'] = run_asan_builder
+        return run_asan_builder
 
     def _CreateCoverageTarget(self, target, program_builder):
         if self._builders['coverage'] is not None:
