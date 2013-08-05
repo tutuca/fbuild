@@ -313,10 +313,12 @@ def RunASan(env, target, source):
     env.Cprint('\n=== Running Address Sanitizer ===\n', 'green')
     # Get the test executable file
     executable = source[0].abspath
+    # 
+    file_out = 'a.out'
     # Create the command for clang
     clang_cmd = 'clang -fsanitize=address -O1 -fno-omit-frame-pointer \
-                -g %s' % executable
-
+                -o %s -g %s' % (file_out, executable)
+    asan_cmd = env["ASAN_OPTIONS"] + ' ./%s' % file_out
 
 def RunCCCC(env, target, source):
     # Print message on the screen.
