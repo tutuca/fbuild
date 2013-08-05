@@ -77,16 +77,27 @@ def RecursiveInstall(env, sourceDir, sourcesRel, targetName, fileFilter=None):
 
 
 def RemoveDuplicates(seq, idfun=None): 
-    # order preserving
+    ''''
+    Removes duplicates in seq, preserving it's order.
+    Uses cmp() so it supports unhashable objects.
+    :idfun: is an optional transformation function so we can do this:
+
+        >>> a=list('ABeeE')
+        >>> f5(a)
+        ['A','B','e','E']
+        >>> f5(a, lambda x: x.lower())
+        ['A','B','e'] 
+
+    '''
     if idfun is None:
-       def idfun(x): return x
+       idfun = lambda x: x
     seen = {}
     result = []
     for item in seq:
         marker = idfun(item)
-        if marker in seen: continue
-        seen[marker] = 1
-        result.append(item)
+        if marker not in seen:
+            seen[marker] = 1
+            result.append(item)
     return result
 
 

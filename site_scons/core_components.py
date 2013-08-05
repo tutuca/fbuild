@@ -161,6 +161,7 @@ class Component(object):
         # Remove from the list the duplicated names.
         aux = [t for t in self._libs if Unique(t) or IsMax(t)]
         aux = utils.RemoveDuplicates(aux)
+        aux.sort()
         # Create the self._libs list.
         self._libs = [t[1] for t in aux]
         return (self._libs, self._libpaths)
