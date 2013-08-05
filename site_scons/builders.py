@@ -319,6 +319,14 @@ def RunASan(env, target, source):
     clang_cmd = 'clang -fsanitize=address -O1 -fno-omit-frame-pointer \
                 -o %s -g %s' % (file_out, executable)
     asan_cmd = env["ASAN_OPTIONS"] + ' ./%s' % file_out
+    # Execute clang
+    clang_proc = subprocess.Popen(clang_cmd, shell=True)
+    # Wait for clang process
+    clang_proc.wait()
+    # Execute Address Sanitizer
+    asan_proc = subprocess.Popen(asan_cmd, shell=True)
+    return asan_proc.wait()
+
 
 def RunCCCC(env, target, source):
     # Print message on the screen.
