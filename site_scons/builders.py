@@ -28,7 +28,6 @@ import subprocess
 import os.path
 import shutil
 import os
-from glob import glob
 from SCons.Builder import Builder
 from SCons.Action import Action
 
@@ -360,7 +359,7 @@ def RunCppCheck(env, target, source):
     # Get the report file name.
     report_file = target[0].abspath
     # Get the output directory.
-    output_directory = os.path.split(report_file)[0]
+    output_directory = os.path.dirname(report_file)
     # Check if the output directory for the cppcheck report already exists.
     if not os.path.exists(output_directory):
         os.makedirs(output_directory)
@@ -373,15 +372,23 @@ def RunCppCheck(env, target, source):
 
 def RunStaticAnalysis(env, target, source):
     # Print message on the screen.
-    
     env.Cprint('\n=== Running Static Code Analysis ===\n', 'green')
     target_name = target[0].name
-    cppcheck_report = target_name + 'CPP'
+    cppcheck_report = target_name + '-cpp'
     cppcheck_options = ' '.join([opt for opt in env['CPPCHECK_OPTIONS']])
-    splint_report = target_name + 'C'
-    cppcheck_rc = _RunCppCheck(cppcheck_report, _FindSources(source, ['.cpp', '.cc', '.h', '.hh']), cppcheck_options)
-    print cppcheck_rc
-    splint_rc = _RunSplint(splint_report, _FindSources(source, ['.c']))
+    splint_report = target_name + '-c'
+    cpp_files = _FindSources(source, ['.cpp', '.cc'])
+    c_files = _FindSources(source, ['.c'])
+    headers = _FindHeaders(source)
+    if cpp_files:
+        cppcheck_rc = _RunCppCheck(cppcheck_report, cpp_files, headers, 
+            cppcheck_options)
+    if c_files:
+        splint_rc = _RunSplint(splint_report, c_files, headers)
+    if headers and not (cpp_files or c_files):
+        #headers only
+        cppcheck_rc = _RunCppCheck(cppcheck_report, _FindSources(source, 
+            ['.h', '.hh', '.hpp']), headers, cppcheck_options)
     # Return the output of both builders
     return cppcheck_rc and splint_rc
 
@@ -439,21 +446,21 @@ def RunReadyToCommit(env, target, source):
     print ""  # Just an empty line.
     return 0
 
-def _RunCppCheck(report_file, files, options):
-    if files:
-        if 'xml' in options:
-            cmd = "cppcheck %s %s 2> %s.xml" % (options, files, report_file)
-        else:
-            cmd = "cppcheck %s %s | sed '/files checked /d' > %s.txt" % (options, files, report_file)
-        print cmd
-        cppcheck_proc = subprocess.Popen(cmd, shell=True)
-        return cppcheck_proc.wait()
+def _RunCppCheck(report_file, files, headers, options):
+    if 'xml' in options:
+        cmd = "cppcheck --check-config %s %s %s 2> %s.xml" % (options, files, 
+            headers, report_file)
+    else:
+        cmd = "cppcheck %s %s %s 2> %s.txt" % (options, files, 
+            headers, report_file)
+    print cmd
+    cppcheck_proc = subprocess.Popen(cmd, shell=True)
+    return cppcheck_proc.wait()
 
-def _RunSplint(report_file, files):
-    if files:
-        cmd = "splint %s > %s.txt" % (files, report_file)
-        splint_proc = subprocess.Popen(cmd, shell=True)
-        return splint_proc.wait()
+def _RunSplint(report_file, files, headers):
+    cmd = "splint %s %s > %s.txt" % (files, headers, report_file)
+    splint_proc = subprocess.Popen(cmd, shell=True)
+    return splint_proc.wait()
 
 def _CheckAstyle(env, source, output_directory):
     # Create a temporary directory.
@@ -534,10 +541,22 @@ def _RTCCheckValgrind(env):
     cmd = "cat %s | grep '<error>'" % report_file
     return subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE) != 0
 
-def _FindSources(dirs, extensions):
+def _FindSources(dirs, extensions, spacer=' '):
     out = []
-    for s in dirs:
-        name, ext = os.path.splitext(s.name)
+    
+    for source in dirs:
+        name, ext = os.path.splitext(source.name)
         if ext in extensions:
-            out.append(s.abspath)
+            out.append(source.abspath)
+    
     return ' '.join(out)
+
+def _FindHeaders(dirs):
+    out = []
+    for source in dirs:
+        name, ext = os.path.splitext(source.name)
+        if ext in ['.h', '.hh', '.hpp']:
+            dirname = os.path.dirname(source.abspath)
+            if dirname not in out:
+                out.append(dirname)
+    return ''.join('-I%s ' %x for x in out)
