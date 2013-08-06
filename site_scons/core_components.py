@@ -155,7 +155,8 @@ class Component(object):
                                               if (n == name) and (d > depth)]) == 0
         # Remove from the list the duplicated names.
         aux = [t for t in self._libs if IsMax(*t)]
-        aux = utils.RemoveDuplicates(aux).sort()
+        aux = utils.RemoveDuplicates(aux)
+        aux.sort()
         # Create the self._libs list.
         self._libs = [t[1] for t in aux]
         return (self._libs, self._libpaths)
