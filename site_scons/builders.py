@@ -372,6 +372,8 @@ def RunCppCheck(env, target, source):
 
 def RunStaticAnalysis(env, target, source):
     # Print message on the screen.
+    cppcheck_rc = False
+    splint_rc = False
     env.Cprint('\n=== Running Static Code Analysis ===\n', 'green')
     target_name = target[0].name
     cppcheck_report = target_name + '-cpp'
