@@ -1252,11 +1252,15 @@ class UnitTestComponent(ProgramComponent):
         return run_valgrind_builder
         
     def _CreateASanTarget(self, flags, program_builder):
-        # Set clang as compiler
         if flags['asan']:
+            # Set clang as compiler
             compiler = '~/Documents/clang/clang+llvm-3.3-amd64-Ubuntu-12.04.2/bin/clang'
+            # Set clang flags
+            flags = ['-O1', '-fno-omit-frame-pointer', '-g']
             self._env["CC"] = compiler
             self._env["CXX"] = compiler
+            self._env["CXXFLAGS"] = flags
+            self._env["CFLAGS"] = flags
         if self._builders['asan'] is not None:
             return self._builders['asan']
         target = self._env.Dir('%s-asan' % self._project_name)
