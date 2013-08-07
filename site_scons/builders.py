@@ -28,7 +28,6 @@ import subprocess
 import os.path
 import shutil
 import os
-from glob import glob
 from SCons.Script import *
 import SCons.Builder
 
@@ -83,6 +82,9 @@ def init(env):
     bldReadyToCommit = Builder(action=SCons.Action.Action(RunReadyToCommit, PrintDummy))
     env.Append(BUILDERS={'RunReadyToCommit': bldReadyToCommit})
     #-
+    bldInfo = Builder(action=SCons.Action.Action(RunInfo, PrintDummy))
+    env.Append(BUILDERS={'RunInfo': bldInfo})
+	#-
     bldStaticAnalysis = Builder(action=SCons.Action.Action(RunStaticAnalysis, PrintDummy))
     env.Append(BUILDERS={'RunStaticAnalysis': bldStaticAnalysis})
 
@@ -144,7 +146,7 @@ def RunLcov(env, target, source):
         'lcov --no-checksum --directory %(project_dir)s -b . --capture --output-file %(coverage_file)s' % data,
         'lcov --no-checksum --directory %(project_dir)s -b . --capture --output-file %(coverage_file)s' % data,
         'lcov --remove %(coverage_file)s "*usr/include*" -o %(coverage_file)s' % data,
-        'lcov --remove %(coverage_file)s "*/tests/*" -o %(coverage_file)s' % data,
+        'lcov --remove %(coverage_file)s "*/tests/*" -o %(coverage_file)s' % data
     ]
     for dep in env['PROJECT_DEPS']:
         data['project_dep'] = dep
@@ -247,15 +249,15 @@ def AStyle(env, target, source):
     build_dir = env['BUILD_DIR']
     ws_dir = env['WS_DIR']
     file_list = ' '.join([f.abspath.replace(build_dir, ws_dir) for f in source if "tests/ref/" not in f.abspath])
-    # Create the command for subprocess.call().
+    # Create the command to be executed.
     cmd = "astyle -k1 --options=none --convert-tabs -bSKpUH %s" % file_list
     # Run astyle.
-    result = subprocess.call(cmd, shell=True)
-    if result != 0:
+    astyle_proc = subprocess.Popen(cmd, shell=True)
+    if astyle_proc.wait() != 0:
         env.cerror('[astyle] ERROR running astyle on: %s' % project_dir)
     else:
         env.Cprint('[astyle] OK on: %s' % project_dir, 'green')
-    return result
+    return astyle_proc.wait()
 
 
 def RunPdfLatex(env, target, source):
@@ -269,11 +271,11 @@ def RunPdfLatex(env, target, source):
     if not os.path.exists(targetDir):
         #env.Execute(env.Mkdir(targetDir))
         os.mkdir(targetDir)
-    rt = subprocess.call('cd ' + pathHead + ' ; pdflatex ' + env['PDFLATEX_OPTIONS']
+    pdflates_proc = subprocess.Popen('cd ' + pathHead + ' ; pdflatex ' + env['PDFLATEX_OPTIONS']
         + ' -output-directory "' + tmpPdf2TexDir + '" ' + pathTail, shell=True)
     shutil.move(targetDir, tmpPdf2TexDir + pathTail[:-4] + ".pdf")
     shutil.rmtree(tmpPdf2TexDir)
-    return rt
+    return pdflates_proc.wait()
 
 
 def RunValgrind(env, target, source):
@@ -294,10 +296,10 @@ def RunValgrind(env, target, source):
     rep = (env_var, val_opt, test, testsuite)
     cmd = '%s valgrind %s %s --gtest_filter=%s' % rep
     # Execute the command.
-    subprocess.call(cmd, shell=True)
+    valgrind_proc = subprocess.Popen(cmd, shell=True)
     # Get back to the previous directory.
     os.chdir(cwd)
-    return 0
+    return valgrind_proc.wait()
 
 
 def RunCCCC(env, target, source):
@@ -318,9 +320,10 @@ def RunCCCC(env, target, source):
     options = ' '.join([opt for opt in env['CCCC_OPTIONS']])
     # Create a string with the file names for cccc.
     files = ' '.join([f.abspath for f in source])
-    # Create the command to be pass to subprocess.call()
+    # Create the command to be executed.
     cmd = 'cccc %s %s' % (options, files)
-    return subprocess.call(cmd, shell=True)
+    cccc_proc = subprocess.Popen(cmd, shell=True)
+    return cccc_proc.wait()
 
 
 def RunCLOC(env, target, source):
@@ -350,9 +353,10 @@ def RunCLOC(env, target, source):
     options = ' '.join([opt for opt in env['CLOC_OPTIONS']])
     # Create a string with the file names for cloc.
     files = ' '.join([f.abspath for f in source])
-    # Create the command to be pass to subprocess.call()
+    # Create the command to be executed.
     cmd = 'cloc %s %s' % (options, files)
-    return subprocess.call(cmd, shell=True)
+    cloc_proc = subprocess.Popen(cmd, shell=True)
+    return cloc_proc.wait()
 
 
 def RunCppCheck(env, target, source):
@@ -405,9 +409,9 @@ def RunMocko(env, target, source):
         print "> chdir", cwd
     # Execute mocko.
     os.chdir(directory)
-    ret_val = subprocess.call('%s %s' % (mocko, mocko_list), shell=True)
+    mocko_proc = subprocess.Popen('%s %s' % (mocko, mocko_list), shell=True)
     os.chdir(cwd)
-    return ret_val
+    return mocko_proc.wait()
 
 
 def RunReadyToCommit(env, target, source):
@@ -455,6 +459,30 @@ def _RunSplint(report_file, files):
         splint_proc = subprocess.Popen(cmd, shell=True)
         return splint_proc.wait()
 
+def RunInfo(env, target, source):
+    #Take project info
+    name = target[0].name
+    project_type = env['PROJECT_TYPE']
+    # Print the project info
+    env.Cprint("\n----------- %s -----------\n" % name, "blue")
+    env.CprintSameLine([("The Project type is: ", "end"), ("%s \n" % project_type, "green")])
+    # Separate sources and headers
+    headers_list = [x.name for x in source for y in HEADERS if x.name.endswith(y)]
+    sources_list = [x.name for x in source for y in SOURCES if x.name.endswith(y)]
+    # Print headers and sources
+    if headers_list:
+        env.Cprint("List of headers:", "end")
+        for hdr in headers_list:
+            env.Cprint(hdr, "cyan")
+        # New line at the end of the headers
+        env.Cprint("","end")
+    if sources_list:
+        env.Cprint("List of sources:", "end")
+        for src in sources_list:
+            env.Cprint(src, "purple")
+        # New line at the end of the sources
+        env.Cprint("","end")
+
 def _CheckAstyle(env, source, output_directory):
     # Create a temporary directory.
     tmp_dir = os.path.join(output_directory, 'tmp')
@@ -473,11 +501,13 @@ def _CheckAstyle(env, source, output_directory):
     need_astyle = False
     # A list for the files that needs astyle.
     need_astyle_list = []
-    # Create the command for subprocess.call().
+    # Create the command to be executed.
     cmd = 'astyle -k1 --options=none --convert-tabs -bSKpUH %s' % files_str
     # To see if a file needs astyle we first apply astyle to the file and
     # check if it suffer some change.
-    if subprocess.call(cmd, shell=True, stdout=subprocess.PIPE) != 0:
+    astyle_proc = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE)
+    astyle_proc.stdout.read()
+    if astyle_proc.wait() != 0:
         # If astyle fails, we fail.
         return None
     # Check if astyle did some modifications.
@@ -498,38 +528,71 @@ def _CheckAstyle(env, source, output_directory):
 
 
 def _RTCCheckAstyle(env):
+    # Path to the report file.
     report_file = os.path.join(env['INSTALL_REPORTS_DIR'], 'astyle-check')
     report_file = os.path.join(report_file, env['PROJECT_NAME'])
     report_file = os.path.join(report_file, 'AstyleCheckReport.diff')
-    cmd = "cat %s | grep -E '^\+' | grep -v +++" % report_file
-    return subprocess.call(cmd, shell=True, stdout=subprocess.PIPE) != 0
+    # Command to be executed.
+    cmd = "cat %s | grep -E '^\+' | grep -v +++ | grep -v 'for (auto'" % report_file
+    # Execute the command.
+    astyle_proc = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE)
+    # Read the output of the process.
+    astyle_proc.stdout.read()
+    # Wait until process terminates and return the status.
+    return astyle_proc.wait() != 0
 
 
 def _RTCCheckCppcheck(env):
+    # Path to the report file.
     report_file = os.path.join(env['INSTALL_REPORTS_DIR'], 'cppcheck')
     report_file = os.path.join(report_file, env['PROJECT_NAME'])
     report_file = os.path.join(report_file, 'CppcheckReport.xml')
+    # Commands to be executed.
     cmd_error = 'cat %s | grep severity=\\"error\\"' % report_file
     cmd_warning = 'cat %s | grep severity=\\"warning\\"' % report_file
-    errors = subprocess.call(cmd_error, shell=True, stdout=subprocess.PIPE) != 0
-    warnings = subprocess.call(cmd_warning, shell=True, stdout=subprocess.PIPE) != 0
+    # Execute the commands.
+    errors_proc = subprocess.Popen(cmd_error, shell=True, stdout=subprocess.PIPE)
+    warnings_proc = subprocess.Popen(cmd_warning, shell=True, stdout=subprocess.PIPE)
+    # Read the output of the processes.
+    errors_proc.stdout.read()
+    warnings_proc.stdout.read()
+    # Wait until the processes terminate.
+    errors = errors_proc.wait() != 0
+    warnings = warnings_proc.wait() != 0
     return errors and warnings
 
 
 def _RTCCheckTests(env):
+    # Path to the report file.
     report_file = os.path.join(env['INSTALL_REPORTS_DIR'], 'test')
     report_file = os.path.join(report_file, env['PROJECT_NAME'])
     report_file = os.path.join(report_file, 'test-report.xml')
+    # Commands to be executed.
     cmd_failures = 'cat %s | grep "<testsuites" | grep -v "failures=\\"0\\""' % report_file
     cmd_errors = 'cat %s | grep "<testsuites" | grep -v "errors=\\"0\\""' % report_file
-    failures = subprocess.call(cmd_failures, shell=True, stdout=subprocess.PIPE) != 0
-    errors = subprocess.call(cmd_errors, shell=True, stdout=subprocess.PIPE) != 0
+    # Execute the commands.
+    failures_proc = subprocess.Popen(cmd_failures, shell=True, stdout=subprocess.PIPE)
+    errors_proc = subprocess.Popen(cmd_errors, shell=True, stdout=subprocess.PIPE)
+    # Read the output of the processes.
+    failures_proc.stdout.read()
+    errors_proc.stdout.read()
+    # Wait until the processes terminate.
+    failures = failures_proc.wait() != 0
+    errors = errors_proc.wait() != 0
     return failures and errors
 
 
 def _RTCCheckValgrind(env):
+    # Path to the valgrind report.
     report_file = os.path.join(env['INSTALL_REPORTS_DIR'], 'valgrind')
     report_file = os.path.join(report_file, env['PROJECT_NAME'])
     report_file = os.path.join(report_file, 'valgrind-report.xml')
+    # Command to be executed.
     cmd = "cat %s | grep '<error>'" % report_file
-    return subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE) != 0
+    # Execute the command.
+    valgrind_proc = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE)
+    # Read the output of the process.
+    valgrind_proc.stdout.read()
+    # Wait until process terminates and return the status.
+    return valgrind_proc.wait() != 0
+
