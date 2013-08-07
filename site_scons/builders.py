@@ -33,6 +33,9 @@ from SCons.Action import Action
 
 from utils import ChainCalls
 
+HEADERS = [".h", ".hpp"]
+SOURCES = [".c", "cpp"]
+
 
 def init(env):
     bldRUT = Builder(action=Action(RunUnittest, PrintDummy))
