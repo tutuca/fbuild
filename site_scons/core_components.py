@@ -1230,7 +1230,11 @@ class UnitTestComponent(ProgramComponent):
             compiler = '~/Documents/clang/clang+llvm-3.3-amd64-Ubuntu-12.04.2/bin/clang'
             # Set flags for address sanitizer
             flags = ['-fsanitize=address', '-O1', '-fno-omit-frame-pointer', '-g']
-            project_component._env.Append(CC=compiler, CXX=compiler, CXXFLAGS=flags, CFLAGS=flags, LINKFLAGS=flags)
+            project_component._env["CC"] = compiler
+            project_component._env["CXX"] = compiler
+            project_component._env["CXXFLAGS"] = flags
+            project_component._env["CFLAGS"] = flags
+            project_component._env["LINKFLAGS"] = flags
         return result
 
     def _CreateValgrindTarget(self, program_builder):
@@ -1250,7 +1254,7 @@ class UnitTestComponent(ProgramComponent):
     def _CreateASanTarget(self, program_builder):
         if self._builders['asan'] is not None:
             return self._builders['asan']
-        target = self._env.Dir('asan')
+        target = self._env.Dir('%s-asan' % self._project_name)
         # Create an instance of the RunASan() builder.
         run_asan_builder = self._env.RunASan(target, program_builder)
         # Create the alias.
