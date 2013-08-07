@@ -28,15 +28,11 @@ import subprocess
 import os.path
 import shutil
 import os
-
 from SCons.Script import *
 import SCons.Builder
 
 from utils import ChainCalls
 
-
-HEADERS = [".h", ".hpp"]
-SOURCES = [".c", "cpp"]
 
 def init(env):
     bldRUT = Builder(action=SCons.Action.Action(RunUnittest, PrintDummy))
@@ -92,6 +88,7 @@ def init(env):
     bldStaticAnalysis = Builder(action=SCons.Action.Action(RunStaticAnalysis, PrintDummy))
     env.Append(BUILDERS={'RunStaticAnalysis': bldStaticAnalysis})
 
+
 def PrintDummy(env, target, source):
     return ""
 
@@ -146,9 +143,9 @@ def RunLcov(env, target, source):
     }
     commands_list = [
         'rm -f %(coverage_file)s' % data,
-        'lcov --no-checksum --directory %(project_dir)s -b . --capture --ignore-error source --output-file %(coverage_file)s' % data,
+        'lcov --no-checksum --directory %(project_dir)s -b . --capture --output-file %(coverage_file)s' % data,
+        'lcov --no-checksum --directory %(project_dir)s -b . --capture --output-file %(coverage_file)s' % data,
         'lcov --remove %(coverage_file)s "*usr/include*" -o %(coverage_file)s' % data,
-        'lcov --remove %(coverage_file)s "*install/*" -o %(coverage_file)s' % data,
         'lcov --remove %(coverage_file)s "*/tests/*" -o %(coverage_file)s' % data
     ]
     for dep in env['PROJECT_DEPS']:
@@ -376,14 +373,8 @@ def RunCppCheck(env, target, source):
     options = ' '.join([opt for opt in env['CPPCHECK_OPTIONS']])
     # We create a string with the files for cppcheck.
     files = ' '.join([f.abspath for f in source])
-    # Create the command to be executed.
-    if 'xml' in options:
-        cmd = "cppcheck %s %s 2> %s.xml" % (options, files, report_file)
-    else:
-        cmd = "cppcheck %s %s | sed '/files checked /d' > %s.txt" % (options, files, report_file)
-    cppcheck_proc = subprocess.Popen(cmd, shell=True)
-    return cppcheck_proc.wait()
-
+    # Create the command to be pass to subprocess.call()
+    return _RunCppCheck(target, files, options)
 
 def RunStaticAnalysis(env, target, source):
     # Print message on the screen.
@@ -451,6 +442,7 @@ def RunReadyToCommit(env, target, source):
         env.Cprint('VALGRIND : [ERROR]', 'red')
     print ""  # Just an empty line.
     return 0
+
 def _RunCppCheck(report_file, files, options):
     if files:
         if 'xml' in options:
