@@ -1229,17 +1229,14 @@ class UnitTestComponent(ProgramComponent):
         # Check if necessary change the compiler for ASan.
         if self._env.NEED_ASAN:
             # Set clang as compiler
-            compiler = '~/Documents/clang/clang+llvm-3.3-amd64-Ubuntu-12.04.2/bin/clang'
-            project_component._env["CC"] = compiler
-            project_component._env["CXX"] = compiler
+            compiler_c = '~/Documents/clang/clang+llvm-3.3-amd64-Ubuntu-12.04.2/bin/clang'
+            compiler_cpp = '~/Documents/clang/clang+llvm-3.3-amd64-Ubuntu-12.04.2/bin/clang++'
+            project_component._env["CC"] = compiler_c
+            project_component._env["CXX"] = compiler_cpp
             # Set flags for address sanitizer
             flags = ['-fsanitize=address', '-O1', '-fno-omit-frame-pointer', '-g']
-            include_header_flag = FindHeaders(headers).split(' ')
-            #import ipdb; ipdb.set_trace()
-            include_sources_flag = ['-I'+ x for x in FindSources(sources, ['c', '.cpp', '.cc']).split(' ')]
-            project_component._env["CXXFLAGS"] = flags  + include_header_flag + include_sources_flag
-            project_component._env["CFLAGS"] = flags  + include_header_flag + include_sources_flag
-            project_component._env["LINKFLAGS"] = flags + include_header_flag + include_sources_flag
+            project_component._env["CXXFLAGS"] = flags
+            project_component._env["CFLAGS"] = flags
         return result
 
     def _CreateValgrindTarget(self, program_builder):
