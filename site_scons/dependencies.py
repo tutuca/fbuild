@@ -324,7 +324,7 @@ class APT_GET(Dependencies):
 
     def Checkout(self):
         Cprint('[apt-get] installing %s ' % self.name, 'purple')
-        rc = subprocess.call('sudo apt-get install %s' % self.target, shell=True)
+        rc = subprocess.call('sudo apt-get install -y %s' % self.target, shell=True)
         if rc != 0:
             return Cprint(
                 '[error] apt-get failed to installing %s, error: %s'

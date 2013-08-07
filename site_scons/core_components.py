@@ -28,6 +28,7 @@ import os
 import abc
 
 from SCons import Node
+from re import sub
 
 import utils
 import fbuild_exceptions
@@ -141,7 +142,7 @@ class Component(object):
         else:
             self._libs = []
             self._libpaths = []
-        # Append some strandars paths to this variable.
+        # Append some standard paths to this variable.
         self._libpaths.append(self._env['INSTALL_LIB_DIR'])
         # Look for the libs and its paths.
         try:
@@ -149,17 +150,12 @@ class Component(object):
         except fbuild_exceptions.CircularDependencyError, error:
             msg = (' -> ').join(error[0])
             self._env.cerror('[error] A dependency cycle was found:\n  %s' % msg)
-        # Remember:
-        #   t[0]  ->  depth.
-        #   t[1]  ->  name.
-        # This function tells if the tuple depth (t[0]) is the maximum in
+        # This function tells if the tuple depth is the maximum in
         # self._libs.
-        IsMax = lambda t: len([x for x in self._libs if (x[1] == t[1]) and (x[0] > t[0])]) == 0
-        # This function tells if the tuple name (t[1]) is unique in
-        # self._libs.
-        Unique = lambda t: len([x for x in self._libs if x[1] == t[1]]) == 1
+        IsMax = lambda depth, name: len([(d, n) for (d, n) in self._libs 
+                                              if (n == name) and (d > depth)]) == 0
         # Remove from the list the duplicated names.
-        aux = [t for t in self._libs if Unique(t) or IsMax(t)]
+        aux = [t for t in self._libs if IsMax(*t)]
         aux = utils.RemoveDuplicates(aux)
         aux.sort()
         # Create the self._libs list.
@@ -186,7 +182,9 @@ class Component(object):
         except fbuild_exceptions.CircularDependencyError, error:
             msg = (' -> ').join(error[0])
             self._env.cerror('[error] A dependency cycle was found:\n  %s' % msg)
-        return list(self._include_paths)
+        paths = list(self._include_paths)
+        build_list = [paths.pop(paths.index(x)) for x in paths if '/build/' in x.abspath]
+        return build_list + paths # so /builds/ are always first
 
     def GetIncludeFiles(self):
         """
@@ -275,13 +273,13 @@ class Component(object):
 
     def _GetIncludePaths(self, include_paths, stack):
         """
-            This is a recursive internal method used by the GetIncludePaths
-            method.
+        This is a recursive internal method used by the GetIncludePaths
+        method.
         """
         if self.name in stack:
             # If the component name is within the stack then there is a
             # cycle.
-            stack.append(self.name)
+            stack.append(self.name) # so why append it?
             raise fbuild_exceptions.CircularDependencyError(stack)
         else:
             # We add the component name to the stack.
@@ -293,15 +291,14 @@ class Component(object):
                 # If this is a UnitTestComponent we need the include directories
                 # from its component.
                 component = self._component_graph.get(self._project_name)
-                for path in component._includes:
-                    include_paths.add(path)
+                include_paths |= set(component._includes)
             else:
                 # For any other component we use the _includes list.
                 for path in self._includes:
                     include_paths.add(path)
             # We also add the install/include/ and the build/project/ directories.
-            include_paths.add(self._env.Dir('$INSTALL_HEADERS_DIR').abspath)
-            include_paths.add(self._dir.abspath)
+            include_paths.add(self._env.Dir('$INSTALL_HEADERS_DIR'))
+            include_paths.add(self._dir)
         else:
             # If we're here is because we're looking for the include of the
             # dependency of a component.
@@ -310,25 +307,24 @@ class Component(object):
             # component.
             assert(not isinstance(self, UnitTestComponent))
             if isinstance(self, ExternalComponent):
-                for path in self._includes:
-                    include_paths.add(path)
+                include_paths |= set(self._includes)
             else:
                 path = self._env.Dir('$INSTALL_HEADERS_DIR')
-                path = path.Dir(self.name).abspath
+                path = path.Dir(self.name)
                 include_paths.add(path)
         # We always add external includes.
-        for path in self._external_includes:
-            include_paths.add(path)
+        include_paths |= set(self._external_includes)
         # Look for the includes of its dependencies.
         for dependency in self._dependencies:
-            component = self._component_graph.get(dependency)
-            if component is not None:
-                component._GetIncludePaths(include_paths, stack)
-            else:
+            try:
+                component = self._component_graph[dependency]
+            except KeyError:
                 self._env.cerror(
                     '[error] %s depends on %s which could not be found' %
                     (self.name, dependency)
                 )
+            else:
+                component._GetIncludePaths(include_paths, stack)
         # We remove the component name from the stack.
         if self.name in stack:
             stack.pop()
@@ -348,17 +344,18 @@ class Component(object):
             libs.append((depth, self.name))
             # We add the directory where the library lives.
             if not self._dir.abspath in libpaths:
-                libpaths.append(self._dir.abspath)
+                libpaths.append(self._dir)
         # Check its dependencies.
-        for dep in self._dependencies:
-            c = self._component_graph.get(dep)
-            if c is None:
+        for dependencies in self._dependencies:
+            try:
+                component = self._component_graph[dependencies]
+            except KeyError:
                 self._env.cerror(
                     '[error] %s depends on %s which could not be found' %
-                    (self.name, dep)
+                    (self.name, dependencies)
                 )
             else:
-                c._GetLibs(libs, libpaths, stack, depth + 1)
+                component._GetLibs(libs, libpaths, stack, depth + 1)
         # We remove the component name from the stack.
         if self.name in stack:
             stack.pop()
@@ -476,6 +473,7 @@ class HeaderOnlyComponent(Component):
             'cloc': None,
             'coverage': None,
             'doc': None,
+            'info': None,
             'install': None,
             'jenkins': None,
             'ready-to-commit': None,
@@ -483,6 +481,8 @@ class HeaderOnlyComponent(Component):
             'test': None,
             'valgrind': None
         }
+        # Set the project type
+        self._env['PROJECT_TYPE'] = self._GetProjectType()
 
     #
     # Public methods.
@@ -513,6 +513,7 @@ class HeaderOnlyComponent(Component):
         self._CreateClocTarget(headers)
         self._CreateStaticAnalysisTarget(headers)
         self._CreateDocTarget()
+        self._CreateInfoTarget(headers)
         # Create the installer.
         installer = self._CreateInstallerBuilder([])
         # Create the alias group.
@@ -547,6 +548,13 @@ class HeaderOnlyComponent(Component):
     #
     # Private methods.
     #
+
+    def _GetProjectType(self):
+        # Take the name class and remove the word "Component"
+        name = type(self).__name__.replace("Component", "")
+        # Transform from CamelCase to Camel Case
+        return sub('(?!^)([A-Z]+)', r' \1', name)
+        
 
     def _CreateDocTarget(self):
         if self._builders['doc'] is not None:
@@ -667,7 +675,7 @@ class HeaderOnlyComponent(Component):
     def _CreateAstyleTarget(self, sources):
         if self._builders['astyle'] is not None:
             return self._builders['astyle']
-        # We use the prject directory as the target.
+        # We use the project directory as the target.
         target = self._env.Dir(self._env['WS_DIR']).Dir(self.name)
         # Create an instance of the RunAStyle() builder.
         astyle_builder = self._env.RunAStyle(target, sources)
@@ -683,6 +691,23 @@ class HeaderOnlyComponent(Component):
         # Return the builder instance.
         return astyle_builder
 
+    def _CreateInfoTarget(self, sources):
+        if self._builders['info'] is not None:
+            return self._builders['info']
+        target = self._env.Dir(self.name)
+        # Create an instance of the RunInfo() builder.
+        info_builder = self._env.RunInfo(target, sources)
+        # Info can always be executed.
+        self._env.AlwaysBuild(info_builder)
+        # Create the alias.
+        name = '%s:info' % self.name
+        deps = [info_builder]
+        msg = "Shows information about the project."
+        self._env.Alias(name, deps, msg)
+        # Save the builder into the builder dictionary.
+        self._builders['info'] = info_builder
+        # Return the builder instance.
+        return info_builder
 
 class SourcedComponent(HeaderOnlyComponent):
     """
@@ -741,8 +766,9 @@ class SourcedComponent(HeaderOnlyComponent):
             self._CreateClocTarget(sources)
             self._CreateStaticAnalysisTarget(sources)
             self._CreateDocTarget()
+            self._CreateInfoTarget(sources)
             self._builders['install'] = True
-        # We retuen an empty list because a sourced has nothing to install.
+        # We return an empty list because a sourced has nothing to install.
         return []
 
     def GetSourcesFiles(self):
@@ -834,6 +860,7 @@ class ObjectComponent(SourcedComponent):
         self._CreateClocTarget(sources)
         self._CreateStaticAnalysisTarget(sources)
         self._CreateDocTarget()
+        self._CreateInfoTarget(sources)
         # Initialize the object file list.
         self._CreateObjectFiles()
         # Create the installer.
@@ -910,6 +937,7 @@ class StaticLibraryComponent(ObjectComponent):
         self._CreateClocTarget(sources)
         self._CreateStaticAnalysisTarget(sources)
         self._CreateDocTarget()
+        self._CreateInfoTarget(sources)
         # Create a static library builder.
         slib_builder = self._CreateStaticLibraryBuilder(target)
         # Create an installer builders.
@@ -969,6 +997,7 @@ class DynamicLibraryComponent(ObjectComponent):
         self._CreateClocTarget(sources)
         self._CreateStaticAnalysisTarget(sources)
         self._CreateDocTarget()
+        self._CreateInfoTarget(sources)
         # Create the shared library builder.
         dlib_builder = self._CreateSharedLibraryBuilder(target)
         # Create the installer builder.
@@ -1031,6 +1060,7 @@ class ProgramComponent(ObjectComponent):
         self._CreateClocTarget(sources)
         self._CreateStaticAnalysisTarget(sources)
         self._CreateDocTarget()
+        self._CreateInfoTarget(sources)
         # Create the program builder.
         program_builder = self._CreateProgramBuilder(target)
         # Create an instance of the Install() builder.
