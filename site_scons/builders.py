@@ -31,7 +31,7 @@ import os
 from SCons.Builder import Builder
 from SCons.Action import Action
 
-from utils import ChainCalls
+from utils import ChainCalls, FindHeaders, FindSources
 
 HEADERS = [".h", ".hpp"]
 SOURCES = [".c", "cpp"]
@@ -91,7 +91,7 @@ def init(env):
     bldStaticAnalysis = Builder(action=Action(RunStaticAnalysis, PrintDummy))
     env.Append(BUILDERS={'RunStaticAnalysis': bldStaticAnalysis})
     #-
-    bldAddressSanitizer = Builder(action=SCons.Action.Action(RunASan, PrintDummy))
+    bldAddressSanitizer = Builder(action=Action(RunASan, PrintDummy))
     env.Append(BUILDERS={'RunASan': bldAddressSanitizer})
     env['ASAN_OPTIONS'] = 'ASAN_OPTIONS=verbosity=1:log_path=none'
 
@@ -402,9 +402,9 @@ def RunStaticAnalysis(env, target, source):
     cppcheck_report = target_name + '-cpp'
     cppcheck_options = ' '.join([opt for opt in env['CPPCHECK_OPTIONS']])
     splint_report = target_name + '-c'
-    cpp_files = _FindSources(source, ['.cpp', '.cc'])
-    c_files = _FindSources(source, ['.c'])
-    headers = _FindHeaders(source)
+    cpp_files = FindSources(source, ['.cpp', '.cc'])
+    c_files = FindSources(source, ['.c'])
+    headers = FindHeaders(source)
     if cpp_files:
         cppcheck_rc = _RunCppCheck(cppcheck_report, cpp_files, headers, 
             cppcheck_options)
@@ -412,7 +412,7 @@ def RunStaticAnalysis(env, target, source):
         splint_rc = _RunSplint(splint_report, c_files, headers)
     if headers and not (cpp_files or c_files):
         #headers only
-        cppcheck_rc = _RunCppCheck(cppcheck_report, _FindSources(source, 
+        cppcheck_rc = _RunCppCheck(cppcheck_report, FindSources(source, 
             ['.h', '.hh', '.hpp']), headers, cppcheck_options)
     # Return the output of both builders
     return cppcheck_rc and splint_rc
@@ -623,23 +623,3 @@ def _RTCCheckValgrind(env):
     valgrind_proc.stdout.read()
     # Wait until process terminates and return the status.
     return valgrind_proc.wait() != 0
-
-def _FindSources(dirs, extensions, spacer=' '):
-    out = []
-    
-    for source in dirs:
-        name, ext = os.path.splitext(source.name)
-        if ext in extensions:
-            out.append(source.abspath)
-    
-    return ' '.join(out)
-
-def _FindHeaders(dirs):
-    out = []
-    for source in dirs:
-        name, ext = os.path.splitext(source.name)
-        if ext in ['.h', '.hh', '.hpp']:
-            dirname = os.path.dirname(source.abspath)
-            if dirname not in out:
-                out.append(dirname)
-    return ''.join('-I%s ' %x for x in out)

@@ -29,6 +29,7 @@ import abc
 
 from SCons import Node
 from re import sub
+from builders import FindHeaders, FindSources
 
 import utils
 import fbuild_exceptions
@@ -1166,6 +1167,10 @@ class UnitTestComponent(ProgramComponent):
     def _CheckForFlags(self):
         # Get the component of the project.
         project_component = self._component_graph.get(self._project_name)
+        # Get headers of project
+        headers = project_component.GetIncludeFiles()
+        # Get sources of project
+        sources = project_component.GetSourcesFiles()
         # Flags for check the calling targets.
         jenkins = utils.WasTargetInvoked('%s:jenkins' % self._project_name)
         coverage = utils.WasTargetInvoked('%s:coverage' % self._project_name)
@@ -1225,13 +1230,16 @@ class UnitTestComponent(ProgramComponent):
         if self._env.NEED_ASAN:
             # Set clang as compiler
             compiler = '~/Documents/clang/clang+llvm-3.3-amd64-Ubuntu-12.04.2/bin/clang'
-            # Set flags for address sanitizer
-            flags = ['-fsanitize=address', '-O1', '-fno-omit-frame-pointer', '-g']
             project_component._env["CC"] = compiler
             project_component._env["CXX"] = compiler
-            project_component._env["CXXFLAGS"] = flags
-            project_component._env["CFLAGS"] = flags
-            project_component._env["LINKFLAGS"] = flags
+            # Set flags for address sanitizer
+            flags = ['-fsanitize=address', '-O1', '-fno-omit-frame-pointer', '-g']
+            include_header_flag = FindHeaders(headers).split(' ')
+            #import ipdb; ipdb.set_trace()
+            include_sources_flag = ['-I'+ x for x in FindSources(sources, ['c', '.cpp', '.cc']).split(' ')]
+            project_component._env["CXXFLAGS"] = flags  + include_header_flag + include_sources_flag
+            project_component._env["CFLAGS"] = flags  + include_header_flag + include_sources_flag
+            project_component._env["LINKFLAGS"] = flags + include_header_flag + include_sources_flag
         return result
 
     def _CreateValgrindTarget(self, program_builder):
