@@ -1158,7 +1158,7 @@ class UnitTestComponent(ProgramComponent):
         self._CreateGroupAliases()
         # Create targets.
         self._CreateValgrindTarget(program_builder)
-        self._CreateASanTarget(program_builder)
+        self._CreateASanTarget(flags, program_builder)
         self._CreateCoverageTarget(run_test_target, program_builder)
         self._CreateJenkinsTarget(flags, run_test_target, program_builder)
         self._CreateReadyToCommitTtarget(flags, run_test_target, program_builder)
@@ -1251,7 +1251,12 @@ class UnitTestComponent(ProgramComponent):
         self._builders['valgrind'] = run_valgrind_builder
         return run_valgrind_builder
         
-    def _CreateASanTarget(self, program_builder):
+    def _CreateASanTarget(self, flags, program_builder):
+        # Set clang as compiler
+        if flags['asan']:
+            compiler = '~/Documents/clang/clang+llvm-3.3-amd64-Ubuntu-12.04.2/bin/clang'
+            self._env["CC"] = compiler
+            self._env["CXX"] = compiler
         if self._builders['asan'] is not None:
             return self._builders['asan']
         target = self._env.Dir('%s-asan' % self._project_name)
