@@ -1229,14 +1229,17 @@ class UnitTestComponent(ProgramComponent):
         # Check if necessary change the compiler for ASan.
         if self._env.NEED_ASAN:
             # Set clang as compiler
-            compiler_c = '~/Documents/clang/clang+llvm-3.3-amd64-Ubuntu-12.04.2/bin/clang'
-            compiler_cpp = '~/Documents/clang/clang+llvm-3.3-amd64-Ubuntu-12.04.2/bin/clang++'
+            compiler_c = 'clang'
+            compiler_cpp = 'clang++'
             project_component._env["CC"] = compiler_c
             project_component._env["CXX"] = compiler_cpp
             # Set flags for address sanitizer
             flags = ['-fsanitize=address', '-O1', '-fno-omit-frame-pointer', '-g']
+            include_header_flag = FindHeaders(headers).split(' ')
+            include_sources_flag = ['-I'+ x for x in FindSources(sources, ['c', '.cpp', '.cc']).split(' ')]
             project_component._env["CXXFLAGS"] = flags
             project_component._env["CFLAGS"] = flags
+            project_component._env["LINKFLAGS"] = ['-llibclang_rt.asan.a'] + include_header_flag + include_sources_flag
         return result
 
     def _CreateValgrindTarget(self, program_builder):
@@ -1256,7 +1259,7 @@ class UnitTestComponent(ProgramComponent):
     def _CreateASanTarget(self, flags, program_builder):
         if flags['asan']:
             # Set clang as compiler
-            compiler = '~/Documents/clang/clang+llvm-3.3-amd64-Ubuntu-12.04.2/bin/clang'
+            compiler = 'clang++'
             # Set clang flags
             flags = ['-O1', '-fno-omit-frame-pointer', '-g']
             self._env["CC"] = compiler
