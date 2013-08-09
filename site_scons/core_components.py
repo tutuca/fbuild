@@ -1239,7 +1239,7 @@ class UnitTestComponent(ProgramComponent):
             include_sources_flag = ['-I'+ x for x in FindSources(sources, ['c', '.cpp', '.cc']).split(' ')]
             project_component._env["CXXFLAGS"] = flags
             project_component._env["CFLAGS"] = flags
-            project_component._env["LINKFLAGS"] = ['-llibclang_rt.asan.a'] + include_header_flag + include_sources_flag
+            self._env["LINKFLAGS"] = ['-fsanitize=address', '-o a.out']
         return result
 
     def _CreateValgrindTarget(self, program_builder):
@@ -1259,11 +1259,12 @@ class UnitTestComponent(ProgramComponent):
     def _CreateASanTarget(self, flags, program_builder):
         if flags['asan']:
             # Set clang as compiler
-            compiler = 'clang++'
+            compiler_c = 'clang'
+            compiler_cpp = 'clang++'
             # Set clang flags
             flags = ['-O1', '-fno-omit-frame-pointer', '-g']
-            self._env["CC"] = compiler
-            self._env["CXX"] = compiler
+            self._env["CC"] = compiler_c
+            self._env["CXX"] = compiler_cpp
             self._env["CXXFLAGS"] = flags
             self._env["CFLAGS"] = flags
         if self._builders['asan'] is not None:
