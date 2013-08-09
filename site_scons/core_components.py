@@ -1235,11 +1235,11 @@ class UnitTestComponent(ProgramComponent):
             project_component._env["CXX"] = compiler_cpp
             # Set flags for address sanitizer
             flags = ['-fsanitize=address', '-O1', '-fno-omit-frame-pointer', '-g']
-            include_header_flag = FindHeaders(headers).split(' ')
-            include_sources_flag = ['-I'+ x for x in FindSources(sources, ['c', '.cpp', '.cc']).split(' ')]
             project_component._env["CXXFLAGS"] = flags
             project_component._env["CFLAGS"] = flags
-            self._env["LINKFLAGS"] = ['-fsanitize=address', '-o a.out']
+            project_component._env["LINKFLAGS"] = ['-fsanitize=address']
+            #self._env["LINK"] = compiler_cpp
+            self._env["LINKFLAGS"] = ['-fsanitize=address', '-oa.out']
         return result
 
     def _CreateValgrindTarget(self, program_builder):
