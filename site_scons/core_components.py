@@ -1231,15 +1231,13 @@ class UnitTestComponent(ProgramComponent):
             # Set clang as compiler
             compiler_c = 'clang'
             compiler_cpp = 'clang++'
-            project_component._env["CC"] = compiler_c
-            project_component._env["CXX"] = compiler_cpp
+            project_component._env.Replace(CC=compiler_c, CXX=compiler_cpp)
             # Set flags for address sanitizer
-            flags = ['-fsanitize=address', '-O1', '-fno-omit-frame-pointer', '-g']
-            project_component._env["CXXFLAGS"] = flags
-            project_component._env["CFLAGS"] = flags
-            project_component._env["LINKFLAGS"] = ['-fsanitize=address']
+            flags = ['-fsanitize=address', '-O1', '-fno-omit-frame-pointer', '-g', '-c']
+            linker_flags = ['-fsanitize=address']
+            project_component._env.Replace(CXXFLAGS=flags, CFLAGS=flags, LINKFLAGS=linker_flags)
             #self._env["LINK"] = compiler_cpp
-            self._env["LINKFLAGS"] = ['-fsanitize=address', '-oa.out']
+            self._env.Replace(LINKFLAGS=linker_flags)
         return result
 
     def _CreateValgrindTarget(self, program_builder):
@@ -1263,10 +1261,7 @@ class UnitTestComponent(ProgramComponent):
             compiler_cpp = 'clang++'
             # Set clang flags
             flags = ['-O1', '-fno-omit-frame-pointer', '-g']
-            self._env["CC"] = compiler_c
-            self._env["CXX"] = compiler_cpp
-            self._env["CXXFLAGS"] = flags
-            self._env["CFLAGS"] = flags
+            self._env.Replace(CC=compiler_c, CXX=compiler_cpp, CXXFLAGS=flags, CFLAGS=flags)
         if self._builders['asan'] is not None:
             return self._builders['asan']
         target = self._env.Dir('%s-asan' % self._project_name)
