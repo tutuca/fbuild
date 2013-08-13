@@ -312,8 +312,9 @@ def RunValgrind(env, target, source):
 def RunASan(env, target, source):
     env.Cprint('\n=== Running Address Sanitizer ===\n', 'green')
     # Get the test executable file
-    executable = source[0].abspath
-    asan_cmd = env["ASAN_OPTIONS"] + ' ./%s' % executable
+    test_dir, test_program = os.path.split(source[0].abspath)
+    asan_cmd = env["ASAN_OPTIONS"] + ' ./%s' % test_program
+    cmd = "cd %s; %s" % (test_dir, asan_cmd)
     # Execute Address Sanitizer
     asan_proc = subprocess.Popen(asan_cmd, shell=True)
     return asan_proc.wait()

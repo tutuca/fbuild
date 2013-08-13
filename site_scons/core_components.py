@@ -1233,10 +1233,9 @@ class UnitTestComponent(ProgramComponent):
             compiler_cpp = 'clang++'
             project_component._env.Replace(CC=compiler_c, CXX=compiler_cpp)
             # Set flags for address sanitizer
-            flags = ['-fsanitize=address', '-O1', '-fno-omit-frame-pointer', '-g', '-c']
+            flags = ['-fsanitize=address', '-fno-omit-frame-pointer', '-g']
             linker_flags = ['-fsanitize=address']
-            project_component._env.Replace(CXXFLAGS=flags, CFLAGS=flags, LINKFLAGS=linker_flags)
-            #self._env["LINK"] = compiler_cpp
+            project_component._env.Append(CXXFLAGS=flags, CFLAGS=flags, LINKFLAGS=linker_flags)
             self._env.Replace(LINKFLAGS=linker_flags)
         return result
 
@@ -1260,7 +1259,7 @@ class UnitTestComponent(ProgramComponent):
             compiler_c = 'clang'
             compiler_cpp = 'clang++'
             # Set clang flags
-            flags = ['-O1', '-fno-omit-frame-pointer', '-g']
+            flags = ['-fno-omit-frame-pointer', '-g', '-fsanitize=address']
             self._env.Replace(CC=compiler_c, CXX=compiler_cpp, CXXFLAGS=flags, CFLAGS=flags)
         if self._builders['asan'] is not None:
             return self._builders['asan']
