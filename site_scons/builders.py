@@ -315,8 +315,13 @@ def RunASan(env, target, source):
     test_dir, test_program = os.path.split(source[0].abspath)
     asan_cmd = env["ASAN_OPTIONS"] + ' ./%s' % test_program
     cmd = "cd %s; %s" % (test_dir, asan_cmd)
+    #import ipdb; ipdb.set_trace()
     # Execute Address Sanitizer
-    asan_proc = subprocess.Popen(asan_cmd, shell=True)
+    asan_proc = subprocess.Popen(cmd, shell=True)
+    if asan_proc.wait():
+        env.cerror('\n\nTest result: *** FAILED ***\n\n')
+    else:
+        env.Cprint('\n\nTest result: *** PASSED ***\n\n', 'green')
     return asan_proc.wait()
 
 
