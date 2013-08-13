@@ -424,7 +424,7 @@ class ExternalComponent(Component):
     #
 
     def __init__(self, graph, env, name, dir, deps, inc, linkable, als=None):
-        Component.__init__(self, graph, env, name, dir, deps, inc, [], als)
+        super(ExternalComponent, self).__init__(graph, env, name, dir, deps, inc, [], als)
         self._should_be_linked = linkable
 
     #
@@ -464,7 +464,7 @@ class HeaderOnlyComponent(Component):
     #
 
     def __init__(self, graph, env, name, dir, deps, inc, als=None):
-        Component.__init__(self, graph, env, name, dir, deps, inc, [], als)
+        super(HeaderOnlyComponent, self).__init__(graph, env, name, dir, deps, inc, [], als)
         self._project_dir = self._env.Dir('WS_DIR').Dir(self.name)
         self._builders = {  # Maintain alphabetical order.
             'astyle': None,
@@ -728,7 +728,7 @@ class SourcedComponent(HeaderOnlyComponent):
     #
 
     def __init__(self, graph, env, name, dir, deps, inc, ext_inc, src, als=None):
-        HeaderOnlyComponent.__init__(self, graph, env, name, dir, deps, ext_inc, als)
+        super(SourcedComponent, self).__init__(graph, env, name, dir, deps, ext_inc, als)
         # Because HeaderOnlyComponent doesn't have includes.
         self._includes = self._FormatArgument(inc)
         # Check the 'src' argument.
@@ -839,7 +839,7 @@ class ObjectComponent(SourcedComponent):
     #
 
     def __init__(self, graph, env, name, dir, deps, inc, src, als=None):
-        SourcedComponent.__init__(self, graph, env, name, dir, deps, inc, [], src, als)
+        super(ObjectComponent, self).__init__(graph, env, name, dir, deps, inc, [], src, als)
         # A list of builders of the class Object().
         self._objects = []
 
@@ -915,7 +915,7 @@ class StaticLibraryComponent(ObjectComponent):
     #
 
     def __init__(self, graph, env, name, dir, deps, inc, ext_inc, src, als=None):
-        ObjectComponent.__init__(self, graph, env, name, dir, deps, inc, src, als)
+        super(StaticLibraryComponent, self).__init__(graph, env, name, dir, deps, inc, src, als)
         self._should_be_linked = True
 
     #
@@ -975,7 +975,7 @@ class DynamicLibraryComponent(ObjectComponent):
     #
 
     def __init__(self, graph, env, name, dir, deps, inc, ext_inc, src, als=None):
-        ObjectComponent.__init__(self, graph, env, name, dir, deps, inc, src, als)
+        super(DynamicLibraryComponent, self).__init__(graph, env, name, dir, deps, inc, src, als)
         self._should_be_linked = True
 
     #
@@ -1037,7 +1037,7 @@ class ProgramComponent(ObjectComponent):
     #
 
     def __init__(self, graph, env, name, dir, deps, inc, src, als=None):
-        ObjectComponent.__init__(self, graph, env, name, dir, deps, inc, src, als)
+        super(ProgramComponent, self).__init__(graph, env, name, dir, deps, inc, src, als)
 
     #
     # Public methods.
@@ -1111,7 +1111,7 @@ class UnitTestComponent(ProgramComponent):
     #
 
     def __init__(self, graph, env, name, dir, deps, inc, src, als=None):
-        ProgramComponent.__init__(self, graph, env, name, dir, deps, inc, src, als)
+        super(UnitTestComponent, self).__init__(graph, env, name, dir, deps, inc, src, als)
         self._project_name = name.split('@')[0]
 
     #
