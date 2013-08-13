@@ -239,6 +239,15 @@ class Component(object):
 
     # Private methods.
     #
+    def _SetTargets(self):
+        """Create targets for most modules."""
+        self._CreateAstyleCheckTarget(self._sources)
+        self._CreateAstyleTarget(self._sources)
+        self._CreateCCCCTarget(self._sources)
+        self._CreateClocTarget(self._sources)
+        self._CreateStaticAnalysisTarget(self._sources)
+        self._CreateDocTarget()
+        self._CreateInfoTarget(self._sources)
 
     def _GetObjectsFiles(self, object_files, stack):
         """
@@ -462,6 +471,9 @@ class HeaderOnlyComponent(Component):
     #
     # Special methods.
     #
+    @property
+    def _sources(self):
+        return self.GetIncludeFiles()
 
     def __init__(self, graph, env, name, dir, deps, inc, als=None):
         super(HeaderOnlyComponent, self).__init__(graph, env, name, dir, deps, inc, [], als)
@@ -504,16 +516,8 @@ class HeaderOnlyComponent(Component):
         # Check if the component was already processed.
         if self._builders['install'] is not None:
             return self._builders['install']
-        # Look for the sources of this component.
-        headers = self.GetIncludeFiles()
         # Create targets.
-        self._CreateAstyleCheckTarget(headers)
-        self._CreateAstyleTarget(headers)
-        self._CreateCCCCTarget(headers)
-        self._CreateClocTarget(headers)
-        self._CreateStaticAnalysisTarget(headers)
-        self._CreateDocTarget()
-        self._CreateInfoTarget(headers)
+        self._SetTargets()
         # Create the installer.
         installer = self._CreateInstallerBuilder([])
         # Create the alias group.
@@ -727,6 +731,10 @@ class SourcedComponent(HeaderOnlyComponent):
     # Special methods.
     #
 
+    @property
+    def _sources(self):
+        return self.GetSourcesFiles() + self.GetIncludeFiles()
+
     def __init__(self, graph, env, name, dir, deps, inc, ext_inc, src, als=None):
         super(SourcedComponent, self).__init__(graph, env, name, dir, deps, ext_inc, als)
         # Because HeaderOnlyComponent doesn't have includes.
@@ -758,15 +766,7 @@ class SourcedComponent(HeaderOnlyComponent):
         # Check if the component was already processed.
         if self._builders['install'] is None:
             # Create the list of the 'sources' files.
-            sources = self.GetSourcesFiles() + self.GetIncludeFiles()
-            # Create targets.
-            self._CreateAstyleCheckTarget(sources)
-            self._CreateAstyleTarget(sources)
-            self._CreateCCCCTarget(sources)
-            self._CreateClocTarget(sources)
-            self._CreateStaticAnalysisTarget(sources)
-            self._CreateDocTarget()
-            self._CreateInfoTarget(sources)
+            self._SetTargets()
             self._builders['install'] = True
         # We return an empty list because a sourced has nothing to install.
         return []
@@ -852,15 +852,7 @@ class ObjectComponent(SourcedComponent):
         if self._builders['install'] is not None:
             return self._builders['install']
         # Create the list of the 'sources' files.
-        sources = self.GetSourcesFiles() + self.GetIncludeFiles()
-        # Create targets.
-        self._CreateAstyleCheckTarget(sources)
-        self._CreateAstyleTarget(sources)
-        self._CreateCCCCTarget(sources)
-        self._CreateClocTarget(sources)
-        self._CreateStaticAnalysisTarget(sources)
-        self._CreateDocTarget()
-        self._CreateInfoTarget(sources)
+        self._SetTargets()
         # Initialize the object file list.
         self._CreateObjectFiles()
         # Create the installer.
@@ -928,16 +920,7 @@ class StaticLibraryComponent(ObjectComponent):
             return self._builders['install']
         # The target is the name of library to be created.
         target = os.path.join(self._dir.abspath, self.name)
-        # Create the list of the 'sources' files.
-        sources = self.GetSourcesFiles() + self.GetIncludeFiles()
-        # Create targets.
-        self._CreateAstyleCheckTarget(sources)
-        self._CreateAstyleTarget(sources)
-        self._CreateCCCCTarget(sources)
-        self._CreateClocTarget(sources)
-        self._CreateStaticAnalysisTarget(sources)
-        self._CreateDocTarget()
-        self._CreateInfoTarget(sources)
+        self._SetTargets()
         # Create a static library builder.
         slib_builder = self._CreateStaticLibraryBuilder(target)
         # Create an installer builders.
@@ -988,16 +971,7 @@ class DynamicLibraryComponent(ObjectComponent):
             return self._builders['install']
         # The target is the name of library to be created.
         target = os.path.join(self._dir.abspath, self.name)
-        # Create the list of the 'sources' files.
-        sources = self.GetSourcesFiles() + self.GetIncludeFiles()
-        # Create targets.
-        self._CreateAstyleCheckTarget(sources)
-        self._CreateAstyleTarget(sources)
-        self._CreateCCCCTarget(sources)
-        self._CreateClocTarget(sources)
-        self._CreateStaticAnalysisTarget(sources)
-        self._CreateDocTarget()
-        self._CreateInfoTarget(sources)
+        self._SetTargets()
         # Create the shared library builder.
         dlib_builder = self._CreateSharedLibraryBuilder(target)
         # Create the installer builder.
@@ -1051,16 +1025,7 @@ class ProgramComponent(ObjectComponent):
         target = os.path.join(self._env['BUILD_DIR'], self.name)
         target = os.path.join(target, 'bin')
         target = os.path.join(target, self.name)
-        # Create the list of the 'sources' files.
-        sources = self.GetSourcesFiles() + self.GetIncludeFiles()
-        # Create targets.
-        self._CreateAstyleCheckTarget(sources)
-        self._CreateAstyleTarget(sources)
-        self._CreateCCCCTarget(sources)
-        self._CreateClocTarget(sources)
-        self._CreateStaticAnalysisTarget(sources)
-        self._CreateDocTarget()
-        self._CreateInfoTarget(sources)
+        self._SetTargets()
         # Create the program builder.
         program_builder = self._CreateProgramBuilder(target)
         # Create an instance of the Install() builder.
