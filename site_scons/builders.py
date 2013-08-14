@@ -319,13 +319,14 @@ def RunASan(env, target, source):
     asan_proc = subprocess.Popen(cmd, shell=True,
                                  stderr=subprocess.PIPE,
                                  stdout=subprocess.PIPE)
+    # Read the asan output in the stderr
     err = asan_proc.stderr.read()
     if asan_proc.wait():
-        env.Cprint('--- ERROR ---\n', 'red')
+        env.Cprint('Address Sanitizer result: --- ERROR ---\n', 'red')
         env.Cprint('This error was found:\n', 'yellow')
         env.Cprint(err, 'end')
     else:
-        env.Cprint('\n\nTest result: *** PASSED ***\n\n', 'green')
+        env.Cprint('\n\nAddress Sanitizer result: --- PASSED ---\n', 'green')
     return 0
 
 
