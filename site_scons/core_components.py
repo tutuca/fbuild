@@ -1232,11 +1232,12 @@ class UnitTestComponent(ProgramComponent):
             compiler_c = 'clang'
             compiler_cpp = 'clang++'
             project_component._env.Replace(CC=compiler_c, CXX=compiler_cpp)
+            self._env.Replace(CC=compiler_c, CXX=compiler_cpp)
             # Set flags for address sanitizer
-            flags = ['-fsanitize=address', '-fno-omit-frame-pointer', '-g']
+            flags = ['-fsanitize=address', '-fno-omit-frame-pointer', '-g', '-w']
             linker_flags = ['-fsanitize=address']
             project_component._env.Append(CXXFLAGS=flags, CFLAGS=flags, LINKFLAGS=linker_flags)
-            self._env.Replace(LINKFLAGS=linker_flags)
+            self._env.Replace(CXXFLAGS=flags, CFLAGS=flags, LINKFLAGS=linker_flags)
         return result
 
     def _CreateValgrindTarget(self, program_builder):
@@ -1254,13 +1255,6 @@ class UnitTestComponent(ProgramComponent):
         return run_valgrind_builder
         
     def _CreateASanTarget(self, flags, program_builder):
-        if flags['asan']:
-            # Set clang as compiler
-            compiler_c = 'clang'
-            compiler_cpp = 'clang++'
-            # Set clang flags
-            flags = ['-fno-omit-frame-pointer', '-g', '-fsanitize=address']
-            self._env.Replace(CC=compiler_c, CXX=compiler_cpp, CXXFLAGS=flags, CFLAGS=flags)
         if self._builders['asan'] is not None:
             return self._builders['asan']
         target = self._env.Dir('%s-asan' % self._project_name)
