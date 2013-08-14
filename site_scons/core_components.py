@@ -1167,10 +1167,6 @@ class UnitTestComponent(ProgramComponent):
     def _CheckForFlags(self):
         # Get the component of the project.
         project_component = self._component_graph.get(self._project_name)
-        # Get headers of project
-        headers = project_component.GetIncludeFiles()
-        # Get sources of project
-        sources = project_component.GetSourcesFiles()
         # Flags for check the calling targets.
         jenkins = utils.WasTargetInvoked('%s:jenkins' % self._project_name)
         coverage = utils.WasTargetInvoked('%s:coverage' % self._project_name)

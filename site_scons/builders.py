@@ -310,7 +310,6 @@ def RunValgrind(env, target, source):
 
 def RunASan(env, target, source):
     env.Cprint('\n=== Running Address Sanitizer ===\n', 'green')
-    option_separate = ':'
     # Get the test directory and the test executable.
     test_dir, test_program = os.path.split(source[0].abspath)
     asan_cmd = './%s' % test_program
