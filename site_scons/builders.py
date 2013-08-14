@@ -322,11 +322,11 @@ def RunASan(env, target, source):
     # Read the asan output in the stderr
     err = asan_proc.stderr.read()
     if asan_proc.wait():
-        env.Cprint('Address Sanitizer result: --- ERROR ---\n', 'red')
+        env.CprintSameLine([('\n\nAddress Sanitizer result: ','end'),('--- ERROR ---\n', 'red')])
         env.Cprint('This error was found:\n', 'yellow')
         env.Cprint(err, 'end')
     else:
-        env.Cprint('\n\nAddress Sanitizer result: --- PASSED ---\n', 'green')
+        env.CprintSameLine([('\n\nAddress Sanitizer result: ','end'),('--- PASSED ---\n', 'green')])
     return 0
 
 
