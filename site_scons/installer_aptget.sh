@@ -21,6 +21,14 @@
 
 # This is check_install implementation for Debian/Ubuntu systems
 
+if [ -f /etc/lsb-release ]; then
+    source /etc/lsb-release
+    OS=$DISTRIB_ID
+    VER=$DISTRIB_RELEASE
+elif [ -f /etc/debian_version ]; then
+    OS=Debian  # XXX or Ubuntu??
+    VER=$(cat /etc/debian_version);
+fi
 function check_install {
     declare -A mappings
     mappings['make']='build-essential'
@@ -49,10 +57,19 @@ function check_install {
             fi
         done
         if [ "$REPLY" = "y" ]; then
-            sudo apt-get install $pkg
-            if [ "$?" -ne "0" ]; then
-                echo -e "\e[0;31m[error] $1 (part of $pkg) could not be installed, exiting\e[0m"
-                return 1
+            if [ "$pkg" == "clang" ]; then
+                if [ "$VER" == "13.04" ]; then
+                    sudo apt-get install $pkg
+                else
+                    echo -e "\e[0;93mYou should install Clang manually. Please, check the documentation to do it.\e[0m"
+                    return 1
+                fi
+            else
+                sudo apt-get install $pkg
+                if [ "$?" -ne "0" ]; then
+                    echo -e "\e[0;31m[error] $1 (part of $pkg) could not be installed, exiting\e[0m"
+                    return 1
+                fi
             fi
         else
             if [ "$2" = "true" ]; then
