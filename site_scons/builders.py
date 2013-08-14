@@ -28,60 +28,68 @@ import subprocess
 import os.path
 import shutil
 import os
-
-from SCons.Script import *
-import SCons.Builder
+from SCons.Builder import Builder
+from SCons.Action import Action
 
 from utils import ChainCalls
 
+HEADERS = [".h", ".hpp"]
+SOURCES = [".c", "cpp"]
+
 
 def init(env):
-    bldRUT = Builder(action=SCons.Action.Action(RunUnittest, PrintDummy))
+    bldRUT = Builder(action=Action(RunUnittest, PrintDummy))
     env.Append(BUILDERS={'RunUnittest': bldRUT})
     #-
-    bldInitLcov = Builder(action=SCons.Action.Action(InitLcov, PrintDummy))
+    bldInitLcov = Builder(action=Action(InitLcov, PrintDummy))
     env.Append(BUILDERS={'InitLcov': bldInitLcov})
     #-
-    bldRLcov = Builder(action=SCons.Action.Action(RunLcov, PrintDummy))
+    bldRLcov = Builder(action=Action(RunLcov, PrintDummy))
     env.Append(BUILDERS={'RunLcov': bldRLcov})
     #-
-    bldDoxygen = Builder(action=SCons.Action.Action(RunDoxygen, PrintDummy))
+    bldDoxygen = Builder(action=Action(RunDoxygen, PrintDummy))
     env.Append(BUILDERS={'RunDoxygen': bldDoxygen})
     env['DEFAULT_DOXYFILE'] = env.File('#/conf/doxygenTemplate').abspath
     #-
-    bldAStyleCheck = Builder(action=SCons.Action.Action(AStyleCheck, PrintDummy))
+    bldAStyleCheck = Builder(action=Action(AStyleCheck, PrintDummy))
     env.Append(BUILDERS={'RunAStyleCheck': bldAStyleCheck})
     #-
-    bldAStyle = Builder(action=SCons.Action.Action(AStyle, PrintDummy))
+    bldAStyle = Builder(action=Action(AStyle, PrintDummy))
     env.Append(BUILDERS={'RunAStyle': bldAStyle})
     #-
-    bldPdfLatex = Builder(action=SCons.Action.Action(RunPdfLatex, PrintDummy))
+    bldPdfLatex = Builder(action=Action(RunPdfLatex, PrintDummy))
     env.Append(BUILDERS={'RunPdfLatex':  bldPdfLatex})
     env['PDFLATEX_OPTIONS'] = ''
     #-
-    bldValgrind = Builder(action=SCons.Action.Action(RunValgrind, PrintDummy))
+    bldValgrind = Builder(action=Action(RunValgrind, PrintDummy))
     env.Append(BUILDERS={'RunValgrind': bldValgrind})
     env['VALGRIND_OPTIONS'] = ' --leak-check=full --show-reachable=yes ' + \
                               '--error-limit=no --track-origins=yes'
     #-
-    bldCCCC = Builder(action=SCons.Action.Action(RunCCCC, PrintDummy))
+    bldCCCC = Builder(action=Action(RunCCCC, PrintDummy))
     env.Append(BUILDERS={'RunCCCC':  bldCCCC})
     env['CCCC_OPTIONS'] = []
     #-
-    bldCLOC = Builder(action=SCons.Action.Action(RunCLOC, PrintDummy))
+    bldCLOC = Builder(action=Action(RunCLOC, PrintDummy))
     env.Append(BUILDERS={'RunCLOC':  bldCLOC})
     env['CLOC_OUTPUT_FORMAT'] = 'txt'  # txt | sql | xml
     env['CLOC_OPTIONS'] = []
     #-
-    bldCppCheck = Builder(action=SCons.Action.Action(RunCppCheck, PrintDummy))
+    bldCppCheck = Builder(action=Action(RunCppCheck, PrintDummy))
     env.Append(BUILDERS={'RunCppCheck': bldCppCheck})
     env['CPPCHECK_OPTIONS'] = [' --enable=all ']
     #-
-    bldMocko = Builder(action=SCons.Action.Action(RunMocko, PrintDummy))
+    bldMocko = Builder(action=Action(RunMocko, PrintDummy))
     env.Append(BUILDERS={'RunMocko': bldMocko})
     #-
-    bldReadyToCommit = Builder(action=SCons.Action.Action(RunReadyToCommit, PrintDummy))
+    bldReadyToCommit = Builder(action=Action(RunReadyToCommit, PrintDummy))
     env.Append(BUILDERS={'RunReadyToCommit': bldReadyToCommit})
+    #-
+    bldInfo = Builder(action=Action(RunInfo, PrintDummy))
+    env.Append(BUILDERS={'RunInfo': bldInfo})
+	#-
+    bldStaticAnalysis = Builder(action=Action(RunStaticAnalysis, PrintDummy))
+    env.Append(BUILDERS={'RunStaticAnalysis': bldStaticAnalysis})
 
 
 def PrintDummy(env, target, source):
@@ -138,9 +146,9 @@ def RunLcov(env, target, source):
     }
     commands_list = [
         'rm -f %(coverage_file)s' % data,
-        'lcov --no-checksum --directory %(project_dir)s -b . --capture --ignore-error source --output-file %(coverage_file)s' % data,
+        'lcov --no-checksum --directory %(project_dir)s -b . --capture --output-file %(coverage_file)s' % data,
+        'lcov --no-checksum --directory %(project_dir)s -b . --capture --output-file %(coverage_file)s' % data,
         'lcov --remove %(coverage_file)s "*usr/include*" -o %(coverage_file)s' % data,
-        'lcov --remove %(coverage_file)s "*install/*" -o %(coverage_file)s' % data,
         'lcov --remove %(coverage_file)s "*/tests/*" -o %(coverage_file)s' % data
     ]
     for dep in env['PROJECT_DEPS']:
@@ -161,35 +169,34 @@ def RunDoxygen(env, target, source):
     doxyTamplate = source[0].abspath
     # Path to the doc/project directory.
     target = target[0].abspath
+    targetName = os.path.basename(target)
     # Create the doc/project directory.
     os.mkdir(target)
     # Path to the project directory.
     projectDir, __ = os.path.split(source[1].abspath)
     # Path yo doxygen file for thise project.
     projectDoxyFile = projectDir + '/__tmp_doxyfile'
+
     # Copy the doxygen file template to the project directory.
-    fsrc = open(doxyTamplate, 'r')
-    doxygenSrc = fsrc.read()
-    fsrc.close()
-    targetName = os.path.basename(target)
-    ftgt = open(projectDoxyFile, "w")
-    ftgt.write(doxygenSrc.replace('$PROJECT_NAME', targetName)
-                         .replace('$OUTPUT_DIR', target))
-    ftgt.flush()
-    ftgt.close()
+    with open(doxyTamplate, 'r') as fsrc:
+        doxygenSrc = fsrc.read()
+    with open(projectDoxyFile, "w") as ftgt:
+        ftgt.write(doxygenSrc.replace('$PROJECT_NAME', targetName)
+                             .replace('$OUTPUT_DIR', target))
     # Create the command to be executed.
-    cmdOutput = os.path.join(target, 'doxyfile_generation.output')
-    cmd = "cd %s; doxygen %s > %s" % (projectDir, projectDoxyFile, cmdOutput)
-    doxygen_proc = subprocess.Popen(cmd, shell=True)
-    if env.GetOption('printresults'):
-        doxygen_results_proc = subprocess.Popen("cat %s" % cmdOutput, shell=True)
+    output_file = os.path.join(target, 'doxyfile_generation.output')
+    doxygen_proc = subprocess.Popen("doxygen %s > %s" % (projectDoxyFile, output_file), 
+        shell=True, cwd=projectDir)
+    rc = doxygen_proc.wait()
+    if rc:
+        env.cerror('[FAILED] %s, error: %s' % (target, rc))
+    else:
+        env.Cprint('[GENERATED] %s/html/index.html\n' % target, 'green')
+    if not env.GetOption('verbose'):
+        doxygen_results_proc = subprocess.Popen("cat %s" % output_file, shell=True)
         doxygen_results_proc.wait()
     os.remove(projectDoxyFile)
-    if doxygen_proc.wait():
-        env.cerror('[failed] %s, error: %s' % (target, doxygen_proc.wait()))
-    else:
-        env.Cprint('[generated] %s' % target, 'green')
-    return doxygen_proc.wait()
+    return rc
 
 
 def AStyleCheck(env, target, source):
@@ -361,7 +368,7 @@ def RunCppCheck(env, target, source):
     # Get the report file name.
     report_file = target[0].abspath
     # Get the output directory.
-    output_directory = os.path.split(report_file)[0]
+    output_directory = os.path.dirname(report_file)
     # Check if the output directory for the cppcheck report already exists.
     if not os.path.exists(output_directory):
         os.makedirs(output_directory)
@@ -369,13 +376,32 @@ def RunCppCheck(env, target, source):
     options = ' '.join([opt for opt in env['CPPCHECK_OPTIONS']])
     # We create a string with the files for cppcheck.
     files = ' '.join([f.abspath for f in source])
-    # Create the command to be executed.
-    if 'xml' in options:
-        cmd = "cppcheck %s %s 2> %s.xml" % (options, files, report_file)
-    else:
-        cmd = "cppcheck %s %s | sed '/files checked /d' > %s.txt" % (options, files, report_file)
-    cppcheck_proc = subprocess.Popen(cmd, shell=True)
-    return cppcheck_proc.wait()
+    # Create the command to be pass to subprocess.call()
+    return _RunCppCheck(target, files, options)
+
+def RunStaticAnalysis(env, target, source):
+    # Print message on the screen.
+    cppcheck_rc = False
+    splint_rc = False
+    env.Cprint('\n=== Running Static Code Analysis ===\n', 'green')
+    target_name = target[0].name
+    cppcheck_report = target_name + '-cpp'
+    cppcheck_options = ' '.join([opt for opt in env['CPPCHECK_OPTIONS']])
+    splint_report = target_name + '-c'
+    cpp_files = _FindSources(source, ['.cpp', '.cc'])
+    c_files = _FindSources(source, ['.c'])
+    headers = _FindHeaders(source)
+    if cpp_files:
+        cppcheck_rc = _RunCppCheck(cppcheck_report, cpp_files, headers, 
+            cppcheck_options)
+    if c_files:
+        splint_rc = _RunSplint(splint_report, c_files, headers)
+    if headers and not (cpp_files or c_files):
+        #headers only
+        cppcheck_rc = _RunCppCheck(cppcheck_report, _FindSources(source, 
+            ['.h', '.hh', '.hpp']), headers, cppcheck_options)
+    # Return the output of both builders
+    return cppcheck_rc and splint_rc
 
 
 def RunMocko(env, target, source):
@@ -431,7 +457,45 @@ def RunReadyToCommit(env, target, source):
     print ""  # Just an empty line.
     return 0
 
+def _RunCppCheck(report_file, files, headers, options):
+    if 'xml' in options:
+        cmd = "cppcheck --check-config %s %s %s 2> %s.xml" % (options, files, 
+            headers, report_file)
+    else:
+        cmd = "cppcheck %s %s %s 2> %s.txt" % (options, files, 
+            headers, report_file)
+    print cmd
+    cppcheck_proc = subprocess.Popen(cmd, shell=True)
+    return cppcheck_proc.wait()
 
+def _RunSplint(report_file, files, headers):
+    cmd = "splint %s %s > %s.txt" % (files, headers, report_file)
+    splint_proc = subprocess.Popen(cmd, shell=True)
+    return splint_proc.wait()
+
+def RunInfo(env, target, source):
+    #Take project info
+    name = target[0].name
+    project_type = env['PROJECT_TYPE']
+    # Print the project info
+    env.Cprint("\n----------- %s -----------\n" % name, "blue")
+    env.CprintSameLine([("The Project type is: ", "end"), ("%s \n" % project_type, "green")])
+    # Separate sources and headers
+    headers_list = [x.name for x in source for y in HEADERS if x.name.endswith(y)]
+    sources_list = [x.name for x in source for y in SOURCES if x.name.endswith(y)]
+    # Print headers and sources
+    if headers_list:
+        env.Cprint("List of headers:", "end")
+        for hdr in headers_list:
+            env.Cprint(hdr, "cyan")
+        # New line at the end of the headers
+        env.Cprint("","end")
+    if sources_list:
+        env.Cprint("List of sources:", "end")
+        for src in sources_list:
+            env.Cprint(src, "purple")
+        # New line at the end of the sources
+        env.Cprint("","end")
 def _CheckAstyle(env, source, output_directory):
     # Create a temporary directory.
     tmp_dir = os.path.join(output_directory, 'tmp')
@@ -545,3 +609,22 @@ def _RTCCheckValgrind(env):
     # Wait until process terminates and return the status.
     return valgrind_proc.wait() != 0
 
+def _FindSources(dirs, extensions, spacer=' '):
+    out = []
+    
+    for source in dirs:
+        name, ext = os.path.splitext(source.name)
+        if ext in extensions:
+            out.append(source.abspath)
+    
+    return ' '.join(out)
+
+def _FindHeaders(dirs):
+    out = []
+    for source in dirs:
+        name, ext = os.path.splitext(source.name)
+        if ext in ['.h', '.hh', '.hpp']:
+            dirname = os.path.dirname(source.abspath)
+            if dirname not in out:
+                out.append(dirname)
+    return ''.join('-I%s ' %x for x in out)
