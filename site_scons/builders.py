@@ -496,6 +496,7 @@ def RunInfo(env, target, source):
             env.Cprint(src, "purple")
         # New line at the end of the sources
         env.Cprint("","end")
+        
 def _CheckAstyle(env, source, output_directory):
     # Create a temporary directory.
     tmp_dir = os.path.join(output_directory, 'tmp')
