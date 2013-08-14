@@ -313,9 +313,8 @@ def RunASan(env, target, source):
     # Get the test directory and the test executable.
     test_dir, test_program = os.path.split(source[0].abspath)
     asan_cmd = './%s' % test_program
-    cmd = 'cd %s; %s' % (test_dir, asan_cmd)
     # Execute Address Sanitizer
-    asan_proc = subprocess.Popen(cmd, shell=True,
+    asan_proc = subprocess.Popen(asan_cmd, cwd=test_dir, shell=True,
                                  stderr=subprocess.PIPE,
                                  stdout=subprocess.PIPE)
     # Read the asan output in the stderr
