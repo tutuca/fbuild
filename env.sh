@@ -54,6 +54,10 @@ else
         fi
     }
 fi
+# Set the current OS version
+. /etc/lsb-release
+OS=$DISTRIB_ID
+VER=$DISTRIB_RELEASE
 # We need to check if build essential is installed
 check_build_essential
 if [ "$?" -ne "0" ]; then return $?; fi
@@ -90,6 +94,13 @@ check_install cppcheck false
 if [ "$?" -ne "0" ]; then return $?; fi
 check_install lcov false
 if [ "$?" -ne "0" ]; then return $?; fi
+check_install clang true
+if ["$?" -ne "0"] && ["$VER" -eq "13.04"]; then 
+    return $?;
+else
+    echo "You should install clang manually, check the document to do it.";
+fi
+    
 
 
 # Backward compatibility
