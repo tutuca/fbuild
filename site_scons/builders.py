@@ -311,13 +311,16 @@ def RunValgrind(env, target, source):
 
 def RunASan(env, target, source):
     env.Cprint('\n=== Running Address Sanitizer ===\n', 'green')
-    # Get the test executable file
-    asan_cmd = env["ASAN_OPTIONS"] + source[0].abspath
+    # Get the test directory and the test executable.
+    test_dir, test_program = os.path.split(source[0].abspath)
+    asan_cmd = env["ASAN_OPTIONS"] + ' ./%s' % test_program
+    cmd = 'cd %s; %s' % (test_dir, asan_cmd)
     # Execute Address Sanitizer
-    asan_proc = subprocess.Popen(asan_cmd, shell=True,
-                                 stdout=subprocess.PIPE,
-                                 stderr=subprocess.PIPE)
-    output, err = asan_proc.communicate()
+    asan_proc = subprocess.Popen(cmd, shell=True,
+                                 stderr=subprocess.PIPE,
+                                 stdout=subprocess.PIPE)
+    err = asan_proc.communicate()[1]
+    import ipdb; ipdb.set_trace()
     if err:
         env.cerror('\n\nTest result: *** FAILED ***\n\n')
     else:
