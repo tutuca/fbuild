@@ -57,7 +57,9 @@ function check_install {
             fi
         done
         if [ "$REPLY" = "y" ]; then
+            # Check if pkg is clang, a different behave is necessary here.
             if [ "$pkg" == "clang" ]; then
+                # Ubuntu 13.04 has clang with Address Sanitizer.
                 if [ "$VER" == "13.04" ]; then
                     sudo apt-get install $pkg
                 else
