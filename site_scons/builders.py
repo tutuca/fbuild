@@ -93,7 +93,6 @@ def init(env):
     #-
     bldAddressSanitizer = Builder(action=Action(RunASan, PrintDummy))
     env.Append(BUILDERS={'RunASan': bldAddressSanitizer})
-    env['ASAN_OPTIONS'] = 'ASAN_OPTIONS=verbosity=1:log_path=none'
 
 
 def PrintDummy(env, target, source):
@@ -311,21 +310,23 @@ def RunValgrind(env, target, source):
 
 def RunASan(env, target, source):
     env.Cprint('\n=== Running Address Sanitizer ===\n', 'green')
+    option_separate = ':'
     # Get the test directory and the test executable.
     test_dir, test_program = os.path.split(source[0].abspath)
-    asan_cmd = env["ASAN_OPTIONS"] + ' ./%s' % test_program
+    asan_cmd = './%s' % test_program
     cmd = 'cd %s; %s' % (test_dir, asan_cmd)
     # Execute Address Sanitizer
     asan_proc = subprocess.Popen(cmd, shell=True,
                                  stderr=subprocess.PIPE,
                                  stdout=subprocess.PIPE)
-    err = asan_proc.communicate()[1]
-    import ipdb; ipdb.set_trace()
-    if err:
-        env.cerror('\n\nTest result: *** FAILED ***\n\n')
+    err = asan_proc.stderr.read()
+    if asan_proc.wait():
+        env.Cprint('--- ERROR ---\n', 'red')
+        env.Cprint('This error was found:\n', 'yellow')
+        env.Cprint(err, 'end')
     else:
         env.Cprint('\n\nTest result: *** PASSED ***\n\n', 'green')
-    return asan_proc.returncode
+    return 0
 
 
 def RunCCCC(env, target, source):
