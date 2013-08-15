@@ -139,9 +139,11 @@ def RunLcov(env, target, source):
     # Print message on the screen.
     env.Cprint('\n=== Running COVERAGE ===\n', 'green')
     indexFile = target[0].abspath
+    output_dir = os.path.dirname(indexFile)
+    import ipdb; ipdb.set_trace()
     data = {
-        'coverage_file': os.path.join(os.path.dirname(os.path.dirname(indexFile)), 'coverage_output.dat'),
-        'output_dir': os.path.dirname(indexFile),
+        'coverage_file': os.path.join(os.path.dirname(output_dir), 'coverage_output.dat'),
+        'output_dir': output_dir,
         'project_dir': env['PROJECT_DIR']
     }
     commands_list = [
@@ -149,7 +151,8 @@ def RunLcov(env, target, source):
         'lcov --no-checksum --directory %(project_dir)s -b . --capture --output-file %(coverage_file)s' % data,
         'lcov --no-checksum --directory %(project_dir)s -b . --capture --output-file %(coverage_file)s' % data,
         'lcov --remove %(coverage_file)s "*usr/include*" -o %(coverage_file)s' % data,
-        'lcov --remove %(coverage_file)s "*/tests/*" -o %(coverage_file)s' % data
+        'lcov --remove %(coverage_file)s "*/tests/*" -o %(coverage_file)s' % data,
+        'lcov --remove %(coverage_file)s "*/install/*" -o %(coverage_file)s' % data
     ]
     for dep in env['PROJECT_DEPS']:
         data['project_dep'] = dep
