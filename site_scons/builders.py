@@ -256,7 +256,7 @@ def AStyle(env, target, source):
     cmd = "astyle -k1 --options=none --convert-tabs -bSKpUH %s" % file_list
     # Run astyle.
     astyle_proc = subprocess.Popen(cmd, shell=True)
-    if astyle_proc.wait() != 0:
+    if astyle_proc.wait():
         env.cerror('[astyle] ERROR running astyle on: %s' % project_dir)
     else:
         env.Cprint('[astyle] OK on: %s' % project_dir, 'green')
@@ -493,6 +493,7 @@ def RunInfo(env, target, source):
             env.Cprint(src, "purple")
         # New line at the end of the sources
         env.Cprint("","end")
+        
 def _CheckAstyle(env, source, output_directory):
     # Create a temporary directory.
     tmp_dir = os.path.join(output_directory, 'tmp')
@@ -517,7 +518,7 @@ def _CheckAstyle(env, source, output_directory):
     # check if it suffer some change.
     astyle_proc = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE)
     astyle_proc.stdout.read()
-    if astyle_proc.wait() != 0:
+    if astyle_proc.wait():
         # If astyle fails, we fail.
         return None
     # Check if astyle did some modifications.
@@ -549,7 +550,7 @@ def _RTCCheckAstyle(env):
     # Read the output of the process.
     astyle_proc.stdout.read()
     # Wait until process terminates and return the status.
-    return astyle_proc.wait() != 0
+    return astyle_proc.wait()
 
 
 def _RTCCheckCppcheck(env):
@@ -567,8 +568,8 @@ def _RTCCheckCppcheck(env):
     errors_proc.stdout.read()
     warnings_proc.stdout.read()
     # Wait until the processes terminate.
-    errors = errors_proc.wait() != 0
-    warnings = warnings_proc.wait() != 0
+    errors = errors_proc.wait()
+    warnings = warnings_proc.wait()
     return errors and warnings
 
 
@@ -587,8 +588,8 @@ def _RTCCheckTests(env):
     failures_proc.stdout.read()
     errors_proc.stdout.read()
     # Wait until the processes terminate.
-    failures = failures_proc.wait() != 0
-    errors = errors_proc.wait() != 0
+    failures = failures_proc.wait()
+    errors = errors_proc.wait()
     return failures and errors
 
 
@@ -604,7 +605,7 @@ def _RTCCheckValgrind(env):
     # Read the output of the process.
     valgrind_proc.stdout.read()
     # Wait until process terminates and return the status.
-    return valgrind_proc.wait() != 0
+    return valgrind_proc.wait()
 
 def _FindSources(dirs, extensions, spacer=' '):
     out = []
