@@ -140,7 +140,6 @@ def RunLcov(env, target, source):
     env.Cprint('\n=== Running COVERAGE ===\n', 'green')
     indexFile = target[0].abspath
     output_dir = os.path.dirname(indexFile)
-    import ipdb; ipdb.set_trace()
     data = {
         'coverage_file': os.path.join(os.path.dirname(output_dir), 'coverage_output.dat'),
         'output_dir': output_dir,
