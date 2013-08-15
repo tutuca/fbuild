@@ -324,7 +324,8 @@ def RunASan(env, target, source):
         env.Cprint(err, 'end')
         env.CprintSameLine([('Address Sanitizer result: ','end'),('--- ERROR ---\n', 'red')])
     else:
-        env.CprintSameLine([('Address Sanitizer result: ','end'),('--- PASSED ---\n', 'green')])
+        env.CprintSameLine([('Address Sanitizer result: ','end'),('--- PASSED ---', 'green')])
+        env.Cprint('No output generated.\n', 'end')
     return 0
 
 

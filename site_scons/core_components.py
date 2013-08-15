@@ -1230,7 +1230,7 @@ class UnitTestComponent(ProgramComponent):
             project_component._env.Replace(CC=compiler_c, CXX=compiler_cpp)
             self._env.Replace(CC=compiler_c, CXX=compiler_cpp)
             # Set flags for address sanitizer
-            flags = ['-fsanitize=address', '-fno-omit-frame-pointer', '-g', '-w']
+            flags = ['-fsanitize=address-full', '-fno-omit-frame-pointer', '-g0', '-w']
             linker_flags = ['-fsanitize=address']
             project_component._env.Append(CXXFLAGS=flags, CFLAGS=flags, LINKFLAGS=linker_flags)
             self._env.Replace(CXXFLAGS=flags, CFLAGS=flags, LINKFLAGS=linker_flags)
