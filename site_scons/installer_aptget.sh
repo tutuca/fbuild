@@ -64,6 +64,7 @@ function check_install {
                     sudo apt-get install $pkg
                 else
                     echo -e "\e[0;93mYou should install Clang manually. Please, check the documentation to do it.\e[0m"
+                    echo -e "\e[0;93mhttp://tracker.fudepan.org.ar/youtrack/issue/fbuild-147\e[0m"
                     return 1
                 fi
             else
