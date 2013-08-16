@@ -31,7 +31,7 @@ import os
 from SCons.Builder import Builder
 from SCons.Action import Action
 
-from utils import ChainCalls
+from utils import ChainCalls, FindHeaders, FindSources
 
 HEADERS = [".h", ".hpp"]
 SOURCES = [".c", "cpp"]
@@ -90,6 +90,9 @@ def init(env):
 	#-
     bldStaticAnalysis = Builder(action=Action(RunStaticAnalysis, PrintDummy))
     env.Append(BUILDERS={'RunStaticAnalysis': bldStaticAnalysis})
+    #-
+    bldAddressSanitizer = Builder(action=Action(RunASan, PrintDummy))
+    env.Append(BUILDERS={'RunASan': bldAddressSanitizer})
 
 
 def PrintDummy(env, target, source):
@@ -256,7 +259,7 @@ def AStyle(env, target, source):
     cmd = "astyle -k1 --options=none --convert-tabs -bSKpUH %s" % file_list
     # Run astyle.
     astyle_proc = subprocess.Popen(cmd, shell=True)
-    if astyle_proc.wait() != 0:
+    if astyle_proc.wait():
         env.cerror('[astyle] ERROR running astyle on: %s' % project_dir)
     else:
         env.Cprint('[astyle] OK on: %s' % project_dir, 'green')
@@ -303,6 +306,27 @@ def RunValgrind(env, target, source):
     # Get back to the previous directory.
     os.chdir(cwd)
     return valgrind_proc.wait()
+
+
+def RunASan(env, target, source):
+    env.Cprint('\n=== Running Address Sanitizer ===\n', 'green')
+    # Get the test directory and the test executable.
+    test_dir, test_program = os.path.split(source[0].abspath)
+    asan_cmd = './%s' % test_program
+    # Execute Address Sanitizer
+    asan_proc = subprocess.Popen(asan_cmd, cwd=test_dir, shell=True,
+                                 stderr=subprocess.PIPE,
+                                 stdout=subprocess.PIPE)
+    # Read the asan output in the stderr
+    err = asan_proc.stderr.read()
+    if asan_proc.wait():
+        env.Cprint('This error was found:\n', 'yellow')
+        env.Cprint(err, 'end')
+        env.CprintSameLine([('Address Sanitizer result: ','end'),('--- ERROR ---\n', 'red')])
+    else:
+        env.CprintSameLine([('Address Sanitizer result: ','end'),('--- PASSED ---', 'green')])
+        env.Cprint('No output generated.\n', 'end')
+    return 0
 
 
 def RunCCCC(env, target, source):
@@ -383,22 +407,20 @@ def RunStaticAnalysis(env, target, source):
     # Print message on the screen.
     cppcheck_rc = False
     splint_rc = False
+    target = target[0].abspath
     env.Cprint('\n=== Running Static Code Analysis ===\n', 'green')
-    target_name = target[0].name
-    cppcheck_report = target_name + '-cpp'
     cppcheck_options = ' '.join([opt for opt in env['CPPCHECK_OPTIONS']])
-    splint_report = target_name + '-c'
-    cpp_files = _FindSources(source, ['.cpp', '.cc'])
-    c_files = _FindSources(source, ['.c'])
-    headers = _FindHeaders(source)
+    cpp_files = FindSources(source, ['.cpp', '.cc'])
+    c_files = FindSources(source, ['.c'])
+    headers = FindHeaders(source)
     if cpp_files:
-        cppcheck_rc = _RunCppCheck(cppcheck_report, cpp_files, headers, 
+        cppcheck_rc = _RunCppCheck(target, cpp_files, headers, 
             cppcheck_options)
     if c_files:
-        splint_rc = _RunSplint(splint_report, c_files, headers)
+        splint_rc = _RunSplint(target, c_files, headers)
     if headers and not (cpp_files or c_files):
         #headers only
-        cppcheck_rc = _RunCppCheck(cppcheck_report, _FindSources(source, 
+        cppcheck_rc = _RunCppCheck(target, FindSources(source, 
             ['.h', '.hh', '.hpp']), headers, cppcheck_options)
     # Return the output of both builders
     return cppcheck_rc and splint_rc
@@ -464,12 +486,11 @@ def _RunCppCheck(report_file, files, headers, options):
     else:
         cmd = "cppcheck %s %s %s 2> %s.txt" % (options, files, 
             headers, report_file)
-    print cmd
     cppcheck_proc = subprocess.Popen(cmd, shell=True)
     return cppcheck_proc.wait()
 
 def _RunSplint(report_file, files, headers):
-    cmd = "splint %s %s > %s.txt" % (files, headers, report_file)
+    cmd = "splint %s %s > %s-splint.txt" % (files, headers, report_file)
     splint_proc = subprocess.Popen(cmd, shell=True)
     return splint_proc.wait()
 
@@ -496,6 +517,7 @@ def RunInfo(env, target, source):
             env.Cprint(src, "purple")
         # New line at the end of the sources
         env.Cprint("","end")
+
 def _CheckAstyle(env, source, output_directory):
     # Create a temporary directory.
     tmp_dir = os.path.join(output_directory, 'tmp')
@@ -520,7 +542,7 @@ def _CheckAstyle(env, source, output_directory):
     # check if it suffer some change.
     astyle_proc = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE)
     astyle_proc.stdout.read()
-    if astyle_proc.wait() != 0:
+    if astyle_proc.wait():
         # If astyle fails, we fail.
         return None
     # Check if astyle did some modifications.
@@ -552,7 +574,7 @@ def _RTCCheckAstyle(env):
     # Read the output of the process.
     astyle_proc.stdout.read()
     # Wait until process terminates and return the status.
-    return astyle_proc.wait() != 0
+    return astyle_proc.wait()
 
 
 def _RTCCheckCppcheck(env):
@@ -570,8 +592,8 @@ def _RTCCheckCppcheck(env):
     errors_proc.stdout.read()
     warnings_proc.stdout.read()
     # Wait until the processes terminate.
-    errors = errors_proc.wait() != 0
-    warnings = warnings_proc.wait() != 0
+    errors = errors_proc.wait()
+    warnings = warnings_proc.wait()
     return errors and warnings
 
 
@@ -590,8 +612,8 @@ def _RTCCheckTests(env):
     failures_proc.stdout.read()
     errors_proc.stdout.read()
     # Wait until the processes terminate.
-    failures = failures_proc.wait() != 0
-    errors = errors_proc.wait() != 0
+    failures = failures_proc.wait()
+    errors = errors_proc.wait()
     return failures and errors
 
 
@@ -607,24 +629,4 @@ def _RTCCheckValgrind(env):
     # Read the output of the process.
     valgrind_proc.stdout.read()
     # Wait until process terminates and return the status.
-    return valgrind_proc.wait() != 0
-
-def _FindSources(dirs, extensions, spacer=' '):
-    out = []
-    
-    for source in dirs:
-        name, ext = os.path.splitext(source.name)
-        if ext in extensions:
-            out.append(source.abspath)
-    
-    return ' '.join(out)
-
-def _FindHeaders(dirs):
-    out = []
-    for source in dirs:
-        name, ext = os.path.splitext(source.name)
-        if ext in ['.h', '.hh', '.hpp']:
-            dirname = os.path.dirname(source.abspath)
-            if dirname not in out:
-                out.append(dirname)
-    return ''.join('-I%s ' %x for x in out)
+    return valgrind_proc.wait()
