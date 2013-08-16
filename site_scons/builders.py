@@ -259,7 +259,7 @@ def AStyle(env, target, source):
     cmd = "astyle -k1 --options=none --convert-tabs -bSKpUH %s" % file_list
     # Run astyle.
     astyle_proc = subprocess.Popen(cmd, shell=True)
-    if astyle_proc.wait() != 0:
+    if astyle_proc.wait():
         env.cerror('[astyle] ERROR running astyle on: %s' % project_dir)
     else:
         env.Cprint('[astyle] OK on: %s' % project_dir, 'green')
@@ -407,22 +407,20 @@ def RunStaticAnalysis(env, target, source):
     # Print message on the screen.
     cppcheck_rc = False
     splint_rc = False
+    target = target[0].abspath
     env.Cprint('\n=== Running Static Code Analysis ===\n', 'green')
-    target_name = target[0].name
-    cppcheck_report = target_name + '-cpp'
     cppcheck_options = ' '.join([opt for opt in env['CPPCHECK_OPTIONS']])
-    splint_report = target_name + '-c'
     cpp_files = FindSources(source, ['.cpp', '.cc'])
     c_files = FindSources(source, ['.c'])
     headers = FindHeaders(source)
     if cpp_files:
-        cppcheck_rc = _RunCppCheck(cppcheck_report, cpp_files, headers, 
+        cppcheck_rc = _RunCppCheck(target, cpp_files, headers, 
             cppcheck_options)
     if c_files:
-        splint_rc = _RunSplint(splint_report, c_files, headers)
+        splint_rc = _RunSplint(target, c_files, headers)
     if headers and not (cpp_files or c_files):
         #headers only
-        cppcheck_rc = _RunCppCheck(cppcheck_report, FindSources(source, 
+        cppcheck_rc = _RunCppCheck(target, FindSources(source, 
             ['.h', '.hh', '.hpp']), headers, cppcheck_options)
     # Return the output of both builders
     return cppcheck_rc and splint_rc
@@ -488,12 +486,11 @@ def _RunCppCheck(report_file, files, headers, options):
     else:
         cmd = "cppcheck %s %s %s 2> %s.txt" % (options, files, 
             headers, report_file)
-    print cmd
     cppcheck_proc = subprocess.Popen(cmd, shell=True)
     return cppcheck_proc.wait()
 
 def _RunSplint(report_file, files, headers):
-    cmd = "splint %s %s > %s.txt" % (files, headers, report_file)
+    cmd = "splint %s %s > %s-splint.txt" % (files, headers, report_file)
     splint_proc = subprocess.Popen(cmd, shell=True)
     return splint_proc.wait()
 
@@ -545,7 +542,7 @@ def _CheckAstyle(env, source, output_directory):
     # check if it suffer some change.
     astyle_proc = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE)
     astyle_proc.stdout.read()
-    if astyle_proc.wait() != 0:
+    if astyle_proc.wait():
         # If astyle fails, we fail.
         return None
     # Check if astyle did some modifications.
@@ -577,7 +574,7 @@ def _RTCCheckAstyle(env):
     # Read the output of the process.
     astyle_proc.stdout.read()
     # Wait until process terminates and return the status.
-    return astyle_proc.wait() != 0
+    return astyle_proc.wait()
 
 
 def _RTCCheckCppcheck(env):
@@ -595,8 +592,8 @@ def _RTCCheckCppcheck(env):
     errors_proc.stdout.read()
     warnings_proc.stdout.read()
     # Wait until the processes terminate.
-    errors = errors_proc.wait() != 0
-    warnings = warnings_proc.wait() != 0
+    errors = errors_proc.wait()
+    warnings = warnings_proc.wait()
     return errors and warnings
 
 
@@ -615,8 +612,8 @@ def _RTCCheckTests(env):
     failures_proc.stdout.read()
     errors_proc.stdout.read()
     # Wait until the processes terminate.
-    failures = failures_proc.wait() != 0
-    errors = errors_proc.wait() != 0
+    failures = failures_proc.wait()
+    errors = errors_proc.wait()
     return failures and errors
 
 
@@ -632,4 +629,4 @@ def _RTCCheckValgrind(env):
     # Read the output of the process.
     valgrind_proc.stdout.read()
     # Wait until process terminates and return the status.
-    return valgrind_proc.wait() != 0
+    return valgrind_proc.wait()
