@@ -31,7 +31,7 @@ from core_components import Component
 class PdfLaTeXComponent(Component):
 
     def __init__(self, componentGraph, env, name, compDir, latexfile, aliasGroups):
-        Component.__init__(self, componentGraph, env, name, compDir, [], aliasGroups)
+        super(PdfLaTeXComponent, self).__init__(componentGraph, env, name, compDir, [], aliasGroups)
         self.latexfile = latexfile
 
     def Process(self):

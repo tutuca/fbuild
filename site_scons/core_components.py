@@ -182,9 +182,9 @@ class Component(object):
         except fbuild_exceptions.CircularDependencyError, error:
             msg = (' -> ').join(error[0])
             self._env.cerror('[error] A dependency cycle was found:\n  %s' % msg)
-        paths = list(self._include_paths)
-        build_list = [paths.pop(paths.index(x)) for x in paths if '/build/' in x.abspath]
-        return build_list + paths # so /builds/ are always first
+        paths = sorted(list(self._include_paths), key=lambda x: x.abspath)
+
+        return paths # so /builds/ are always first
 
     def GetIncludeFiles(self):
         """
@@ -239,6 +239,15 @@ class Component(object):
 
     # Private methods.
     #
+    def _SetTargets(self):
+        """Create targets for most modules."""
+        self._CreateAstyleCheckTarget(self.GetSourcesFiles())
+        self._CreateAstyleTarget(self.GetSourcesFiles())
+        self._CreateCCCCTarget(self._sources)
+        self._CreateClocTarget(self._sources)
+        self._CreateStaticAnalysisTarget(self._sources)
+        self._CreateDocTarget()
+        self._CreateInfoTarget(self._sources)
 
     def _GetObjectsFiles(self, object_files, stack):
         """
@@ -424,7 +433,7 @@ class ExternalComponent(Component):
     #
 
     def __init__(self, graph, env, name, dir, deps, inc, linkable, als=None):
-        Component.__init__(self, graph, env, name, dir, deps, inc, [], als)
+        super(ExternalComponent, self).__init__(graph, env, name, dir, deps, inc, [], als)
         self._should_be_linked = linkable
 
     #
@@ -462,9 +471,12 @@ class HeaderOnlyComponent(Component):
     #
     # Special methods.
     #
+    @property
+    def _sources(self):
+        return self.GetIncludeFiles()
 
     def __init__(self, graph, env, name, dir, deps, inc, als=None):
-        Component.__init__(self, graph, env, name, dir, deps, inc, [], als)
+        super(HeaderOnlyComponent, self).__init__(graph, env, name, dir, deps, inc, [], als)
         self._project_dir = self._env.Dir('WS_DIR').Dir(self.name)
         self._builders = {  # Maintain alphabetical order.
             'astyle': None,
@@ -504,16 +516,8 @@ class HeaderOnlyComponent(Component):
         # Check if the component was already processed.
         if self._builders['install'] is not None:
             return self._builders['install']
-        # Look for the sources of this component.
-        headers = self.GetIncludeFiles()
         # Create targets.
-        self._CreateAstyleCheckTarget(headers)
-        self._CreateAstyleTarget(headers)
-        self._CreateCCCCTarget(headers)
-        self._CreateClocTarget(headers)
-        self._CreateStaticAnalysisTarget(headers)
-        self._CreateDocTarget()
-        self._CreateInfoTarget(headers)
+        self._SetTargets()
         # Create the installer.
         installer = self._CreateInstallerBuilder([])
         # Create the alias group.
@@ -635,7 +639,7 @@ class HeaderOnlyComponent(Component):
         # The target is the static-analysis report file.
         target = self._env.Dir(self._env['INSTALL_REPORTS_DIR'])
         target = target.Dir('static-analysis').Dir(self.name)
-        target = os.path.join(target.abspath, 'StaticAnalysisReport')
+        target = os.path.join(target.abspath, 'static-analysis-report')
         # Create an instance of the RunStaticAnalysis() builder.
         analysis_builder = self._env.RunStaticAnalysis(target, sources)
         # static-analysis can always be build.
@@ -726,8 +730,12 @@ class SourcedComponent(HeaderOnlyComponent):
     # Special methods.
     #
 
+    @property
+    def _sources(self):
+        return self.GetSourcesFiles() + self.GetIncludeFiles()
+
     def __init__(self, graph, env, name, dir, deps, inc, ext_inc, src, als=None):
-        HeaderOnlyComponent.__init__(self, graph, env, name, dir, deps, ext_inc, als)
+        super(SourcedComponent, self).__init__(graph, env, name, dir, deps, ext_inc, als)
         # Because HeaderOnlyComponent doesn't have includes.
         self._includes = self._FormatArgument(inc)
         # Check the 'src' argument.
@@ -757,15 +765,7 @@ class SourcedComponent(HeaderOnlyComponent):
         # Check if the component was already processed.
         if self._builders['install'] is None:
             # Create the list of the 'sources' files.
-            sources = self.GetSourcesFiles() + self.GetIncludeFiles()
-            # Create targets.
-            self._CreateAstyleCheckTarget(sources)
-            self._CreateAstyleTarget(sources)
-            self._CreateCCCCTarget(sources)
-            self._CreateClocTarget(sources)
-            self._CreateStaticAnalysisTarget(sources)
-            self._CreateDocTarget()
-            self._CreateInfoTarget(sources)
+            self._SetTargets()
             self._builders['install'] = True
         # We return an empty list because a sourced has nothing to install.
         return []
@@ -838,7 +838,7 @@ class ObjectComponent(SourcedComponent):
     #
 
     def __init__(self, graph, env, name, dir, deps, inc, src, als=None):
-        SourcedComponent.__init__(self, graph, env, name, dir, deps, inc, [], src, als)
+        super(ObjectComponent, self).__init__(graph, env, name, dir, deps, inc, [], src, als)
         # A list of builders of the class Object().
         self._objects = []
 
@@ -851,15 +851,7 @@ class ObjectComponent(SourcedComponent):
         if self._builders['install'] is not None:
             return self._builders['install']
         # Create the list of the 'sources' files.
-        sources = self.GetSourcesFiles() + self.GetIncludeFiles()
-        # Create targets.
-        self._CreateAstyleCheckTarget(sources)
-        self._CreateAstyleTarget(sources)
-        self._CreateCCCCTarget(sources)
-        self._CreateClocTarget(sources)
-        self._CreateStaticAnalysisTarget(sources)
-        self._CreateDocTarget()
-        self._CreateInfoTarget(sources)
+        self._SetTargets()
         # Initialize the object file list.
         self._CreateObjectFiles()
         # Create the installer.
@@ -914,7 +906,7 @@ class StaticLibraryComponent(ObjectComponent):
     #
 
     def __init__(self, graph, env, name, dir, deps, inc, ext_inc, src, als=None):
-        ObjectComponent.__init__(self, graph, env, name, dir, deps, inc, src, als)
+        super(StaticLibraryComponent, self).__init__(graph, env, name, dir, deps, inc, src, als)
         self._should_be_linked = True
 
     #
@@ -927,16 +919,7 @@ class StaticLibraryComponent(ObjectComponent):
             return self._builders['install']
         # The target is the name of library to be created.
         target = os.path.join(self._dir.abspath, self.name)
-        # Create the list of the 'sources' files.
-        sources = self.GetSourcesFiles() + self.GetIncludeFiles()
-        # Create targets.
-        self._CreateAstyleCheckTarget(sources)
-        self._CreateAstyleTarget(sources)
-        self._CreateCCCCTarget(sources)
-        self._CreateClocTarget(sources)
-        self._CreateStaticAnalysisTarget(sources)
-        self._CreateDocTarget()
-        self._CreateInfoTarget(sources)
+        self._SetTargets()
         # Create a static library builder.
         slib_builder = self._CreateStaticLibraryBuilder(target)
         # Create an installer builders.
@@ -974,7 +957,7 @@ class DynamicLibraryComponent(ObjectComponent):
     #
 
     def __init__(self, graph, env, name, dir, deps, inc, ext_inc, src, als=None):
-        ObjectComponent.__init__(self, graph, env, name, dir, deps, inc, src, als)
+        super(DynamicLibraryComponent, self).__init__(graph, env, name, dir, deps, inc, src, als)
         self._should_be_linked = True
 
     #
@@ -987,16 +970,7 @@ class DynamicLibraryComponent(ObjectComponent):
             return self._builders['install']
         # The target is the name of library to be created.
         target = os.path.join(self._dir.abspath, self.name)
-        # Create the list of the 'sources' files.
-        sources = self.GetSourcesFiles() + self.GetIncludeFiles()
-        # Create targets.
-        self._CreateAstyleCheckTarget(sources)
-        self._CreateAstyleTarget(sources)
-        self._CreateCCCCTarget(sources)
-        self._CreateClocTarget(sources)
-        self._CreateStaticAnalysisTarget(sources)
-        self._CreateDocTarget()
-        self._CreateInfoTarget(sources)
+        self._SetTargets()
         # Create the shared library builder.
         dlib_builder = self._CreateSharedLibraryBuilder(target)
         # Create the installer builder.
@@ -1036,7 +1010,7 @@ class ProgramComponent(ObjectComponent):
     #
 
     def __init__(self, graph, env, name, dir, deps, inc, src, als=None):
-        ObjectComponent.__init__(self, graph, env, name, dir, deps, inc, src, als)
+        super(ProgramComponent, self).__init__(graph, env, name, dir, deps, inc, src, als)
 
     #
     # Public methods.
@@ -1050,16 +1024,7 @@ class ProgramComponent(ObjectComponent):
         target = os.path.join(self._env['BUILD_DIR'], self.name)
         target = os.path.join(target, 'bin')
         target = os.path.join(target, self.name)
-        # Create the list of the 'sources' files.
-        sources = self.GetSourcesFiles() + self.GetIncludeFiles()
-        # Create targets.
-        self._CreateAstyleCheckTarget(sources)
-        self._CreateAstyleTarget(sources)
-        self._CreateCCCCTarget(sources)
-        self._CreateClocTarget(sources)
-        self._CreateStaticAnalysisTarget(sources)
-        self._CreateDocTarget()
-        self._CreateInfoTarget(sources)
+        self._SetTargets()
         # Create the program builder.
         program_builder = self._CreateProgramBuilder(target)
         # Create an instance of the Install() builder.
@@ -1110,7 +1075,7 @@ class UnitTestComponent(ProgramComponent):
     #
 
     def __init__(self, graph, env, name, dir, deps, inc, src, als=None):
-        ProgramComponent.__init__(self, graph, env, name, dir, deps, inc, src, als)
+        super(UnitTestComponent, self).__init__(graph, env, name, dir, deps, inc, src, als)
         self._project_name = name.split('@')[0]
 
     #
