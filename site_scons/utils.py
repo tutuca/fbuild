@@ -185,3 +185,24 @@ def WasTargetInvoked(target):
         if arg == target:
             return True
     return False
+
+
+def FindSources(dirs, extensions, spacer=' '):
+    out = []
+    
+    for source in dirs:
+        name, ext = os.path.splitext(source.name)
+        if ext in extensions:
+            out.append(source.abspath)
+    
+    return ' '.join(out)
+
+def FindHeaders(dirs):
+    out = []
+    for source in dirs:
+        name, ext = os.path.splitext(source.name)
+        if ext in ['.h', '.hh', '.hpp']:
+            dirname = os.path.dirname(source.abspath)
+            if dirname not in out:
+                out.append(dirname)
+    return ''.join('-I%s ' %x for x in out)

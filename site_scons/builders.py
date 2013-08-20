@@ -31,7 +31,7 @@ import os
 from SCons.Builder import Builder
 from SCons.Action import Action
 
-from utils import ChainCalls
+from utils import ChainCalls, FindHeaders, FindSources
 
 HEADERS = [".h", ".hpp"]
 SOURCES = [".c", "cpp"]
@@ -90,6 +90,9 @@ def init(env):
 	#-
     bldStaticAnalysis = Builder(action=Action(RunStaticAnalysis, PrintDummy))
     env.Append(BUILDERS={'RunStaticAnalysis': bldStaticAnalysis})
+    #-
+    bldAddressSanitizer = Builder(action=Action(RunASan, PrintDummy))
+    env.Append(BUILDERS={'RunASan': bldAddressSanitizer})
 
 
 def PrintDummy(env, target, source):
@@ -306,6 +309,27 @@ def RunValgrind(env, target, source):
     return valgrind_proc.wait()
 
 
+def RunASan(env, target, source):
+    env.Cprint('\n=== Running Address Sanitizer ===\n', 'green')
+    # Get the test directory and the test executable.
+    test_dir, test_program = os.path.split(source[0].abspath)
+    asan_cmd = './%s' % test_program
+    # Execute Address Sanitizer
+    asan_proc = subprocess.Popen(asan_cmd, cwd=test_dir, shell=True,
+                                 stderr=subprocess.PIPE,
+                                 stdout=subprocess.PIPE)
+    # Read the asan output in the stderr
+    err = asan_proc.stderr.read()
+    if asan_proc.wait():
+        env.Cprint('This error was found:\n', 'yellow')
+        env.Cprint(err, 'end')
+        env.CprintSameLine([('Address Sanitizer result: ','end'),('--- ERROR ---\n', 'red')])
+    else:
+        env.CprintSameLine([('Address Sanitizer result: ','end'),('--- PASSED ---', 'green')])
+        env.Cprint('No output generated.\n', 'end')
+    return 0
+
+
 def RunCCCC(env, target, source):
     # Print message on the screen.
     env.Cprint('\n=== Running CCCC ===\n', 'green')
@@ -387,9 +411,9 @@ def RunStaticAnalysis(env, target, source):
     target = target[0].abspath
     env.Cprint('\n=== Running Static Code Analysis ===\n', 'green')
     cppcheck_options = ' '.join([opt for opt in env['CPPCHECK_OPTIONS']])
-    cpp_files = _FindSources(source, ['.cpp', '.cc'])
-    c_files = _FindSources(source, ['.c'])
-    headers = _FindHeaders(source)
+    cpp_files = FindSources(source, ['.cpp', '.cc'])
+    c_files = FindSources(source, ['.c'])
+    headers = FindHeaders(source)
     if cpp_files:
         cppcheck_rc = _RunCppCheck(target, cpp_files, headers, 
             cppcheck_options)
@@ -397,7 +421,7 @@ def RunStaticAnalysis(env, target, source):
         splint_rc = _RunSplint(target, c_files, headers)
     if headers and not (cpp_files or c_files):
         #headers only
-        cppcheck_rc = _RunCppCheck(target, _FindSources(source, 
+        cppcheck_rc = _RunCppCheck(target, FindSources(source, 
             ['.h', '.hh', '.hpp']), headers, cppcheck_options)
     # Return the output of both builders
     return cppcheck_rc and splint_rc
@@ -494,7 +518,7 @@ def RunInfo(env, target, source):
             env.Cprint(src, "purple")
         # New line at the end of the sources
         env.Cprint("","end")
-        
+
 def _CheckAstyle(env, source, output_directory):
     # Create a temporary directory.
     tmp_dir = os.path.join(output_directory, 'tmp')
@@ -607,23 +631,3 @@ def _RTCCheckValgrind(env):
     valgrind_proc.stdout.read()
     # Wait until process terminates and return the status.
     return valgrind_proc.wait()
-
-def _FindSources(dirs, extensions, spacer=' '):
-    out = []
-    
-    for source in dirs:
-        name, ext = os.path.splitext(source.name)
-        if ext in extensions:
-            out.append(source.abspath)
-    
-    return ' '.join(out)
-
-def _FindHeaders(dirs):
-    out = []
-    for source in dirs:
-        name, ext = os.path.splitext(source.name)
-        if ext in ['.h', '.hh', '.hpp']:
-            dirname = os.path.dirname(source.abspath)
-            if dirname not in out:
-                out.append(dirname)
-    return ''.join('-I%s ' %x for x in out)
