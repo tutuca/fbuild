@@ -609,9 +609,9 @@ def _RTCCheckAstyle(env):
 
 def _RTCCheckCppcheck(env):
     # Path to the report file.
-    report_file = os.path.join(env['INSTALL_REPORTS_DIR'], 'cppcheck')
+    report_file = os.path.join(env['INSTALL_REPORTS_DIR'], 'static-analysis')
     report_file = os.path.join(report_file, env['PROJECT_NAME'])
-    report_file = os.path.join(report_file, 'CppcheckReport.xml')
+    report_file = os.path.join(report_file, 'static-analysis-report.xml')
     # Commands to be executed.
     cmd_error = 'cat %s | grep severity=\\"error\\"' % report_file
     cmd_warning = 'cat %s | grep severity=\\"warning\\"' % report_file
@@ -625,8 +625,8 @@ def _RTCCheckCppcheck(env):
     errors = errors_proc.wait()
     warnings = warnings_proc.wait()
     if errors and warnings:
-        return False
-    return True
+        return True
+    return False
 
 
 def _RTCCheckTests(env):
@@ -647,8 +647,8 @@ def _RTCCheckTests(env):
     failures = failures_proc.wait()
     errors = errors_proc.wait()
     if failures and errors:
-        return False
-    return True
+        return True
+    return False
 
 
 def _RTCCheckValgrind(env):
