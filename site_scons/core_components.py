@@ -241,8 +241,8 @@ class Component(object):
     #
     def _SetTargets(self):
         """Create targets for most modules."""
-        self._CreateAstyleCheckTarget(self.GetSourcesFiles())
-        self._CreateAstyleTarget(self.GetSourcesFiles())
+        self._CreateAstyleCheckTarget(self._sources)
+        self._CreateAstyleTarget(self._sources)
         self._CreateCCCCTarget(self._sources)
         self._CreateClocTarget(self._sources)
         self._CreateStaticAnalysisTarget(self._sources)
