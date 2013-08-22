@@ -35,7 +35,7 @@ from utils import ChainCalls, FindHeaders, FindSources
 
 HEADERS = [".h", ".hpp"]
 SOURCES = [".c", "cpp"]
-
+EXIT_SUCCESS = 0
 
 def init(env):
     bldRUT = Builder(action=Action(RunUnittest, PrintDummy))
@@ -120,7 +120,7 @@ def RunUnittest(env, target, source):
         env.cerror('\n\nTest result: *** FAILED ***\n\n')
     else:
         env.Cprint('\n\nTest result: *** PASSED ***\n\n', 'green')
-    return test_proc.wait()
+    return EXIT_SUCCESS
 
 
 def InitLcov(env, target, source):
@@ -135,7 +135,9 @@ def InitLcov(env, target, source):
         'lcov --zerocounters --directory %(project_dir)s -b .' % data,
         'lcov --capture --initial --directory %(project_dir)s -b . --output-file %(coverage_file)s' % data,
     ], silent)
-    return result
+    if result:
+        env.cerror('\n\n[ERROR] Failed initializing Lcov, error: %s\n\n' % result)
+    return EXIT_SUCCESS
 
 
 def RunLcov(env, target, source):
@@ -161,9 +163,11 @@ def RunLcov(env, target, source):
         commands_list.append(cmd)
     commands_list.append('genhtml --highlight --legend --output-directory %(output_dir)s %(coverage_file)s' % data)
     result = ChainCalls(env, commands_list, env.GetOption('verbose'))
-    if result == 0:
+    if result:
+        env.cerror('\n\n[ERROR] Failed running Lcov, error: %s\n\n' % result)
+    else:
         env.Cprint('lcov report in: %s' % indexFile, 'green')
-    return result
+    return EXIT_SUCCESS
 
 
 def RunDoxygen(env, target, source):
@@ -200,7 +204,7 @@ def RunDoxygen(env, target, source):
         doxygen_results_proc = subprocess.Popen("cat %s" % output_file, shell=True)
         doxygen_results_proc.wait()
     os.remove(projectDoxyFile)
-    return rc
+    return EXIT_SUCCESS
 
 
 def AStyleCheck(env, target, source):
@@ -217,13 +221,14 @@ def AStyleCheck(env, target, source):
     check_astyle_result = _CheckAstyle(env, source, output_directory)
     # Check if _CheckAstyle() fails.
     if check_astyle_result is None:
-        return 1
+        env.cerror('\n\n[ERROR] Failed running Check Astyle\n\n')
+        return EXIT_SUCCESS
     # Open the report file.
     try:
         report = open(report_file, 'w')
     except IOError:
         env.Cprint('No such file or directory:', report_file)
-        return 1
+        return EXIT_SUCCESS
     else:
         # If we can open it we truncate it.
         report.truncate(0)
@@ -242,7 +247,7 @@ def AStyleCheck(env, target, source):
         env.Cprint('[OK] No file needs astyle.', 'green')
     # Close the report file.
     report.close()
-    return 0
+    return EXIT_SUCCESS
 
 
 def AStyle(env, target, source):
@@ -264,7 +269,7 @@ def AStyle(env, target, source):
         env.cerror('[astyle] ERROR running astyle on: %s' % project_dir)
     else:
         env.Cprint('[astyle] OK on: %s' % project_dir, 'green')
-    return astyle_proc.wait()
+    return EXIT_SUCCESS
 
 
 def RunPdfLatex(env, target, source):
@@ -282,7 +287,9 @@ def RunPdfLatex(env, target, source):
         + ' -output-directory "' + tmpPdf2TexDir + '" ' + pathTail, shell=True)
     shutil.move(targetDir, tmpPdf2TexDir + pathTail[:-4] + ".pdf")
     shutil.rmtree(tmpPdf2TexDir)
-    return pdflates_proc.wait()
+    if pdflates_proc.wait():
+        env.cerror('\n\n[ERROR] Failed running PDFLatex, error: %s\n\n' % pdflates_proc.wait())
+    return EXIT_SUCCESS
 
 
 def RunValgrind(env, target, source):
@@ -306,7 +313,9 @@ def RunValgrind(env, target, source):
     valgrind_proc = subprocess.Popen(cmd, shell=True)
     # Get back to the previous directory.
     os.chdir(cwd)
-    return valgrind_proc.wait()
+    if valgrind_proc.wait():
+        env.cerror('\n\n[ERROR] Failed running Valgrind, error: %s\n\n' % valgrind_proc.wait())
+    return EXIT_SUCCESS
 
 
 def RunASan(env, target, source):
@@ -327,7 +336,7 @@ def RunASan(env, target, source):
     else:
         env.CprintSameLine([('Address Sanitizer result: ','end'),('--- PASSED ---', 'green')])
         env.Cprint('No output generated.\n', 'end')
-    return 0
+    return EXIT_SUCCESS
 
 
 def RunCCCC(env, target, source):
@@ -351,7 +360,9 @@ def RunCCCC(env, target, source):
     # Create the command to be executed.
     cmd = 'cccc %s %s' % (options, files)
     cccc_proc = subprocess.Popen(cmd, shell=True)
-    return cccc_proc.wait()
+    if cccc_proc.wait():
+        env.cerror('\n\n[ERROR] Failed running CCCC, error: %s\n\n' % cccc_proc.wait())
+    return EXIT_SUCCESS
 
 
 def RunCLOC(env, target, source):
@@ -384,7 +395,9 @@ def RunCLOC(env, target, source):
     # Create the command to be executed.
     cmd = 'cloc %s %s' % (options, files)
     cloc_proc = subprocess.Popen(cmd, shell=True)
-    return cloc_proc.wait()
+    if cloc_proc.wait():
+        env.cerror('\n\n[ERROR] Failed running CLOC, error: %s\n\n' % cloc_proc.wait())
+    return EXIT_SUCCESS
 
 
 def RunCppCheck(env, target, source):
@@ -401,8 +414,11 @@ def RunCppCheck(env, target, source):
     options = ' '.join([opt for opt in env['CPPCHECK_OPTIONS']])
     # We create a string with the files for cppcheck.
     files = ' '.join([f.abspath for f in source])
-    # Create the command to be pass to subprocess.call()
-    return _RunCppCheck(target, files, options)
+    # Create the command to be pass to subprocess.Popen()
+    result = _RunCppCheck(target, files, options)
+    if not result:
+        env.cerror('\n\n[ERROR] Failed running Cpp Check\n\n')
+    return EXIT_SUCCESS
 
 def RunStaticAnalysis(env, target, source):
     # Print message on the screen.
@@ -424,7 +440,9 @@ def RunStaticAnalysis(env, target, source):
         cppcheck_rc = _RunCppCheck(target, FindSources(source, 
             ['.h', '.hh', '.hpp']), headers, cppcheck_options)
     # Return the output of both builders
-    return cppcheck_rc and splint_rc
+    if cppcheck_rc or splint_rc:
+        env.cerror('\n\n[ERROR] Failed running Static Analysis\n\n')
+    return EXIT_SUCCESS
 
 
 def RunMocko(env, target, source):
@@ -448,7 +466,9 @@ def RunMocko(env, target, source):
     os.chdir(directory)
     mocko_proc = subprocess.Popen('%s %s' % (mocko, mocko_list), shell=True)
     os.chdir(cwd)
-    return mocko_proc.wait()
+    if mocko_proc.wait():
+        env.cerror('\n\n[ERROR] Failed running Mocko, error: %s\n\n' % mocko_proc.wait())
+    return EXIT_SUCCESS
 
 
 def RunReadyToCommit(env, target, source):
@@ -464,9 +484,9 @@ def RunReadyToCommit(env, target, source):
         env.Cprint('ASTYLE   : [ERROR]', 'red')
     # Cheeck for cppcheck.
     if _RTCCheckCppcheck(env):
-        env.Cprint('CPPCHECK : [OK]', 'green')
+        env.Cprint('STATIC-ANALYSIS : [OK]', 'green')
     else:
-        env.Cprint('CPPCHECK : [ERROR]', 'red')
+        env.Cprint('STATIC-ANALYSIS : [ERROR]', 'red')
     # Check for tests.
     if _RTCCheckTests(env):
         env.Cprint('TESTS    : [OK]', 'green')
@@ -478,22 +498,8 @@ def RunReadyToCommit(env, target, source):
     else:
         env.Cprint('VALGRIND : [ERROR]', 'red')
     print ""  # Just an empty line.
-    return 0
+    return EXIT_SUCCESS
 
-def _RunCppCheck(report_file, files, headers, options):
-    if 'xml' in options:
-        cmd = "cppcheck --check-config %s %s %s 2> %s.xml" % (options, files, 
-            headers, report_file)
-    else:
-        cmd = "cppcheck %s %s %s 2> %s.txt" % (options, files, 
-            headers, report_file)
-    cppcheck_proc = subprocess.Popen(cmd, shell=True)
-    return cppcheck_proc.wait()
-
-def _RunSplint(report_file, files, headers):
-    cmd = "splint %s %s > %s-splint.txt" % (files, headers, report_file)
-    splint_proc = subprocess.Popen(cmd, shell=True)
-    return splint_proc.wait()
 
 def RunInfo(env, target, source):
     #Take project info
@@ -518,6 +524,23 @@ def RunInfo(env, target, source):
             env.Cprint(src, "purple")
         # New line at the end of the sources
         env.Cprint("","end")
+    return EXIT_SUCCESS
+
+
+def _RunCppCheck(report_file, files, headers, options):
+    if 'xml' in options:
+        cmd = "cppcheck --check-config %s %s %s 2> %s.xml" % (options, files, 
+            headers, report_file)
+    else:
+        cmd = "cppcheck %s %s %s 2> %s.txt" % (options, files, 
+            headers, report_file)
+    cppcheck_proc = subprocess.Popen(cmd, shell=True)
+    return cppcheck_proc.wait()
+
+def _RunSplint(report_file, files, headers):
+    cmd = "splint %s %s > %s-splint.txt" % (files, headers, report_file)
+    splint_proc = subprocess.Popen(cmd, shell=True)
+    return splint_proc.wait()
 
 def _CheckAstyle(env, source, output_directory):
     # Create a temporary directory.
@@ -575,14 +598,15 @@ def _RTCCheckAstyle(env):
     # Read the output of the process.
     astyle_proc.stdout.read()
     # Wait until process terminates and return the status.
+    # grep returns 1 if the line is not found
     return astyle_proc.wait()
 
 
 def _RTCCheckCppcheck(env):
     # Path to the report file.
-    report_file = os.path.join(env['INSTALL_REPORTS_DIR'], 'cppcheck')
+    report_file = os.path.join(env['INSTALL_REPORTS_DIR'], 'static-analysis')
     report_file = os.path.join(report_file, env['PROJECT_NAME'])
-    report_file = os.path.join(report_file, 'CppcheckReport.xml')
+    report_file = os.path.join(report_file, 'static-analysis-report.xml')
     # Commands to be executed.
     cmd_error = 'cat %s | grep severity=\\"error\\"' % report_file
     cmd_warning = 'cat %s | grep severity=\\"warning\\"' % report_file
@@ -595,6 +619,7 @@ def _RTCCheckCppcheck(env):
     # Wait until the processes terminate.
     errors = errors_proc.wait()
     warnings = warnings_proc.wait()
+    # grep returns 1 if the line is not found
     return errors and warnings
 
 
@@ -615,6 +640,7 @@ def _RTCCheckTests(env):
     # Wait until the processes terminate.
     failures = failures_proc.wait()
     errors = errors_proc.wait()
+    # grep returns 1 if the line is not found
     return failures and errors
 
 
@@ -630,4 +656,5 @@ def _RTCCheckValgrind(env):
     # Read the output of the process.
     valgrind_proc.stdout.read()
     # Wait until process terminates and return the status.
+    # grep returns 1 if the line is not found
     return valgrind_proc.wait()
