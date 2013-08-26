@@ -106,3 +106,12 @@ def init(env, vars):
         env.cdebug('    lib dir    : ' + env['INSTALL_LIB_DIR'])
         env.cdebug('    headers dir: ' + env['INSTALL_HEADERS_DIR'])
         env.cdebug('    doc dir    : ' + env['INSTALL_DOC_DIR'])
+
+## Replace the scons _concat function for mine.
+
+old_concat = env['_concat']
+
+def new_concat(INCPREFIX, CPPPATH, INCSUFFIX, __env__, RDirs=None, *kwargs):
+    return old_concat(INCPREFIX, CPPPATH, INCSUFFIX, __env__, sorted, *kwargs)
+
+env['_concat'] = new_concat
