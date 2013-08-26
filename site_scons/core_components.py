@@ -182,8 +182,7 @@ class Component(object):
         except fbuild_exceptions.CircularDependencyError, error:
             msg = (' -> ').join(error[0])
             self._env.cerror('[error] A dependency cycle was found:\n  %s' % msg)
-        paths = sorted(list(self._include_paths), key=lambda x: x.abspath)
-        return paths
+        return list(self._include_paths) # so /builds/ are always first
 
     def GetIncludeFiles(self):
         """
@@ -240,8 +239,8 @@ class Component(object):
     #
     def _SetTargets(self):
         """Create targets for most modules."""
-        self._CreateAstyleCheckTarget(self.GetSourcesFiles())
-        self._CreateAstyleTarget(self.GetSourcesFiles())
+        self._CreateAstyleCheckTarget(self._sources)
+        self._CreateAstyleTarget(self._sources)
         self._CreateCCCCTarget(self._sources)
         self._CreateClocTarget(self._sources)
         self._CreateStaticAnalysisTarget(self._sources)
@@ -478,6 +477,7 @@ class HeaderOnlyComponent(Component):
         super(HeaderOnlyComponent, self).__init__(graph, env, name, dir, deps, inc, [], als)
         self._project_dir = self._env.Dir('WS_DIR').Dir(self.name)
         self._builders = {  # Maintain alphabetical order.
+            'asan': None,
             'astyle': None,
             'astyle-check': None,
             'cccc': None,
@@ -1117,6 +1117,7 @@ class UnitTestComponent(ProgramComponent):
         self._CreateGroupAliases()
         # Create targets.
         self._CreateValgrindTarget(program_builder)
+        self._CreateASanTarget(program_builder)
         self._CreateCoverageTarget(run_test_target, program_builder)
         self._CreateJenkinsTarget(flags, run_test_target, program_builder)
         self._CreateReadyToCommitTtarget(flags, run_test_target, program_builder)
@@ -1132,11 +1133,13 @@ class UnitTestComponent(ProgramComponent):
         coverage = utils.WasTargetInvoked('%s:coverage' % self._project_name)
         rtc = (utils.WasTargetInvoked('%s:rtc' % self._project_name) or
               utils.WasTargetInvoked('%s:ready-to-commit' % self._project_name))
+        asan = utils.WasTargetInvoked('%s:asan' % self._project_name)
         # Create the dictionary of flags.
         result = {
             'jenkins': jenkins,
             'coverage': coverage,
-            'ready-to-commit': rtc
+            'ready-to-commit': rtc,
+            'asan': asan
         }
         # Check for needed reports.
         self._env.NEED_COVERAGE = jenkins or coverage
@@ -1179,6 +1182,18 @@ class UnitTestComponent(ProgramComponent):
             report_file = '%s/valgrind-report.xml' % valgrind_report_dir.abspath
             flags = ' --xml=yes --xml-file=%s ' % report_file
             self._env.Append(VALGRIND_OPTIONS=flags)
+        # Check if necessary change the compiler for ASan.
+        if self._env.NEED_ASAN:
+            # Set clang as compiler
+            compiler_c = 'clang'
+            compiler_cpp = 'clang++'
+            project_component._env.Replace(CC=compiler_c, CXX=compiler_cpp)
+            self._env.Replace(CC=compiler_c, CXX=compiler_cpp)
+            # Set flags for address sanitizer
+            flags = ['-fsanitize=address-full', '-fno-omit-frame-pointer', '-g0', '-w']
+            linker_flags = ['-fsanitize=address']
+            project_component._env.Append(CXXFLAGS=flags, CFLAGS=flags, LINKFLAGS=linker_flags)
+            self._env.Replace(CXXFLAGS=flags, CFLAGS=flags, LINKFLAGS=linker_flags)
         return result
 
     def _CreateValgrindTarget(self, program_builder):
@@ -1194,6 +1209,20 @@ class UnitTestComponent(ProgramComponent):
         self._env.Alias(name, deps, msg)
         self._builders['valgrind'] = run_valgrind_builder
         return run_valgrind_builder
+        
+    def _CreateASanTarget(self, program_builder):
+        if self._builders['asan'] is not None:
+            return self._builders['asan']
+        target = self._env.Dir('%s-asan' % self._project_name)
+        # Create an instance of the RunASan() builder.
+        run_asan_builder = self._env.RunASan(target, program_builder)
+        # Create the alias.
+        name = '%s:asan' % self._project_name
+        deps = [run_asan_builder]
+        msg = 'Run address sanitizer for %s test' % self._project_name
+        self._env.Alias(name, deps, msg)
+        self._builders['asan'] = run_asan_builder
+        return run_asan_builder
 
     def _CreateCoverageTarget(self, target, program_builder):
         if self._builders['coverage'] is not None:
@@ -1213,7 +1242,7 @@ class UnitTestComponent(ProgramComponent):
         self._env['PROJECT_DEPS'] = project_deps
 
         # Targets and sources for builder InitLcov().
-        init_lcov_target = os.path.join(self._dir.abspath, 'coverage_data')
+        init_lcov_target = os.path.join(self._dir.abspath, '%s-coverage_data' % self._project_name)
         init_lcov_soureces = [program_builder]
         # Create an instance of the InitLcov() builder.
         init_lcov_builder = self._env.InitLcov(
