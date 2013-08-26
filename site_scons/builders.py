@@ -144,9 +144,10 @@ def RunLcov(env, target, source):
     # Print message on the screen.
     env.Cprint('\n=== Running COVERAGE ===\n', 'green')
     indexFile = target[0].abspath
+    output_dir = os.path.dirname(indexFile)
     data = {
-        'coverage_file': os.path.join(os.path.dirname(os.path.dirname(indexFile)), 'coverage_output.dat'),
-        'output_dir': os.path.dirname(indexFile),
+        'coverage_file': os.path.join(os.path.dirname(output_dir), 'coverage_output.dat'),
+        'output_dir': output_dir,
         'project_dir': env['PROJECT_DIR']
     }
     commands_list = [
