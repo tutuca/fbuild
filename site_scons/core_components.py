@@ -182,7 +182,7 @@ class Component(object):
         except fbuild_exceptions.CircularDependencyError, error:
             msg = (' -> ').join(error[0])
             self._env.cerror('[error] A dependency cycle was found:\n  %s' % msg)
-        return self._include_paths # so /builds/ are always first
+        return list(self._include_paths) # so /builds/ are always first
 
     def GetIncludeFiles(self):
         """
