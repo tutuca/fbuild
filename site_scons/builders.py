@@ -593,7 +593,7 @@ def _RTCCheckAstyle(env):
     report_file = os.path.join(report_file, env['PROJECT_NAME'])
     report_file = os.path.join(report_file, 'AstyleCheckReport.diff')
     # Command to be executed.
-    cmd = "cat %s | grep -E '^\+' | grep -v +++ | grep -v 'for (auto'" % report_file
+    cmd = "grep -E '^\+' %s| grep -v +++ " % report_file
     # Execute the command.
     astyle_proc = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE)
     # Read the output of the process.
@@ -609,8 +609,8 @@ def _RTCCheckCppcheck(env):
     report_file = os.path.join(report_file, env['PROJECT_NAME'])
     report_file = os.path.join(report_file, 'static-analysis-report.xml')
     # Commands to be executed.
-    cmd_error = 'cat %s | grep severity=\\"error\\"' % report_file
-    cmd_warning = 'cat %s | grep severity=\\"warning\\"' % report_file
+    cmd_error = 'grep severity=\\"error\\" %s' % report_file
+    cmd_warning = 'grep severity=\\"warning\\" %s' % report_file
     # Execute the commands.
     errors_proc = subprocess.Popen(cmd_error, shell=True, stdout=subprocess.PIPE)
     warnings_proc = subprocess.Popen(cmd_warning, shell=True, stdout=subprocess.PIPE)
@@ -630,8 +630,8 @@ def _RTCCheckTests(env):
     report_file = os.path.join(report_file, env['PROJECT_NAME'])
     report_file = os.path.join(report_file, 'test-report.xml')
     # Commands to be executed.
-    cmd_failures = 'cat %s | grep "<testsuites" | grep -v "failures=\\"0\\""' % report_file
-    cmd_errors = 'cat %s | grep "<testsuites" | grep -v "errors=\\"0\\""' % report_file
+    cmd_failures = 'grep "<testsuites" %s | grep -v "failures=\\"0\\""' % report_file
+    cmd_errors = 'grep "<testsuites" %s | grep -v "errors=\\"0\\""' % report_file
     # Execute the commands.
     failures_proc = subprocess.Popen(cmd_failures, shell=True, stdout=subprocess.PIPE)
     errors_proc = subprocess.Popen(cmd_errors, shell=True, stdout=subprocess.PIPE)
@@ -651,7 +651,7 @@ def _RTCCheckValgrind(env):
     report_file = os.path.join(report_file, env['PROJECT_NAME'])
     report_file = os.path.join(report_file, 'valgrind-report.xml')
     # Command to be executed.
-    cmd = "cat %s | grep '<error>'" % report_file
+    cmd = "grep '<error>' %s " % report_file
     # Execute the command.
     valgrind_proc = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE)
     # Read the output of the process.
