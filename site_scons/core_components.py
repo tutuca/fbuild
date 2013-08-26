@@ -241,8 +241,8 @@ class Component(object):
     #
     def _SetTargets(self):
         """Create targets for most modules."""
-        self._CreateAstyleCheckTarget(self.GetSourcesFiles())
-        self._CreateAstyleTarget(self.GetSourcesFiles())
+        self._CreateAstyleCheckTarget(self._sources)
+        self._CreateAstyleTarget(self._sources)
         self._CreateCCCCTarget(self._sources)
         self._CreateClocTarget(self._sources)
         self._CreateStaticAnalysisTarget(self._sources)
@@ -1245,7 +1245,7 @@ class UnitTestComponent(ProgramComponent):
         self._env['PROJECT_DEPS'] = project_deps
 
         # Targets and sources for builder InitLcov().
-        init_lcov_target = os.path.join(self._dir.abspath, 'coverage_data')
+        init_lcov_target = os.path.join(self._dir.abspath, '%s-coverage_data' % self._project_name)
         init_lcov_soureces = [program_builder]
         # Create an instance of the InitLcov() builder.
         init_lcov_builder = self._env.InitLcov(
