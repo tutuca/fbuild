@@ -1146,7 +1146,8 @@ class UnitTestComponent(ProgramComponent):
         self._env.NEED_TEST_REPORT =  jenkins or rtc
         self._env.NEED_CLOC_XML = jenkins
         self._env.NEED_VALGRIND_REPORT = jenkins or rtc
-        self._env.NEED_CPPCKET_XML = jenkins or rtc
+        self._env.NEED_CPPCHECK_XML = jenkins or rtc
+        self._env.NEED_ASAN = asan
         # Add flags to the environment for gtest and gmock.
         aux = [f for f in self._env['CXXFLAGS'] if f not in ['-ansi', '-pedantic']]
         aux.append('-Wno-sign-compare')
@@ -1168,7 +1169,7 @@ class UnitTestComponent(ProgramComponent):
         if self._env.NEED_CLOC_XML:
             project_component._env.Replace(CLOC_OUTPUT_FORMAT='xml')
         # Check if we need the output of cppchec in xml format.
-        if self._env.NEED_CPPCKET_XML:
+        if self._env.NEED_CPPCHECK_XML:
             project_component._env.Append(CPPCHECK_OPTIONS='--xml')
         # Check if we need to create an xml report for valgrind.
         if self._env.NEED_VALGRIND_REPORT:
