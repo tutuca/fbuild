@@ -424,17 +424,23 @@ def RunStaticAnalysis(env, target, source):
     # Print message on the screen.
     cppcheck_rc = False
     splint_rc = False
-    target = target[0].abspath
+    target = target.pop()
     env.Cprint('\n=== Running Static Code Analysis ===\n', 'green')
     cppcheck_options = ' '.join([opt for opt in env['CPPCHECK_OPTIONS']])
     cpp_files = FindSources(source, ['.cpp', '.cc'])
     c_files = FindSources(source, ['.c'])
     headers = FindHeaders(source)
     if cpp_files:
-        cppcheck_rc = _RunCppCheck(target, cpp_files, headers, 
+        report_dir = target.Dir('cppcheck')
+        report_file = os.path.join(report_dir.abspath, 
+            'static-analysis-report')
+        cppcheck_rc = _RunCppCheck(report_file, cpp_files, headers, 
             cppcheck_options)
     if c_files:
-        splint_rc = _RunSplint(target, c_files, headers)
+        report_dir = target.Dir('splint')
+        report_file = os.path.join(report_dir.abspath, 
+            'static-analysis-report')
+        splint_rc = _RunSplint(report_file, c_files, headers)
     if headers and not (cpp_files or c_files):
         #headers only
         cppcheck_rc = _RunCppCheck(target, FindSources(source, 
@@ -538,7 +544,7 @@ def _RunCppCheck(report_file, files, headers, options):
     return cppcheck_proc.wait()
 
 def _RunSplint(report_file, files, headers):
-    cmd = "splint %s %s > %s-splint.txt" % (files, headers, report_file)
+    cmd = "splint %s %s > %s.txt" % (files, headers, report_file)
     splint_proc = subprocess.Popen(cmd, shell=True)
     return splint_proc.wait()
 

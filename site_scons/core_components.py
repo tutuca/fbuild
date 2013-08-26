@@ -640,7 +640,6 @@ class HeaderOnlyComponent(Component):
         # The target is the static-analysis report file.
         target = self._env.Dir(self._env['INSTALL_REPORTS_DIR'])
         target = target.Dir('static-analysis').Dir(self.name)
-        target = os.path.join(target.abspath, 'static-analysis-report')
         # Create an instance of the RunStaticAnalysis() builder.
         analysis_builder = self._env.RunStaticAnalysis(target, sources)
         # static-analysis can always be build.
