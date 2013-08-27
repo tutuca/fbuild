@@ -182,9 +182,7 @@ class Component(object):
         except fbuild_exceptions.CircularDependencyError, error:
             msg = (' -> ').join(error[0])
             self._env.cerror('[error] A dependency cycle was found:\n  %s' % msg)
-        paths = list(self._include_paths)
-        build_list = [paths.pop(paths.index(x)) for x in paths if '/build/' in x.abspath]
-        return build_list + paths # so /builds/ are always first
+        return list(self._include_paths) # so /builds/ are always first
 
     def GetIncludeFiles(self):
         """
@@ -1148,7 +1146,7 @@ class UnitTestComponent(ProgramComponent):
         self._env.NEED_TEST_REPORT =  jenkins or rtc
         self._env.NEED_CLOC_XML = jenkins
         self._env.NEED_VALGRIND_REPORT = jenkins or rtc
-        self._env.NEED_CPPCKET_XML = jenkins or rtc
+        self._env.NEED_CPPCHECK_XML = jenkins or rtc
         self._env.NEED_ASAN = asan
         # Add flags to the environment for gtest and gmock.
         aux = [f for f in self._env['CXXFLAGS'] if f not in ['-ansi', '-pedantic']]
@@ -1172,7 +1170,7 @@ class UnitTestComponent(ProgramComponent):
         if self._env.NEED_CLOC_XML:
             project_component._env.Replace(CLOC_OUTPUT_FORMAT='xml')
         # Check if we need the output of cppchec in xml format.
-        if self._env.NEED_CPPCKET_XML:
+        if self._env.NEED_CPPCHECK_XML:
             project_component._env.Append(CPPCHECK_OPTIONS='--xml')
         # Check if we need to create an xml report for valgrind.
         if self._env.NEED_VALGRIND_REPORT:
