@@ -30,19 +30,17 @@ from core_components import Component
 
 class PdfLaTeXComponent(Component):
 
-    def __init__(self, graph, env, name, dir, latexfile, alias):
-        super(PdfLaTeXComponent, self).__init__(graph, env, name, dir, [], alias)
+    def __init__(self, componentGraph, env, name, compDir, latexfile, aliasGroups):
+        super(PdfLaTeXComponent, self).__init__(componentGraph, env, name, compDir, [], aliasGroups)
         self.latexfile = latexfile
 
     def Process(self):
-        filename = os.path.split(self.latexfile)[-1]
-        source_name = self.name.split(':')[0]
-        doc_dir = "/" + filename + ":doc/pdf/"
-        target_dir = self._env.Dir(
-            self._env['INSTALL_DOC_DIR']).Dir(doc_dir, True)
-        pdf = self._env.RunPdfLaTeX(target_dir, self.latexfile)
-        self._env.Clean(pdf, target_dir)
-        self._env.Alias(self.name, pdf, 'Generate pdf from {} for {}'.format(
-            source_name, doc_dir))
+        docDir = "/" + self.name.split(':')[0] + ":doc/pdf/"
+        targetDir = self._env.Dir(self._env['INSTALL_DOC_DIR']).Dir(docDir, True)
+        pdf = self._env.RunPdfLaTeX(targetDir, self.latexfile)
+        self._env.Clean(pdf, targetDir)
+        self._env.Alias(self.name, pdf, 'Generate pdf from ' +
+            os.path.split(self.latexfile)[-1] +
+            ' for ' + self.name.split(':')[0])
         for alias in self._alias_groups:
-            self._env.Alias(alias, pdf, "Build group {}".format(alias))
+            self._env.Alias(alias, pdf, "Build group " + alias)
