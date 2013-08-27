@@ -640,7 +640,7 @@ class HeaderOnlyComponent(Component):
         target = target.Dir('static-analysis').Dir(self.name)
         target = os.path.join(target.abspath, 'static-analysis-report')
         # Pass information into env.
-        self._env['CPPCHECK_INC_PATHS'] = self.GetIncludePaths()
+        self._env['CPPCHECK_INC_PATHS'] = self._includes  ## Because it only needs the path in 'build/'.
         # Create an instance of the RunStaticAnalysis() builder.
         analysis_builder = self._env.RunStaticAnalysis(target, sources)
         # static-analysis can always be build.
