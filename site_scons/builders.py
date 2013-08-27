@@ -31,7 +31,7 @@ import os
 from SCons.Builder import Builder
 from SCons.Action import Action
 
-from utils import ChainCalls, FindHeaders, FindSources
+from utils import ChainCalls, FindHeaders, FindSources, CheckPath
 
 HEADERS = [".h", ".hpp"]
 SOURCES = [".c", "cpp"]
@@ -428,22 +428,21 @@ def RunStaticAnalysis(env, target, source):
     env.Cprint('\n=== Running Static Code Analysis ===\n', 'green')
     cppcheck_options = ' '.join([opt for opt in env['CPPCHECK_OPTIONS']])
     cpp_files = FindSources(source, ['.cpp', '.cc'])
+    cppcheck_dir = target.Dir('cppcheck')
+    splint_dir = target.Dir('splint')
+
     c_files = FindSources(source, ['.c'])
     headers = FindHeaders(source)
     if cpp_files:
-        report_dir = target.Dir('cppcheck')
-        report_file = os.path.join(report_dir.abspath, 
-            'static-analysis-report')
-        cppcheck_rc = _RunCppCheck(report_file, cpp_files, headers, 
+        CheckPath(cppcheck_dir.abspath)
+        cppcheck_rc = _RunCppCheck(cppcheck_dir, cpp_files, headers, 
             cppcheck_options)
     if c_files:
-        report_dir = target.Dir('splint')
-        report_file = os.path.join(report_dir.abspath, 
-            'static-analysis-report')
-        splint_rc = _RunSplint(report_file, c_files, headers)
+        CheckPath(splint_dir.abspath)
+        splint_rc = _RunSplint(splint_dir, c_files, headers)
     if headers and not (cpp_files or c_files):
-        #headers only
-        cppcheck_rc = _RunCppCheck(target, FindSources(source, 
+        CheckPath(cppcheck_dir.abspath)
+        cppcheck_rc = _RunCppCheck(cppcheck_dir, FindSources(source, 
             ['.h', '.hh', '.hpp']), headers, cppcheck_options)
     # Return the output of both builders
     if cppcheck_rc or splint_rc:
@@ -533,7 +532,8 @@ def RunInfo(env, target, source):
     return EXIT_SUCCESS
 
 
-def _RunCppCheck(report_file, files, headers, options):
+def _RunCppCheck(report_dir, files, headers, options):
+    report_file = os.path.join(report_dir.abspath, 'static-analysis-report')
     if 'xml' in options:
         cmd = "cppcheck --check-config %s %s %s 2> %s.xml" % (options, files, 
             headers, report_file)
@@ -543,7 +543,8 @@ def _RunCppCheck(report_file, files, headers, options):
     cppcheck_proc = subprocess.Popen(cmd, shell=True)
     return cppcheck_proc.wait()
 
-def _RunSplint(report_file, files, headers):
+def _RunSplint(report_dir, files, headers):
+    report_file = os.path.join(report_dir.abspath, 'static-analysis-report')
     cmd = "splint %s %s > %s.txt" % (files, headers, report_file)
     splint_proc = subprocess.Popen(cmd, shell=True)
     return splint_proc.wait()
