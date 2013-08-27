@@ -63,8 +63,8 @@ def init(env):
     #-
     bldValgrind = Builder(action=Action(RunValgrind, PrintDummy))
     env.Append(BUILDERS={'RunValgrind': bldValgrind})
-    env['VALGRIND_OPTIONS'] = ' --leak-check=full --show-reachable=yes ' + \
-                              '--error-limit=no --track-origins=yes'
+    env['VALGRIND_OPTIONS'] = ['--leak-check=full', '--show-reachable=yes',
+                               '--error-limit=no', '--track-origins=yes']
     #-
     bldCCCC = Builder(action=Action(RunCCCC, PrintDummy))
     env.Append(BUILDERS={'RunCCCC':  bldCCCC})
