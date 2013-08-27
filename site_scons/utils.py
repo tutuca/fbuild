@@ -125,13 +125,11 @@ def DirsFlatten(env, path):
 def ChainCalls(env, cmds, silent=True):
     if cmds:
         cmd = cmds[0]
-        with open(os.devnull, "w") as fnull:
-            stdout = fnull if silent else None
-            if not silent:
-                print '>>', cmd
-            #errors always shows
-            cmd_proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
-            cmd_proc.stdout.read()
+        if not silent:
+            print '>>', cmd
+        #errors always shows
+        cmd_proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
+        cmd_proc.stdout.read()
         if cmd_proc.wait():
             env.cerror('error executing: %s' % cmd)
             return cmd_proc.wait()

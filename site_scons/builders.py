@@ -144,9 +144,10 @@ def RunLcov(env, target, source):
     # Print message on the screen.
     env.Cprint('\n=== Running COVERAGE ===\n', 'green')
     indexFile = target[0].abspath
+    output_dir = os.path.dirname(indexFile)
     data = {
-        'coverage_file': os.path.join(os.path.dirname(os.path.dirname(indexFile)), 'coverage_output.dat'),
-        'output_dir': os.path.dirname(indexFile),
+        'coverage_file': os.path.join(os.path.dirname(output_dir), 'coverage_output.dat'),
+        'output_dir': output_dir,
         'project_dir': env['PROJECT_DIR']
     }
     commands_list = [
@@ -155,7 +156,8 @@ def RunLcov(env, target, source):
         'lcov --no-checksum --directory %(project_dir)s -b . --capture --output-file %(coverage_file)s' % data,
         'lcov --no-checksum --directory %(project_dir)s -b . --capture --ignore-error source --output-file %(coverage_file)s' % data,
         'lcov --remove %(coverage_file)s "*usr/include*" -o %(coverage_file)s' % data,
-        'lcov --remove %(coverage_file)s "*/tests/*" -o %(coverage_file)s' % data
+        'lcov --remove %(coverage_file)s "*/tests/*" -o %(coverage_file)s' % data,
+        'lcov --remove %(coverage_file)s "*/install/*" -o %(coverage_file)s' % data
     ]
     for dep in env['PROJECT_DEPS']:
         data['project_dep'] = dep
@@ -599,7 +601,7 @@ def _RTCCheckAstyle(env):
     report_file = os.path.join(report_file, env['PROJECT_NAME'])
     report_file = os.path.join(report_file, 'AstyleCheckReport.diff')
     # Command to be executed.
-    cmd = "cat %s | grep -E '^\+' | grep -v +++ | grep -v 'for (auto'" % report_file
+    cmd = "grep -E '^\+' %s| grep -v +++ " % report_file
     # Execute the command.
     astyle_proc = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE)
     # Read the output of the process.
@@ -615,8 +617,8 @@ def _RTCCheckCppcheck(env):
     report_file = os.path.join(report_file, env['PROJECT_NAME'])
     report_file = os.path.join(report_file, 'static-analysis-report.xml')
     # Commands to be executed.
-    cmd_error = 'cat %s | grep severity=\\"error\\"' % report_file
-    cmd_warning = 'cat %s | grep severity=\\"warning\\"' % report_file
+    cmd_error = 'grep severity=\\"error\\" %s' % report_file
+    cmd_warning = 'grep severity=\\"warning\\" %s' % report_file
     # Execute the commands.
     errors_proc = subprocess.Popen(cmd_error, shell=True, stdout=subprocess.PIPE)
     warnings_proc = subprocess.Popen(cmd_warning, shell=True, stdout=subprocess.PIPE)
@@ -636,8 +638,8 @@ def _RTCCheckTests(env):
     report_file = os.path.join(report_file, env['PROJECT_NAME'])
     report_file = os.path.join(report_file, 'test-report.xml')
     # Commands to be executed.
-    cmd_failures = 'cat %s | grep "<testsuites" | grep -v "failures=\\"0\\""' % report_file
-    cmd_errors = 'cat %s | grep "<testsuites" | grep -v "errors=\\"0\\""' % report_file
+    cmd_failures = 'grep "<testsuites" %s | grep -v "failures=\\"0\\""' % report_file
+    cmd_errors = 'grep "<testsuites" %s | grep -v "errors=\\"0\\""' % report_file
     # Execute the commands.
     failures_proc = subprocess.Popen(cmd_failures, shell=True, stdout=subprocess.PIPE)
     errors_proc = subprocess.Popen(cmd_errors, shell=True, stdout=subprocess.PIPE)
@@ -657,7 +659,7 @@ def _RTCCheckValgrind(env):
     report_file = os.path.join(report_file, env['PROJECT_NAME'])
     report_file = os.path.join(report_file, 'valgrind-report.xml')
     # Command to be executed.
-    cmd = "cat %s | grep '<error>'" % report_file
+    cmd = "grep '<error>' %s " % report_file
     # Execute the command.
     valgrind_proc = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE)
     # Read the output of the process.
