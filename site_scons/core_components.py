@@ -1155,7 +1155,10 @@ class UnitTestComponent(ProgramComponent):
         if not '-ggdb3' in CXXFLAGS:
             CXXFLAGS.append('-ggdb3')
         self._env.Replace(CXXFLAGS=CXXFLAGS, CFLAGS=CXXFLAGS)
-        self._env.Append(CXXFLAGS=self._env.get('CXXFLAGS_PROJECT'))
+        project_component._env.Append(CXXFLAGS=self._env.get('CXXFLAGS_PROJECT'))
+        project_component._env.Append(LDFLAGS=self._env.get('LDFLAGS_PROJECT'))
+        project_component._env.Append(CFLAGS=self._env.get('CFLAGS_PROJECT'))
+        project_component._env.Append(LINKFLAGS=self._env.get('LINKFLAGS_PROJECT'))
         # Check if we need test report.
         if self._env.NEED_TEST_REPORT:
             test_report = self._env.Dir(self._env['INSTALL_REPORTS_DIR'])
