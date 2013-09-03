@@ -638,7 +638,6 @@ class HeaderOnlyComponent(Component):
         # The target is the static-analysis report file.
         target = self._env.Dir(self._env['INSTALL_REPORTS_DIR'])
         target = target.Dir('static-analysis').Dir(self.name)
-        target = os.path.join(target.abspath, 'static-analysis-report')
         # Pass information into env.
         self._env['CPPCHECK_INC_PATHS'] = self._includes  ## Because it only needs the path in 'build/'.
         # Create an instance of the RunStaticAnalysis() builder.
