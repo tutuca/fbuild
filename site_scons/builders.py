@@ -308,7 +308,7 @@ def RunValgrind(env, target, source):
     os.chdir(test_dir)
     # Command to execute valgrind.
     env_var = 'GTEST_DEATH_TEST_USE_FORK=1'
-    val_opt = env['VALGRIND_OPTIONS']
+    val_opt = ' '.join(env['VALGRIND_OPTIONS'])
     testsuite = env.GetOption('testsuite')
     rep = (env_var, val_opt, test, testsuite)
     cmd = '%s valgrind %s %s --gtest_filter=%s' % rep
