@@ -638,6 +638,8 @@ class HeaderOnlyComponent(Component):
         # The target is the static-analysis report file.
         target = self._env.Dir(self._env['INSTALL_REPORTS_DIR'])
         target = target.Dir('static-analysis').Dir(self.name)
+        # Pass information into env.
+        self._env['CPPCHECK_INC_PATHS'] = self._includes  ## Because it only needs the path in 'build/'.
         # Create an instance of the RunStaticAnalysis() builder.
         analysis_builder = self._env.RunStaticAnalysis(target, sources)
         # static-analysis can always be build.
@@ -1154,6 +1156,10 @@ class UnitTestComponent(ProgramComponent):
         if not '-ggdb3' in CXXFLAGS:
             CXXFLAGS.append('-ggdb3')
         self._env.Replace(CXXFLAGS=CXXFLAGS, CFLAGS=CXXFLAGS)
+        project_component._env.Append(CXXFLAGS=self._env.get('CXXFLAGS_PROJECT'))
+        project_component._env.Append(LDFLAGS=self._env.get('LDFLAGS_PROJECT'))
+        project_component._env.Append(CFLAGS=self._env.get('CFLAGS_PROJECT'))
+        project_component._env.Append(LINKFLAGS=self._env.get('LINKFLAGS_PROJECT'))
         # Check if we need test report.
         if self._env.NEED_TEST_REPORT:
             test_report = self._env.Dir(self._env['INSTALL_REPORTS_DIR'])

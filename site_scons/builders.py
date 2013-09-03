@@ -36,6 +36,7 @@ from utils import ChainCalls, FindHeaders, FindSources, CheckPath
 HEADERS = [".h", ".hpp"]
 SOURCES = [".c", "cpp"]
 EXIT_SUCCESS = 0
+SPACE = ' '
 
 def init(env):
     bldRUT = Builder(action=Action(RunUnittest, PrintDummy))
@@ -63,8 +64,8 @@ def init(env):
     #-
     bldValgrind = Builder(action=Action(RunValgrind, PrintDummy))
     env.Append(BUILDERS={'RunValgrind': bldValgrind})
-    env['VALGRIND_OPTIONS'] = ' --leak-check=full --show-reachable=yes ' + \
-                              '--error-limit=no --track-origins=yes'
+    env['VALGRIND_OPTIONS'] = ['--leak-check=full', '--show-reachable=yes',
+                               '--error-limit=no', '--track-origins=yes']
     #-
     bldCCCC = Builder(action=Action(RunCCCC, PrintDummy))
     env.Append(BUILDERS={'RunCCCC':  bldCCCC})
@@ -77,7 +78,7 @@ def init(env):
     #-
     bldCppCheck = Builder(action=Action(RunCppCheck, PrintDummy))
     env.Append(BUILDERS={'RunCppCheck': bldCppCheck})
-    env['CPPCHECK_OPTIONS'] = [' --enable=all ']
+    env['CPPCHECK_OPTIONS'] = ['-f', '--enable=all']
     #-
     bldMocko = Builder(action=Action(RunMocko, PrintDummy))
     env.Append(BUILDERS={'RunMocko': bldMocko})
@@ -262,7 +263,7 @@ def AStyle(env, target, source):
     #   instead of the projects/ directory.
     build_dir = env['BUILD_DIR']
     ws_dir = env['WS_DIR']
-    file_list = ' '.join([f.abspath.replace(build_dir, ws_dir) for f in source if "tests/ref/" not in f.abspath])
+    file_list = SPACE.join([f.abspath.replace(build_dir, ws_dir) for f in source if "tests/ref/" not in f.abspath])
     # Create the command to be executed.
     cmd = "astyle -k1 --options=none --convert-tabs -bSKpUH %s" % file_list
     # Run astyle.
@@ -356,9 +357,9 @@ def RunCCCC(env, target, source):
     if not os.path.exists(output_directory):
         os.makedirs(output_directory)
     # Create a string with the options for cccc.
-    options = ' '.join([opt for opt in env['CCCC_OPTIONS']])
+    options = SPACE.join([opt for opt in env['CCCC_OPTIONS']])
     # Create a string with the file names for cccc.
-    files = ' '.join([f.abspath for f in source])
+    files = SPACE.join([f.abspath for f in source])
     # Create the command to be executed.
     cmd = 'cccc %s %s' % (options, files)
     cccc_proc = subprocess.Popen(cmd, shell=True)
@@ -391,9 +392,9 @@ def RunCLOC(env, target, source):
     if not os.path.exists(output_directory):
         os.makedirs(output_directory)
     # Create a string with the options for cloc.
-    options = ' '.join([opt for opt in env['CLOC_OPTIONS']])
+    options = SPACE.join([opt for opt in env['CLOC_OPTIONS']])
     # Create a string with the file names for cloc.
-    files = ' '.join([f.abspath for f in source])
+    files = SPACE.join([f.abspath for f in source])
     # Create the command to be executed.
     cmd = 'cloc %s %s' % (options, files)
     cloc_proc = subprocess.Popen(cmd, shell=True)
@@ -413,11 +414,11 @@ def RunCppCheck(env, target, source):
     if not os.path.exists(output_directory):
         os.makedirs(output_directory)
     # Create a string with the options for cppcheck.
-    options = ' '.join([opt for opt in env['CPPCHECK_OPTIONS']])
+    options = SPACE.join([opt for opt in env['CPPCHECK_OPTIONS']])
     # We create a string with the files for cppcheck.
-    files = ' '.join([f.abspath for f in source])
+    files = SPACE.join([f.abspath for f in source])
     # Create the command to be pass to subprocess.Popen()
-    result = _RunCppCheck(target, files, options)
+    result = _RunCppCheck(env, target, files, options)
     if not result:
         env.cerror('\n\n[ERROR] Failed running Cpp Check\n\n')
     return EXIT_SUCCESS
@@ -564,7 +565,7 @@ def _CheckAstyle(env, source, output_directory):
             os.system('cp %s %s' % (file.abspath, tmp_dir))
             f = env.Dir(tmp_dir).File(os.path.split(file.abspath)[1])
             files_list.append(f)
-    files_str = ' '.join([x.abspath for x in files_list])
+    files_str = SPACE.join([x.abspath for x in files_list])
     # This variable holds if some file needs astyle.
     need_astyle = False
     # A list for the files that needs astyle.
