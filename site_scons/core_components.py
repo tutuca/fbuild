@@ -808,7 +808,7 @@ class SourcedComponent(HeaderOnlyComponent):
         """
         if isinstance(src, Node.FS.Dir):
             # If it's a Dir we read the files it contains.
-            files.extend(utils.FindFiles(src, SOURCES_FILTER))
+            files.extend(utils.FindFiles(self._env, src, SOURCES_FILTER))
         elif isinstance(src, Node.FS.File):
             # If it's a File, we just add it.
             files.append(src)
