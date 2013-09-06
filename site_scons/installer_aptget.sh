@@ -29,6 +29,7 @@ elif [ -f /etc/debian_version ]; then
     OS=Debian  # XXX or Ubuntu??
     VER=$(cat /etc/debian_version);
 fi
+
 function check_install {
     declare -A mappings
     mappings['make']='build-essential'
