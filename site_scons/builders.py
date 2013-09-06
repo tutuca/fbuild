@@ -312,6 +312,8 @@ def RunValgrind(env, target, source):
     testsuite = env.GetOption('testsuite')
     rep = (env_var, val_opt, test, testsuite)
     cmd = '%s valgrind %s %s --gtest_filter=%s' % rep
+    if not env.GetOption('verbose'):
+        print '>>', cmd
     # Execute the command.
     valgrind_proc = subprocess.Popen(cmd, shell=True)
     # Get back to the previous directory.
@@ -616,6 +618,7 @@ def _RTCCheckCppcheck(env):
     # Path to the report file.
     report_file = os.path.join(env['INSTALL_REPORTS_DIR'], 'static-analysis')
     report_file = os.path.join(report_file, env['PROJECT_NAME'])
+    report_file = os.path.join(report_file, 'cppcheck')
     report_file = os.path.join(report_file, 'static-analysis-report.xml')
     # Commands to be executed.
     cmd_error = 'grep severity=\\"error\\" %s' % report_file
