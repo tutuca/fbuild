@@ -162,7 +162,6 @@ class Component(object):
         self._libs = [t[1] for t in aux]
         # Remove duplicated in libpaths
         self._libpaths = utils.RemoveDuplicates(self._libpaths)
-        self._libpaths.sort()
         return (self._libs, self._libpaths)
 
     def GetIncludePaths(self):
