@@ -311,7 +311,7 @@ def RunValgrind(env, target, source):
     os.chdir(test_dir)
     # Command to execute valgrind.
     env_var = 'GTEST_DEATH_TEST_USE_FORK=1'
-    val_opt = ' '.join(env['VALGRIND_OPTIONS'])
+    val_opt = SPACE.join(env['VALGRIND_OPTIONS'])
     testsuite = env.GetOption('testsuite')
     rep = (env_var, val_opt, test, testsuite)
     cmd = '%s valgrind %s %s --gtest_filter=%s' % rep
@@ -319,6 +319,13 @@ def RunValgrind(env, target, source):
         print '>>', cmd, '\n'
     # Execute the command.
     valgrind_proc = subprocess.Popen(cmd, shell=True)
+    # Check if the test uses mocko.
+    if env._USE_MOCKO:
+        gdb_cmd = "gdb --batch -x mocko_bind.gdb %s" % test
+        if not env.GetOption('verbose'):
+            print '>>', gdb_cmd, '\n'
+        gdb_proc = subprocess.Popen(gdb_cmd, shell=True)
+        gdb_proc.wait()
     # Get back to the previous directory.
     os.chdir(cwd)
     if valgrind_proc.wait():
@@ -434,7 +441,7 @@ def RunStaticAnalysis(env, target, source):
     splint_rc = False
     target = target.pop()
     env.Cprint('\n=== Running Static Code Analysis ===\n', 'green')
-    cppcheck_options = ' '.join([opt for opt in env['CPPCHECK_OPTIONS']])
+    cppcheck_options = SPACE.join([opt for opt in env['CPPCHECK_OPTIONS']])
     cpp_files = FindSources(source, ['.cpp', '.cc'])
     cppcheck_dir = target.Dir('cppcheck')
     splint_dir = target.Dir('splint')
@@ -469,13 +476,15 @@ def RunMocko(env, target, source):
     mocko = env.Dir('$INSTALL_BIN_DIR').File('mocko').abspath
     # Get current directory.
     cwd = env.Dir('#').abspath
-    
-    cmd = '%s -f %s' % (mocko, mocko_list)
+    # Get mocko options.
+    mocko_options = SPACE.join(env['MOCKO_OPTIONS'])
+    # Create command.
+    cmd = '%s -f %s %s' % (mocko, mocko_list, mocko_options)
     # Print info.
     if not env.GetOption('verbose'):
-        print "> chdir", directory
-        print '> %s -f %s' % (mocko, mocko_list)
-        print "> chdir\n", cwd
+        print ">> chdir", directory
+        print '>>', cmd
+        print ">> chdir", cwd, '\n'
     # Execute mocko.
     os.chdir(directory)
     mocko_proc = subprocess.Popen(cmd, shell=True)
