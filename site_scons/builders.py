@@ -31,7 +31,7 @@ import os
 from SCons.Builder import Builder
 from SCons.Action import Action
 
-from utils import ChainCalls, FindHeaders, FindSources, CheckPath
+from utils import ChainCalls, FindHeaders, FindSources, CheckPath, WaitProcessExists
 
 HEADERS = [".h", ".hpp"]
 SOURCES = [".c", "cpp"]
@@ -324,6 +324,7 @@ def RunValgrind(env, target, source):
         gdb_cmd = "gdb --batch -x mocko_bind.gdb %s" % test
         if not env.GetOption('verbose'):
             print '>>', gdb_cmd, '\n'
+        WaitProcessExists(valgrind_proc.pid)
         gdb_proc = subprocess.Popen(gdb_cmd, shell=True)
         gdb_proc.wait()
     # Get back to the previous directory.

@@ -37,6 +37,8 @@ DISTRO_UBUNTU = 'UBUNTU'
 DISRTO_ARCH = 'ARCH'
 # Path to the /etc/issue file which contains the distro.
 _DISRTO_FILE = '/etc/issue'
+# Path to the process file system.
+PROC_DIR = '/proc/%d'
 
 
 def FindFiles(env, fromDir, filters=None):
@@ -215,3 +217,18 @@ def CheckPath(path, create=True):
             mkpath(path)
         return False
     return True
+
+
+def ProcessExists(pid):
+    """
+    Checks if the process with PID pid exists.
+    """
+    return os.path.exists(PROC_DIR % pid)
+
+
+def WaitProcessExists(pid):
+    """
+    Waits until the exists a process with PID pid.
+    """
+    while not ProcessExists(pid):
+        pass
