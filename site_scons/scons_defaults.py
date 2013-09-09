@@ -29,6 +29,11 @@ from multiprocessing import cpu_count
 from SCons.Variables import PathVariable
 
 
+INC_PATH_PREFIX = '-I'
+LINK_PATH_PREFIX = '-L'
+LINK_PREFIX = '-l'
+
+
 def init(env, vars):
     # Add parallelism to the build system
     if not env.GetOption('num_jobs'):
@@ -106,3 +111,16 @@ def init(env, vars):
         env.cdebug('    lib dir    : ' + env['INSTALL_LIB_DIR'])
         env.cdebug('    headers dir: ' + env['INSTALL_HEADERS_DIR'])
         env.cdebug('    doc dir    : ' + env['INSTALL_DOC_DIR'])
+    ## Replace the scons _concat function for mine.
+    replace_scons_concat_function(env)
+
+
+def replace_scons_concat_function(env):
+    old_concat = env['_concat']
+    def new_concat(INCPREFIX, CPPPATH, INCSUFFIX, __env__, RDirs=None, *kwargs):
+        if INCPREFIX == INC_PATH_PREFIX:
+            result = old_concat(INCPREFIX, CPPPATH, INCSUFFIX, __env__, sorted, *kwargs)
+        else:
+            result = old_concat(INCPREFIX, CPPPATH, INCSUFFIX, __env__, lambda x : x, *kwargs)
+        return result
+    env['_concat'] = new_concat

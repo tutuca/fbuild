@@ -94,6 +94,11 @@
         <installer distro="ARCH" target="boost" manager="PACKER"/>
     </component>
     
+    <component name="boost_regex" type="LIB">
+        <installer distro="UBUNTU" target="libboost-regex-dev" manager="APT-GET"/>
+        <installer distro="ARCH" target="boost" manager="PACKER"/>
+    </component>
+
     <component name="boost_system" type="LIB">
         <installer distro="UBUNTU" target="libboost-system-dev" manager="APT-GET"/>
         <installer distro="ARCH" target="boost" manager="PACKER"/>
@@ -107,7 +112,13 @@
     <component name="flex" type="PRO">
         <installer distro="*" target="flex" manager="APT-GET"/>
     </component>
-    
+  
+ <component name="gcc_plugin" type="HLIB">
+        <installer distro="UBUNTU" target="gcc-4.6-plugin-dev" manager="APT-GET"/>
+        <installer distro="ARCH" target="boost" manager="PACKER"/>
+	<install_checker>stat -f /usr/lib/gcc/x86_64-linux-gnu/4.6/plugin/include/gcc-plugin.h</install_checker>
+    </component>
+  
     <component name="gmock" type="LIB" deps="gtest,pthread">
         <installer
             distro="*"

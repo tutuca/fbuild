@@ -31,11 +31,12 @@ import os
 from SCons.Builder import Builder
 from SCons.Action import Action
 
-from utils import ChainCalls, FindHeaders, FindSources
+from utils import ChainCalls, FindHeaders, FindSources, CheckPath
 
 HEADERS = [".h", ".hpp"]
 SOURCES = [".c", "cpp"]
-
+EXIT_SUCCESS = 0
+SPACE = ' '
 
 def init(env):
     bldRUT = Builder(action=Action(RunUnittest, PrintDummy))
@@ -63,8 +64,8 @@ def init(env):
     #-
     bldValgrind = Builder(action=Action(RunValgrind, PrintDummy))
     env.Append(BUILDERS={'RunValgrind': bldValgrind})
-    env['VALGRIND_OPTIONS'] = ' --leak-check=full --show-reachable=yes ' + \
-                              '--error-limit=no --track-origins=yes'
+    env['VALGRIND_OPTIONS'] = ['--leak-check=full', '--show-reachable=yes',
+                               '--error-limit=no', '--track-origins=yes']
     #-
     bldCCCC = Builder(action=Action(RunCCCC, PrintDummy))
     env.Append(BUILDERS={'RunCCCC':  bldCCCC})
@@ -77,7 +78,7 @@ def init(env):
     #-
     bldCppCheck = Builder(action=Action(RunCppCheck, PrintDummy))
     env.Append(BUILDERS={'RunCppCheck': bldCppCheck})
-    env['CPPCHECK_OPTIONS'] = [' --enable=all ']
+    env['CPPCHECK_OPTIONS'] = ['-f', '--enable=all']
     #-
     bldMocko = Builder(action=Action(RunMocko, PrintDummy))
     env.Append(BUILDERS={'RunMocko': bldMocko})
@@ -120,7 +121,7 @@ def RunUnittest(env, target, source):
         env.cerror('\n\nTest result: *** FAILED ***\n\n')
     else:
         env.Cprint('\n\nTest result: *** PASSED ***\n\n', 'green')
-    return test_proc.wait()
+    return EXIT_SUCCESS
 
 
 def InitLcov(env, target, source):
@@ -135,24 +136,29 @@ def InitLcov(env, target, source):
         'lcov --zerocounters --directory %(project_dir)s -b .' % data,
         'lcov --capture --initial --directory %(project_dir)s -b . --output-file %(coverage_file)s' % data,
     ], silent)
-    return result
+    if result:
+        env.cerror('\n\n[ERROR] Failed initializing Lcov, error: %s\n\n' % result)
+    return EXIT_SUCCESS
 
 
 def RunLcov(env, target, source):
     # Print message on the screen.
     env.Cprint('\n=== Running COVERAGE ===\n', 'green')
     indexFile = target[0].abspath
+    output_dir = os.path.dirname(indexFile)
     data = {
-        'coverage_file': os.path.join(os.path.dirname(os.path.dirname(indexFile)), 'coverage_output.dat'),
-        'output_dir': os.path.dirname(indexFile),
+        'coverage_file': os.path.join(os.path.dirname(output_dir), 'coverage_output.dat'),
+        'output_dir': output_dir,
         'project_dir': env['PROJECT_DIR']
     }
     commands_list = [
         'rm -f %(coverage_file)s' % data,
-        'lcov --no-checksum --directory %(project_dir)s -b . --capture --output-file %(coverage_file)s' % data,
-        'lcov --no-checksum --directory %(project_dir)s -b . --capture --output-file %(coverage_file)s' % data,
+        'lcov --no-checksum --directory %(project_dir)s -b . --capture --ignore-error source --output-file %(coverage_file)s' % data,
+        'lcov --no-checksum --directory %(project_dir)s -b . --capture --ignore-error source --output-file %(coverage_file)s' % data,
+        'lcov --no-checksum --directory %(project_dir)s -b . --capture --ignore-error source --output-file %(coverage_file)s' % data,
         'lcov --remove %(coverage_file)s "*usr/include*" -o %(coverage_file)s' % data,
-        'lcov --remove %(coverage_file)s "*/tests/*" -o %(coverage_file)s' % data
+        'lcov --remove %(coverage_file)s "*/tests/*" -o %(coverage_file)s' % data,
+        'lcov --remove %(coverage_file)s "*/install/*" -o %(coverage_file)s' % data
     ]
     for dep in env['PROJECT_DEPS']:
         data['project_dep'] = dep
@@ -160,9 +166,11 @@ def RunLcov(env, target, source):
         commands_list.append(cmd)
     commands_list.append('genhtml --highlight --legend --output-directory %(output_dir)s %(coverage_file)s' % data)
     result = ChainCalls(env, commands_list, env.GetOption('verbose'))
-    if result == 0:
+    if result:
+        env.cerror('\n\n[ERROR] Failed running Lcov, error: %s\n\n' % result)
+    else:
         env.Cprint('lcov report in: %s' % indexFile, 'green')
-    return result
+    return EXIT_SUCCESS
 
 
 def RunDoxygen(env, target, source):
@@ -199,7 +207,7 @@ def RunDoxygen(env, target, source):
         doxygen_results_proc = subprocess.Popen("cat %s" % output_file, shell=True)
         doxygen_results_proc.wait()
     os.remove(projectDoxyFile)
-    return rc
+    return EXIT_SUCCESS
 
 
 def AStyleCheck(env, target, source):
@@ -216,13 +224,14 @@ def AStyleCheck(env, target, source):
     check_astyle_result = _CheckAstyle(env, source, output_directory)
     # Check if _CheckAstyle() fails.
     if check_astyle_result is None:
-        return 1
+        env.cerror('\n\n[ERROR] Failed running Check Astyle\n\n')
+        return EXIT_SUCCESS
     # Open the report file.
     try:
         report = open(report_file, 'w')
     except IOError:
         env.Cprint('No such file or directory:', report_file)
-        return 1
+        return EXIT_SUCCESS
     else:
         # If we can open it we truncate it.
         report.truncate(0)
@@ -241,7 +250,7 @@ def AStyleCheck(env, target, source):
         env.Cprint('[OK] No file needs astyle.', 'green')
     # Close the report file.
     report.close()
-    return 0
+    return EXIT_SUCCESS
 
 
 def AStyle(env, target, source):
@@ -254,7 +263,7 @@ def AStyle(env, target, source):
     #   instead of the projects/ directory.
     build_dir = env['BUILD_DIR']
     ws_dir = env['WS_DIR']
-    file_list = ' '.join([f.abspath.replace(build_dir, ws_dir) for f in source if "tests/ref/" not in f.abspath])
+    file_list = SPACE.join([f.abspath.replace(build_dir, ws_dir) for f in source if "tests/ref/" not in f.abspath])
     # Create the command to be executed.
     cmd = "astyle -k1 --options=none --convert-tabs -bSKpUH %s" % file_list
     # Run astyle.
@@ -263,7 +272,7 @@ def AStyle(env, target, source):
         env.cerror('[astyle] ERROR running astyle on: %s' % project_dir)
     else:
         env.Cprint('[astyle] OK on: %s' % project_dir, 'green')
-    return astyle_proc.wait()
+    return EXIT_SUCCESS
 
 
 def RunPdfLatex(env, target, source):
@@ -281,7 +290,9 @@ def RunPdfLatex(env, target, source):
         + ' -output-directory "' + tmpPdf2TexDir + '" ' + pathTail, shell=True)
     shutil.move(targetDir, tmpPdf2TexDir + pathTail[:-4] + ".pdf")
     shutil.rmtree(tmpPdf2TexDir)
-    return pdflates_proc.wait()
+    if pdflates_proc.wait():
+        env.cerror('\n\n[ERROR] Failed running PDFLatex, error: %s\n\n' % pdflates_proc.wait())
+    return EXIT_SUCCESS
 
 
 def RunValgrind(env, target, source):
@@ -297,15 +308,19 @@ def RunValgrind(env, target, source):
     os.chdir(test_dir)
     # Command to execute valgrind.
     env_var = 'GTEST_DEATH_TEST_USE_FORK=1'
-    val_opt = env['VALGRIND_OPTIONS']
+    val_opt = ' '.join(env['VALGRIND_OPTIONS'])
     testsuite = env.GetOption('testsuite')
     rep = (env_var, val_opt, test, testsuite)
     cmd = '%s valgrind %s %s --gtest_filter=%s' % rep
+    if not env.GetOption('verbose'):
+        print '>>', cmd
     # Execute the command.
     valgrind_proc = subprocess.Popen(cmd, shell=True)
     # Get back to the previous directory.
     os.chdir(cwd)
-    return valgrind_proc.wait()
+    if valgrind_proc.wait():
+        env.cerror('\n\n[ERROR] Failed running Valgrind, error: %s\n\n' % valgrind_proc.wait())
+    return EXIT_SUCCESS
 
 
 def RunASan(env, target, source):
@@ -326,7 +341,7 @@ def RunASan(env, target, source):
     else:
         env.CprintSameLine([('Address Sanitizer result: ','end'),('--- PASSED ---', 'green')])
         env.Cprint('No output generated.\n', 'end')
-    return 0
+    return EXIT_SUCCESS
 
 
 def RunCCCC(env, target, source):
@@ -344,13 +359,15 @@ def RunCCCC(env, target, source):
     if not os.path.exists(output_directory):
         os.makedirs(output_directory)
     # Create a string with the options for cccc.
-    options = ' '.join([opt for opt in env['CCCC_OPTIONS']])
+    options = SPACE.join([opt for opt in env['CCCC_OPTIONS']])
     # Create a string with the file names for cccc.
-    files = ' '.join([f.abspath for f in source])
+    files = SPACE.join([f.abspath for f in source])
     # Create the command to be executed.
     cmd = 'cccc %s %s' % (options, files)
     cccc_proc = subprocess.Popen(cmd, shell=True)
-    return cccc_proc.wait()
+    if cccc_proc.wait():
+        env.cerror('\n\n[ERROR] Failed running CCCC, error: %s\n\n' % cccc_proc.wait())
+    return EXIT_SUCCESS
 
 
 def RunCLOC(env, target, source):
@@ -377,13 +394,15 @@ def RunCLOC(env, target, source):
     if not os.path.exists(output_directory):
         os.makedirs(output_directory)
     # Create a string with the options for cloc.
-    options = ' '.join([opt for opt in env['CLOC_OPTIONS']])
+    options = SPACE.join([opt for opt in env['CLOC_OPTIONS']])
     # Create a string with the file names for cloc.
-    files = ' '.join([f.abspath for f in source])
+    files = SPACE.join([f.abspath for f in source])
     # Create the command to be executed.
     cmd = 'cloc %s %s' % (options, files)
     cloc_proc = subprocess.Popen(cmd, shell=True)
-    return cloc_proc.wait()
+    if cloc_proc.wait():
+        env.cerror('\n\n[ERROR] Failed running CLOC, error: %s\n\n' % cloc_proc.wait())
+    return EXIT_SUCCESS
 
 
 def RunCppCheck(env, target, source):
@@ -397,33 +416,43 @@ def RunCppCheck(env, target, source):
     if not os.path.exists(output_directory):
         os.makedirs(output_directory)
     # Create a string with the options for cppcheck.
-    options = ' '.join([opt for opt in env['CPPCHECK_OPTIONS']])
+    options = SPACE.join([opt for opt in env['CPPCHECK_OPTIONS']])
     # We create a string with the files for cppcheck.
-    files = ' '.join([f.abspath for f in source])
-    # Create the command to be pass to subprocess.call()
-    return _RunCppCheck(target, files, options)
+    files = SPACE.join([f.abspath for f in source])
+    # Create the command to be pass to subprocess.Popen()
+    result = _RunCppCheck(env, target, files, options)
+    if not result:
+        env.cerror('\n\n[ERROR] Failed running Cpp Check\n\n')
+    return EXIT_SUCCESS
 
 def RunStaticAnalysis(env, target, source):
     # Print message on the screen.
     cppcheck_rc = False
     splint_rc = False
-    target = target[0].abspath
+    target = target.pop()
     env.Cprint('\n=== Running Static Code Analysis ===\n', 'green')
     cppcheck_options = ' '.join([opt for opt in env['CPPCHECK_OPTIONS']])
     cpp_files = FindSources(source, ['.cpp', '.cc'])
+    cppcheck_dir = target.Dir('cppcheck')
+    splint_dir = target.Dir('splint')
+
     c_files = FindSources(source, ['.c'])
     headers = FindHeaders(source)
     if cpp_files:
-        cppcheck_rc = _RunCppCheck(target, cpp_files, headers, 
+        CheckPath(cppcheck_dir.abspath)
+        cppcheck_rc = _RunCppCheck(cppcheck_dir, cpp_files, headers, 
             cppcheck_options)
     if c_files:
-        splint_rc = _RunSplint(target, c_files, headers)
+        CheckPath(splint_dir.abspath)
+        splint_rc = _RunSplint(splint_dir, c_files, headers)
     if headers and not (cpp_files or c_files):
-        #headers only
-        cppcheck_rc = _RunCppCheck(target, FindSources(source, 
+        CheckPath(cppcheck_dir.abspath)
+        cppcheck_rc = _RunCppCheck(cppcheck_dir, FindSources(source, 
             ['.h', '.hh', '.hpp']), headers, cppcheck_options)
     # Return the output of both builders
-    return cppcheck_rc and splint_rc
+    if cppcheck_rc or splint_rc:
+        env.cerror('\n\n[ERROR] Failed running Static Analysis\n\n')
+    return EXIT_SUCCESS
 
 
 def RunMocko(env, target, source):
@@ -447,7 +476,9 @@ def RunMocko(env, target, source):
     os.chdir(directory)
     mocko_proc = subprocess.Popen('%s %s' % (mocko, mocko_list), shell=True)
     os.chdir(cwd)
-    return mocko_proc.wait()
+    if mocko_proc.wait():
+        env.cerror('\n\n[ERROR] Failed running Mocko, error: %s\n\n' % mocko_proc.wait())
+    return EXIT_SUCCESS
 
 
 def RunReadyToCommit(env, target, source):
@@ -463,9 +494,9 @@ def RunReadyToCommit(env, target, source):
         env.Cprint('ASTYLE   : [ERROR]', 'red')
     # Cheeck for cppcheck.
     if _RTCCheckCppcheck(env):
-        env.Cprint('CPPCHECK : [OK]', 'green')
+        env.Cprint('STATIC-ANALYSIS : [OK]', 'green')
     else:
-        env.Cprint('CPPCHECK : [ERROR]', 'red')
+        env.Cprint('STATIC-ANALYSIS : [ERROR]', 'red')
     # Check for tests.
     if _RTCCheckTests(env):
         env.Cprint('TESTS    : [OK]', 'green')
@@ -477,22 +508,8 @@ def RunReadyToCommit(env, target, source):
     else:
         env.Cprint('VALGRIND : [ERROR]', 'red')
     print ""  # Just an empty line.
-    return 0
+    return EXIT_SUCCESS
 
-def _RunCppCheck(report_file, files, headers, options):
-    if 'xml' in options:
-        cmd = "cppcheck --check-config %s %s %s 2> %s.xml" % (options, files, 
-            headers, report_file)
-    else:
-        cmd = "cppcheck %s %s %s 2> %s.txt" % (options, files, 
-            headers, report_file)
-    cppcheck_proc = subprocess.Popen(cmd, shell=True)
-    return cppcheck_proc.wait()
-
-def _RunSplint(report_file, files, headers):
-    cmd = "splint %s %s > %s-splint.txt" % (files, headers, report_file)
-    splint_proc = subprocess.Popen(cmd, shell=True)
-    return splint_proc.wait()
 
 def RunInfo(env, target, source):
     #Take project info
@@ -517,6 +534,25 @@ def RunInfo(env, target, source):
             env.Cprint(src, "purple")
         # New line at the end of the sources
         env.Cprint("","end")
+    return EXIT_SUCCESS
+
+
+def _RunCppCheck(report_dir, files, headers, options):
+    report_file = os.path.join(report_dir.abspath, 'static-analysis-report')
+    if 'xml' in options:
+        cmd = "cppcheck --check-config %s %s %s 2> %s.xml" % (options, files, 
+            headers, report_file)
+    else:
+        cmd = "cppcheck %s %s %s 2> %s.txt" % (options, files, 
+            headers, report_file)
+    cppcheck_proc = subprocess.Popen(cmd, shell=True)
+    return cppcheck_proc.wait()
+
+def _RunSplint(report_dir, files, headers):
+    report_file = os.path.join(report_dir.abspath, 'static-analysis-report')
+    cmd = "splint %s %s > %s.txt" % (files, headers, report_file)
+    splint_proc = subprocess.Popen(cmd, shell=True)
+    return splint_proc.wait()
 
 def _CheckAstyle(env, source, output_directory):
     # Create a temporary directory.
@@ -531,7 +567,7 @@ def _CheckAstyle(env, source, output_directory):
             os.system('cp %s %s' % (file.abspath, tmp_dir))
             f = env.Dir(tmp_dir).File(os.path.split(file.abspath)[1])
             files_list.append(f)
-    files_str = ' '.join([x.abspath for x in files_list])
+    files_str = SPACE.join([x.abspath for x in files_list])
     # This variable holds if some file needs astyle.
     need_astyle = False
     # A list for the files that needs astyle.
@@ -568,23 +604,25 @@ def _RTCCheckAstyle(env):
     report_file = os.path.join(report_file, env['PROJECT_NAME'])
     report_file = os.path.join(report_file, 'AstyleCheckReport.diff')
     # Command to be executed.
-    cmd = "cat %s | grep -E '^\+' | grep -v +++ | grep -v 'for (auto'" % report_file
+    cmd = "grep -E '^\+' %s| grep -v +++ " % report_file
     # Execute the command.
     astyle_proc = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE)
     # Read the output of the process.
     astyle_proc.stdout.read()
     # Wait until process terminates and return the status.
+    # grep returns 1 if the line is not found
     return astyle_proc.wait()
 
 
 def _RTCCheckCppcheck(env):
     # Path to the report file.
-    report_file = os.path.join(env['INSTALL_REPORTS_DIR'], 'cppcheck')
+    report_file = os.path.join(env['INSTALL_REPORTS_DIR'], 'static-analysis')
     report_file = os.path.join(report_file, env['PROJECT_NAME'])
-    report_file = os.path.join(report_file, 'CppcheckReport.xml')
+    report_file = os.path.join(report_file, 'cppcheck')
+    report_file = os.path.join(report_file, 'static-analysis-report.xml')
     # Commands to be executed.
-    cmd_error = 'cat %s | grep severity=\\"error\\"' % report_file
-    cmd_warning = 'cat %s | grep severity=\\"warning\\"' % report_file
+    cmd_error = 'grep severity=\\"error\\" %s' % report_file
+    cmd_warning = 'grep severity=\\"warning\\" %s' % report_file
     # Execute the commands.
     errors_proc = subprocess.Popen(cmd_error, shell=True, stdout=subprocess.PIPE)
     warnings_proc = subprocess.Popen(cmd_warning, shell=True, stdout=subprocess.PIPE)
@@ -594,6 +632,7 @@ def _RTCCheckCppcheck(env):
     # Wait until the processes terminate.
     errors = errors_proc.wait()
     warnings = warnings_proc.wait()
+    # grep returns 1 if the line is not found
     return errors and warnings
 
 
@@ -603,8 +642,8 @@ def _RTCCheckTests(env):
     report_file = os.path.join(report_file, env['PROJECT_NAME'])
     report_file = os.path.join(report_file, 'test-report.xml')
     # Commands to be executed.
-    cmd_failures = 'cat %s | grep "<testsuites" | grep -v "failures=\\"0\\""' % report_file
-    cmd_errors = 'cat %s | grep "<testsuites" | grep -v "errors=\\"0\\""' % report_file
+    cmd_failures = 'grep "<testsuites" %s | grep -v "failures=\\"0\\""' % report_file
+    cmd_errors = 'grep "<testsuites" %s | grep -v "errors=\\"0\\""' % report_file
     # Execute the commands.
     failures_proc = subprocess.Popen(cmd_failures, shell=True, stdout=subprocess.PIPE)
     errors_proc = subprocess.Popen(cmd_errors, shell=True, stdout=subprocess.PIPE)
@@ -614,6 +653,7 @@ def _RTCCheckTests(env):
     # Wait until the processes terminate.
     failures = failures_proc.wait()
     errors = errors_proc.wait()
+    # grep returns 1 if the line is not found
     return failures and errors
 
 
@@ -623,10 +663,11 @@ def _RTCCheckValgrind(env):
     report_file = os.path.join(report_file, env['PROJECT_NAME'])
     report_file = os.path.join(report_file, 'valgrind-report.xml')
     # Command to be executed.
-    cmd = "cat %s | grep '<error>'" % report_file
+    cmd = "grep '<error>' %s " % report_file
     # Execute the command.
     valgrind_proc = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE)
     # Read the output of the process.
     valgrind_proc.stdout.read()
     # Wait until process terminates and return the status.
+    # grep returns 1 if the line is not found
     return valgrind_proc.wait()

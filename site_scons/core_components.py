@@ -160,6 +160,8 @@ class Component(object):
         aux.sort()
         # Create the self._libs list.
         self._libs = [t[1] for t in aux]
+        # Remove duplicated in libpaths
+        self._libpaths = utils.RemoveDuplicates(self._libpaths)
         return (self._libs, self._libpaths)
 
     def GetIncludePaths(self):
@@ -182,9 +184,7 @@ class Component(object):
         except fbuild_exceptions.CircularDependencyError, error:
             msg = (' -> ').join(error[0])
             self._env.cerror('[error] A dependency cycle was found:\n  %s' % msg)
-        paths = list(self._include_paths)
-        build_list = [paths.pop(paths.index(x)) for x in paths if '/build/' in x.abspath]
-        return build_list + paths # so /builds/ are always first
+        return list(self._include_paths) # so /builds/ are always first
 
     def GetIncludeFiles(self):
         """
@@ -241,8 +241,8 @@ class Component(object):
     #
     def _SetTargets(self):
         """Create targets for most modules."""
-        self._CreateAstyleCheckTarget(self.GetSourcesFiles())
-        self._CreateAstyleTarget(self.GetSourcesFiles())
+        self._CreateAstyleCheckTarget(self._sources)
+        self._CreateAstyleTarget(self._sources)
         self._CreateCCCCTarget(self._sources)
         self._CreateClocTarget(self._sources)
         self._CreateStaticAnalysisTarget(self._sources)
@@ -640,7 +640,8 @@ class HeaderOnlyComponent(Component):
         # The target is the static-analysis report file.
         target = self._env.Dir(self._env['INSTALL_REPORTS_DIR'])
         target = target.Dir('static-analysis').Dir(self.name)
-        target = os.path.join(target.abspath, 'static-analysis-report')
+        # Pass information into env.
+        self._env['CPPCHECK_INC_PATHS'] = self._includes  ## Because it only needs the path in 'build/'.
         # Create an instance of the RunStaticAnalysis() builder.
         analysis_builder = self._env.RunStaticAnalysis(target, sources)
         # static-analysis can always be build.
@@ -809,7 +810,7 @@ class SourcedComponent(HeaderOnlyComponent):
         """
         if isinstance(src, Node.FS.Dir):
             # If it's a Dir we read the files it contains.
-            files.extend(utils.FindFiles(src, SOURCES_FILTER))
+            files.extend(utils.FindFiles(self._env, src, SOURCES_FILTER))
         elif isinstance(src, Node.FS.File):
             # If it's a File, we just add it.
             files.append(src)
@@ -1148,7 +1149,7 @@ class UnitTestComponent(ProgramComponent):
         self._env.NEED_TEST_REPORT =  jenkins or rtc
         self._env.NEED_CLOC_XML = jenkins
         self._env.NEED_VALGRIND_REPORT = jenkins or rtc
-        self._env.NEED_CPPCKET_XML = jenkins or rtc
+        self._env.NEED_CPPCHECK_XML = jenkins or rtc
         self._env.NEED_ASAN = asan
         # Add flags to the environment for gtest and gmock.
         aux = [f for f in self._env['CXXFLAGS'] if f not in ['-ansi', '-pedantic']]
@@ -1157,6 +1158,10 @@ class UnitTestComponent(ProgramComponent):
         if not '-ggdb3' in CXXFLAGS:
             CXXFLAGS.append('-ggdb3')
         self._env.Replace(CXXFLAGS=CXXFLAGS, CFLAGS=CXXFLAGS)
+        project_component._env.Append(CXXFLAGS=self._env.get('CXXFLAGS_PROJECT'))
+        project_component._env.Append(LDFLAGS=self._env.get('LDFLAGS_PROJECT'))
+        project_component._env.Append(CFLAGS=self._env.get('CFLAGS_PROJECT'))
+        project_component._env.Append(LINKFLAGS=self._env.get('LINKFLAGS_PROJECT'))
         # Check if we need test report.
         if self._env.NEED_TEST_REPORT:
             test_report = self._env.Dir(self._env['INSTALL_REPORTS_DIR'])
@@ -1171,7 +1176,7 @@ class UnitTestComponent(ProgramComponent):
         if self._env.NEED_CLOC_XML:
             project_component._env.Replace(CLOC_OUTPUT_FORMAT='xml')
         # Check if we need the output of cppchec in xml format.
-        if self._env.NEED_CPPCKET_XML:
+        if self._env.NEED_CPPCHECK_XML:
             project_component._env.Append(CPPCHECK_OPTIONS='--xml')
         # Check if we need to create an xml report for valgrind.
         if self._env.NEED_VALGRIND_REPORT:
@@ -1245,7 +1250,7 @@ class UnitTestComponent(ProgramComponent):
         self._env['PROJECT_DEPS'] = project_deps
 
         # Targets and sources for builder InitLcov().
-        init_lcov_target = os.path.join(self._dir.abspath, 'coverage_data')
+        init_lcov_target = os.path.join(self._dir.abspath, '%s-coverage_data' % self._project_name)
         init_lcov_soureces = [program_builder]
         # Create an instance of the InitLcov() builder.
         init_lcov_builder = self._env.InitLcov(

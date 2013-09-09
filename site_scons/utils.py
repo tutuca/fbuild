@@ -27,7 +27,7 @@ import subprocess
 import fnmatch
 import sys
 import os
-
+from distutils.dir_util import mkpath
 from SCons.Node.FS import Dir
 import fbuild_exceptions
 
@@ -197,6 +197,7 @@ def FindSources(dirs, extensions, spacer=' '):
     
     return ' '.join(out)
 
+
 def FindHeaders(dirs):
     out = []
     for source in dirs:
@@ -206,3 +207,11 @@ def FindHeaders(dirs):
             if dirname not in out:
                 out.append(dirname)
     return ''.join('-I%s ' %x for x in out)
+
+
+def CheckPath(path, create=True):
+    if not os.path.exists(path):
+        if create:
+            mkpath(path)
+        return False
+    return True
