@@ -1101,7 +1101,7 @@ class UnitTestComponent(ProgramComponent):
             self._UseMocko(sources)
         # Create the builder that creates the test executable.
         program_builder = self._CreateProgramBuilder(target, sources)
-        # Creante an instance of the RunUnittest() builder.
+        # Create an instance of the RunUnittest() builder.
         run_test_builder = self._env.RunUnittest(run_test_target, program_builder)
         # Check if the user want to run the tests anyway.
         if self._env.GetOption('forcerun'):
@@ -1381,4 +1381,7 @@ class UnitTestComponent(ProgramComponent):
         mocko_builder = self._env.RunMocko(targets, src)
         # Add mocko_bind.cpp to the sources.
         sources.append(mocko_bind_cpp)
+        # Add flags for valgrind.
+        self._env.Append(VALGRIND_OPTIONS='--vgdb=yes')
+        self._env.Append(VALGRIND_OPTIONS='--vgdb-error=0')
         return mocko_builder

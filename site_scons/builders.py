@@ -82,6 +82,7 @@ def init(env):
     #-
     bldMocko = Builder(action=Action(RunMocko, PrintDummy))
     env.Append(BUILDERS={'RunMocko': bldMocko})
+    env['MOCKO_OPTIONS'] = []
     #-
     bldReadyToCommit = Builder(action=Action(RunReadyToCommit, PrintDummy))
     env.Append(BUILDERS={'RunReadyToCommit': bldReadyToCommit})
@@ -115,6 +116,8 @@ def RunUnittest(env, target, source):
         cmd = "cd %s; gdb -x mocko_bind.gdb %s" % (test_dir, test_program)
     else:
         cmd = "cd %s; ./%s --gtest_filter=%s" % (test_dir, test_program, test_suite)
+    if not env.GetOption('verbose'):
+        print '>>', cmd, '\n'
     # Execute the test.
     test_proc = subprocess.Popen(cmd, shell=True)
     if test_proc.wait():
@@ -313,7 +316,7 @@ def RunValgrind(env, target, source):
     rep = (env_var, val_opt, test, testsuite)
     cmd = '%s valgrind %s %s --gtest_filter=%s' % rep
     if not env.GetOption('verbose'):
-        print '>>', cmd
+        print '>>', cmd, '\n'
     # Execute the command.
     valgrind_proc = subprocess.Popen(cmd, shell=True)
     # Get back to the previous directory.
@@ -458,7 +461,6 @@ def RunStaticAnalysis(env, target, source):
 def RunMocko(env, target, source):
     # Print message on the screen.
     env.Cprint('\n=== Running MOCKO ===\n', 'green')
-    verbose = not env.GetOption('verbose')
     # Get the file list.mocko.
     mocko_list = source[0].abspath
     # Get the tests directory.
@@ -467,14 +469,16 @@ def RunMocko(env, target, source):
     mocko = env.Dir('$INSTALL_BIN_DIR').File('mocko').abspath
     # Get current directory.
     cwd = env.Dir('#').abspath
+    
+    cmd = '%s -f %s' % (mocko, mocko_list)
     # Print info.
-    if verbose:
+    if not env.GetOption('verbose'):
         print "> chdir", directory
-        print '> %s %s' % (mocko, mocko_list)
-        print "> chdir", cwd
+        print '> %s -f %s' % (mocko, mocko_list)
+        print "> chdir\n", cwd
     # Execute mocko.
     os.chdir(directory)
-    mocko_proc = subprocess.Popen('%s %s' % (mocko, mocko_list), shell=True)
+    mocko_proc = subprocess.Popen(cmd, shell=True)
     os.chdir(cwd)
     if mocko_proc.wait():
         env.cerror('\n\n[ERROR] Failed running Mocko, error: %s\n\n' % mocko_proc.wait())
