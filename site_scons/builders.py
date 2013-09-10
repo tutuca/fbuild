@@ -341,18 +341,21 @@ def _RunValgrindWithMocko(env, test_file, valgrind_proc):
     # Command to execute the test with gdb.
     gdb_cmd = "gdb --batch -x mocko_bind_valgrind.gdb %s" % test_file  # NOTE: The mocko_bind_valgrind.gdb is hardcode here!
     if not env.GetOption('verbose'):
-        env.Cprint('>> %s\n' % gdb_cmd, 'end')
+        env.Cprint('>> %s' % gdb_cmd, 'end')
     # Wait until valgrind start.
     WaitProcessExists(valgrind_proc.pid)
     # Execute the test with gdb.
     gdb_proc = subprocess.Popen(gdb_cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     # Read standard output and error, and wait until the test terminate.
     gdb_stdout, gdb_stderr = gdb_proc.communicate()
-    if not env.GetOption('verbose'):
+    if not env.GetOption('verbose') and gdb_stdout:
         env.Cprint('=== GDB STDOUT ==', 'end')
         env.Cprint(gdb_stdout, 'end')
+    if not env.GetOption('verbose') and gdb_stderr:
         env.Cprint('=== GDB STDERR ==', 'end')
         env.Cprint(gdb_stderr, 'end')
+    if gdb_proc.wait():
+        env.cerror('\n[ERROR] Failed running gdb_proc, error: %s\n' % gdb_proc.wait())
 
 
 def RunASan(env, target, source):
@@ -467,7 +470,6 @@ def RunStaticAnalysis(env, target, source):
     cpp_files = FindSources(source, ['.cpp', '.cc'])
     cppcheck_dir = target.Dir('cppcheck')
     splint_dir = target.Dir('splint')
-
     c_files = FindSources(source, ['.c'])
     headers = FindHeaders(source)
     if cpp_files:
@@ -503,35 +505,60 @@ def RunMocko(env, target, source):
     mocko = source[MOCKO_EXEC].abspath
     # Get current directory.
     cwd = env.Dir('#').abspath
-    # Create commands.
-    cmd_vgdb = '%s -f %s -v' % (mocko, mocko_list)
-    cmd_gdb = '%s -f %s' % (mocko, mocko_list)
-    # Print info.
+    # Change to the test's directory.
+    os.chdir(directory)
     if not env.GetOption('verbose'):
         env.Cprint('>> chdir %s' % directory, 'end')
-        env.Cprint('>> cmd_vgdb: %s' % cmd_vgdb, 'end')
-        env.Cprint('>> cmd_gdb: %s' % cmd_gdb, 'end')
-        env.Cprint('>> chdir %s' % cwd, 'end')
-    # Execute mocko.
-    os.chdir(directory)
-    mocko_vgdb_proc = subprocess.Popen(cmd_vgdb, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    if not env.GetOption('verbose'):
-        mocko_vgdb_proc_stdout, mocko_vgdb_proc_stderr = mocko_vgdb_proc.communicate()
-        env.Cprint(mocko_vgdb_proc_stdout, 'end')
-        env.Cprint(mocko_vgdb_proc_stderr, 'end')
-    # Rename the file.
-    os.system('mv mocko_bind.gdb mocko_bind_valgrind.gdb')
-    mocko_gdb_proc = subprocess.Popen(cmd_gdb, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    if not env.GetOption('verbose'):
-        mocko_gdb_proc_stdout, mocko_gdb_proc_stderr = mocko_gdb_proc.communicate()
-        env.Cprint(mocko_gdb_proc_stdout, 'end')
-        env.Cprint(mocko_gdb_proc_stderr, 'end')
+    # Running mocko.
+    # NOTE: Do not change the order of these function calls!
+    _RunMockoVGDB(env, mocko, mocko_list)
+    _RunMockoGDB(env, mocko, mocko_list)
+    # Return to previous directory.
     os.chdir(cwd)
-    if mocko_gdb_proc.wait():
-        env.cerror('\n\n[ERROR] Failed running Mocko (mocko_gdb_proc), error: %s\n\n' % mocko_gdb_proc.wait())
-    if mocko_vgdb_proc.wait():
-        env.cerror('\n\n[ERROR] Failed running Mocko (mocko_vgdb_proc), error: %s\n\n' % mocko_vgdb_proc.wait())
+    if not env.GetOption('verbose'):
+        env.Cprint('>> chdir %s' % cwd, 'end')
     return EXIT_SUCCESS
+
+
+def _RunMockoGDB(env, mocko, mocko_list):
+    cmd_gdb = '%s -f %s' % (mocko, mocko_list)
+    if not env.GetOption('verbose'):
+        env.Cprint('>> %s' % cmd_gdb, 'end')
+    mocko_gdb_proc = subprocess.Popen(
+        cmd_gdb,
+        shell=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE
+    )
+    mocko_gdb_proc_stdout, mocko_gdb_proc_stderr = mocko_gdb_proc.communicate()
+    if not env.GetOption('verbose') and mocko_gdb_proc_stdout:
+        env.Cprint(mocko_gdb_proc_stdout, 'end')
+    if not env.GetOption('verbose') and mocko_gdb_proc_stderr:
+        env.Cprint(mocko_gdb_proc_stderr, 'end')
+    if mocko_gdb_proc.wait():
+        env.cerror('\n[ERROR] Failed running Mocko (mocko_gdb_proc), error: %s\n' % mocko_gdb_proc.wait())
+
+
+def _RunMockoVGDB(env, mocko, mocko_list):
+    cmd_vgdb = '%s -f %s -v' % (mocko, mocko_list)
+    if not env.GetOption('verbose'):
+        env.Cprint('>> %s' % cmd_vgdb, 'end')
+    mocko_vgdb_proc = subprocess.Popen(
+        cmd_vgdb,
+        shell=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE
+    )
+    mocko_vgdb_proc_stdout, mocko_vgdb_proc_stderr = mocko_vgdb_proc.communicate()
+    if not env.GetOption('verbose') and mocko_vgdb_proc_stdout:
+        env.Cprint(mocko_vgdb_proc_stdout, 'end')
+    if not env.GetOption('verbose') and mocko_vgdb_proc_stderr:
+        env.Cprint(mocko_vgdb_proc_stderr, 'end')
+    os.system('mv mocko_bind.gdb mocko_bind_valgrind.gdb')
+    if not env.GetOption('verbose'):
+        env.Cprint('mv mocko_bind.gdb mocko_bind_valgrind.gdb', 'end')
+    if mocko_vgdb_proc.wait():
+        env.cerror('\n[ERROR] Failed running Mocko (mocko_vgdb_proc), error: %s\n' % mocko_vgdb_proc.wait())
 
 
 def RunReadyToCommit(env, target, source):
