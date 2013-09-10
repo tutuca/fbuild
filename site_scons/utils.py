@@ -228,7 +228,7 @@ def ProcessExists(pid):
 
 def WaitProcessExists(pid):
     """
-    Waits until the exists a process with PID pid.
+    Waits until exists a process with PID pid.
     """
     while not ProcessExists(pid):
         pass

@@ -33,10 +33,16 @@ from SCons.Action import Action
 
 from utils import ChainCalls, FindHeaders, FindSources, CheckPath, WaitProcessExists
 
+
 HEADERS = [".h", ".hpp"]
 SOURCES = [".c", "cpp"]
+# Return status of a builder.
 EXIT_SUCCESS = 0
+# Constat to repsent spaces between options.
 SPACE = ' '
+# The first element of an iterable object.
+FIRST_ELEMENT = 0
+
 
 def init(env):
     bldRUT = Builder(action=Action(RunUnittest, PrintDummy))
@@ -301,37 +307,55 @@ def RunPdfLatex(env, target, source):
 def RunValgrind(env, target, source):
     # Print message on the screen.
     env.Cprint('\n=== Running VALGRIND ===\n', 'green')
+    # source only has the test executable file.
+    assert(len(source) == 1)
+    source = source[FIRST_ELEMENT]
+    # Get the test executable file.
+    test_file = source.abspath
+    # Get the test executable directory.
+    test_dir = source.dir.abspath
     # Get the current directory.
     cwd = os.getcwd()
-    # Get the test executable file.
-    test = source[0].abspath
-    # Get the test executable directory.
-    test_dir = source[0].dir.abspath
     # Change to the test directory.
     os.chdir(test_dir)
     # Command to execute valgrind.
-    env_var = 'GTEST_DEATH_TEST_USE_FORK=1'
-    val_opt = SPACE.join(env['VALGRIND_OPTIONS'])
-    testsuite = env.GetOption('testsuite')
-    rep = (env_var, val_opt, test, testsuite)
-    cmd = '%s valgrind %s %s --gtest_filter=%s' % rep
+    env_var = 'GTEST_DEATH_TEST_USE_FORK=1'  # Environment variable for gtest.
+    val_opt = SPACE.join(env['VALGRIND_OPTIONS'])  # Options passed to valgrind.
+    testsuite = env.GetOption('testsuite')  # The test suite to execute.
+    cmd = '%s valgrind %s %s --gtest_filter=%s' % (env_var, val_opt, test_file, testsuite)
     if not env.GetOption('verbose'):
         print '>>', cmd, '\n'
     # Execute the command.
     valgrind_proc = subprocess.Popen(cmd, shell=True)
     # Check if the test uses mocko.
     if env._USE_MOCKO:
-        gdb_cmd = "gdb --batch -x mocko_bind.gdb %s" % test
-        if not env.GetOption('verbose'):
-            print '>>', gdb_cmd, '\n'
-        WaitProcessExists(valgrind_proc.pid)
-        gdb_proc = subprocess.Popen(gdb_cmd, shell=True)
-        gdb_proc.wait()
+        _RunValgrindWithMocko(env, test_file, valgrind_proc)
     # Get back to the previous directory.
     os.chdir(cwd)
     if valgrind_proc.wait():
         env.cerror('\n\n[ERROR] Failed running Valgrind, error: %s\n\n' % valgrind_proc.wait())
     return EXIT_SUCCESS
+
+
+def _RunValgrindWithMocko(env, test_file, valgrind_proc):
+    # Command to execute the test with gdb.
+    gdb_cmd = "gdb --batch -x mocko_bind.gdb %s" % test_file
+    if not env.GetOption('verbose'):
+        print '>>', gdb_cmd, '\n'
+    # Wait until valgrind start.
+    WaitProcessExists(valgrind_proc.pid)
+    # Execute the test with gdb.
+    gdb_proc = subprocess.Popen(gdb_cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    # Read standard output and error-
+    gdb_stdout = gdb_proc.stdout.read()
+    gdb_stderr = gdb_proc.stderr.read()
+    # Wait until the test terminate.
+    gdb_proc.wait()
+    if not env.GetOption('verbose'):
+        print '=== GDB STDOUT =='
+        print gdb_stdout
+        print '=== GDB STDERR =='
+        print gdb_stderr
 
 
 def RunASan(env, target, source):
