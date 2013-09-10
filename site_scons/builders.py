@@ -323,7 +323,7 @@ def RunValgrind(env, target, source):
     testsuite = env.GetOption('testsuite')  # The test suite to execute.
     cmd = '%s valgrind %s %s --gtest_filter=%s' % (env_var, val_opt, test_file, testsuite)
     if not env.GetOption('verbose'):
-        print '>>', cmd, '\n'
+        env.Cprint('>> %s\n' % cmd, 'end')
     # Execute the command.
     valgrind_proc = subprocess.Popen(cmd, shell=True)
     # Check if the test uses mocko.
@@ -341,7 +341,7 @@ def _RunValgrindWithMocko(env, test_file, valgrind_proc):
     # Command to execute the test with gdb.
     gdb_cmd = "gdb --batch -x mocko_bind_valgrind.gdb %s" % test_file  # NOTE: The mocko_bind_valgrind.gdb is hardcode here!
     if not env.GetOption('verbose'):
-        print '>>', gdb_cmd, '\n'
+        env.Cprint('>> %s\n' % gdb_cmd, 'end')
     # Wait until valgrind start.
     WaitProcessExists(valgrind_proc.pid)
     # Execute the test with gdb.
@@ -349,10 +349,10 @@ def _RunValgrindWithMocko(env, test_file, valgrind_proc):
     # Read standard output and error, and wait until the test terminate.
     gdb_stdout, gdb_stderr = gdb_proc.communicate()
     if not env.GetOption('verbose'):
-        print '=== GDB STDOUT =='
-        print gdb_stdout
-        print '=== GDB STDERR =='
-        print gdb_stderr
+        env.Cprint('=== GDB STDOUT ==', 'end')
+        env.Cprint(gdb_stdout, 'end')
+        env.Cprint('=== GDB STDERR ==', 'end')
+        env.Cprint(gdb_stderr, 'end')
 
 
 def RunASan(env, target, source):
