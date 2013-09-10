@@ -123,7 +123,7 @@ def RunUnittest(env, target, source):
     else:
         cmd = "cd %s; ./%s --gtest_filter=%s" % (test_dir, test_program, test_suite)
     if not env.GetOption('verbose'):
-        print '>>', cmd, '\n'
+        env.Cprint('>> %s\n' % cmd, 'end')
     # Execute the test.
     test_proc = subprocess.Popen(cmd, shell=True)
     if test_proc.wait():
@@ -560,7 +560,7 @@ def RunReadyToCommit(env, target, source):
         env.Cprint('VALGRIND : [OK]', 'green')
     else:
         env.Cprint('VALGRIND : [ERROR]', 'red')
-    print ""  # Just an empty line.
+    env.Cprint("", 'end')  # Just an empty line.
     return EXIT_SUCCESS
 
 
