@@ -1137,14 +1137,12 @@ class UnitTestComponent(ProgramComponent):
         rtc = (utils.WasTargetInvoked('%s:rtc' % self._project_name) or
               utils.WasTargetInvoked('%s:ready-to-commit' % self._project_name))
         asan = utils.WasTargetInvoked('%s:asan' % self._project_name)
-        valgrind = utils.WasTargetInvoked('%s:valgrind' % self._project_name)
         # Create the dictionary of flags.
         result = {
             'jenkins': jenkins,
             'coverage': coverage,
             'ready-to-commit': rtc,
-            'asan': asan,
-            'valgrind':valgrind
+            'asan': asan
         }
         # Check for needed reports.
         self._env.NEED_COVERAGE = jenkins or coverage
@@ -1153,7 +1151,6 @@ class UnitTestComponent(ProgramComponent):
         self._env.NEED_VALGRIND_REPORT = jenkins or rtc
         self._env.NEED_CPPCHECK_XML = jenkins or rtc
         self._env.NEED_ASAN = asan
-        self._env.NEED_VALGRIND = valgrind
         # Add flags to the environment for gtest and gmock.
         aux = [f for f in self._env['CXXFLAGS'] if f not in ['-ansi', '-pedantic']]
         aux.append('-Wno-sign-compare')
@@ -1205,9 +1202,6 @@ class UnitTestComponent(ProgramComponent):
             linker_flags = ['-fsanitize=address']
             project_component._env.Append(CXXFLAGS=flags, CFLAGS=flags, LINKFLAGS=linker_flags)
             self._env.Append(CXXFLAGS=flags, CFLAGS=flags, LINKFLAGS=linker_flags)
-        # Check if we use mocko with valgrind.
-        if self._env._USE_MOCKO and self._env.NEED_VALGRIND:
-            self._env.Append(MOCKO_OPTIONS='-v')
         return result
 
     def _CreateValgrindTarget(self, program_builder):
@@ -1379,11 +1373,18 @@ class UnitTestComponent(ProgramComponent):
         mocko_bind_h = self._dir.File('mocko_bind.h')
         # Path to the mocko_bind.gdb file.
         mocko_bind_gdb = self._dir.File('mocko_bind.gdb')
-        # The 'mocko' executable.
+        # Path to the mocko_bind_valgrind.gdb file.
+        mocko_bind_valgrind_gdb = self._dir.File('mocko_bind_valgrind.gdb')
+        # The 'mocko' executable.       
         mocko_exe = self._env.Dir('$INSTALL_BIN_DIR').File('mocko')
         # Create an instance of the RunMocko() builder.
-        targets = [mocko_bind_h, mocko_bind_cpp, mocko_bind_gdb]
-        src = [mocko_list, mocko_exe]
+        targets = [  # NOTE: Respect the order!
+            mocko_bind_valgrind_gdb,
+            mocko_bind_gdb,
+            mocko_bind_cpp,
+            mocko_bind_h
+        ]
+        src = [mocko_list, mocko_exe]  # NOTE: Respect the order!
         mocko_builder = self._env.RunMocko(targets, src)
         # Add mocko_bind.cpp to the sources.
         sources.append(mocko_bind_cpp)

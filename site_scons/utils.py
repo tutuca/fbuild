@@ -32,13 +32,13 @@ from SCons.Node.FS import Dir
 import fbuild_exceptions
 
 
-# Contants for the distributions supported.
+# Constants for the distributions supported.
 DISTRO_UBUNTU = 'UBUNTU'
 DISRTO_ARCH = 'ARCH'
-# Path to the /etc/issue file which contains the distro.
+# Path to the /etc/issue file which contains the distribution.
 _DISRTO_FILE = '/etc/issue'
 # Path to the process file system.
-PROC_DIR = '/proc/%d'
+_PROC_DIR = '/proc/%d'
 
 
 def FindFiles(env, fromDir, filters=None):
@@ -145,14 +145,14 @@ def ChainCalls(env, cmds, silent=True):
 
 def GetDistro():
     """
-        Description:
-            This function tells in which distribution of linux we are.
-        Arguments:
-            None.
-        Exceptions:
-            DistroError.
-        Return:
-            A string instance with the name of the distribution.
+    Description:
+        This function tells in which distribution of linux we are.
+    Arguments:
+        None.
+    Exceptions:
+        DistroError.
+    Return:
+        A string instance with the name of the distribution.
     """
     try:
         f = open(_DISRTO_FILE, 'r')
@@ -173,15 +173,15 @@ def GetDistro():
 
 def WasTargetInvoked(target):
     """
-        Description:
-            This function tells if a specific target was invoked or not.
-        Arguments:
-            target  -  A string instance with the name of target to be check.
-        Exceptions:
-            None.
-        Return:
-            True  if the target was called.
-            False otherwise.
+    Description:
+        This function tells if a specific target was invoked or not.
+    Arguments:
+        target  -  A string instance with the name of target to be check.
+    Exceptions:
+        None.
+    Return:
+        True  if the target was called.
+        False otherwise.
     """
     for arg in sys.argv:
         if arg == target:
@@ -223,7 +223,7 @@ def ProcessExists(pid):
     """
     Checks if the process with PID pid exists.
     """
-    return os.path.exists(PROC_DIR % pid)
+    return os.path.exists(_PROC_DIR % pid)
 
 
 def WaitProcessExists(pid):
