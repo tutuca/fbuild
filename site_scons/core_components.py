@@ -545,9 +545,11 @@ class HeaderOnlyComponent(Component):
         # Otherwise we look for them.
         self._header_file_list = []
         # Look for the files in each include directory.
-        for include_dir in self._includes:
-            files = utils.FindFiles(self._env, include_dir, HEADERS_FILTER)
+        from builders import HEADERS
+        for include_dir in self._includes:            
+            files = [x for x in self._env.Glob(include_dir.abspath + '/*') for y in HEADERS if x.name.endswith(y)]
             self._header_file_list.extend(files)
+            if include_dir.name == 'remo': import ipdb; ipdb.set_trace()
         return self._header_file_list
 
     #
