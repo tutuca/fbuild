@@ -26,6 +26,7 @@
 
 import os
 import abc
+import fnmatch
 
 from SCons import Node
 from re import sub
@@ -546,8 +547,10 @@ class HeaderOnlyComponent(Component):
         self._header_file_list = []
         # Look for the files in each include directory.
         for include_dir in self._includes:
-            files = utils.FindFiles(self._env, include_dir, HEADERS_FILTER)
-            self._header_file_list.extend(files)
+            for x in self._env.Glob('%s/*' % include_dir.abspath):
+                if any([fnmatch.fnmatch(x.abspath, filter) for filter in HEADERS_FILTER]):
+                    if os.path.isfile(x.abspath.replace('/build/', '/projects/')):
+                        self._header_file_list.append(x)
         return self._header_file_list
 
     #

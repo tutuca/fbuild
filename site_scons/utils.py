@@ -45,14 +45,14 @@ def FindFiles(env, fromDir, filters=None):
     filters = filters if filters is not None else ['*']
     path = fromDir.abspath
     files = []
-    for s in env.Glob(path + '/*'):
+    for x in env.Glob(path + '/*'):
         #s.isdir doesn't work as expected in variant dir (when the dir is not created)
-        if isinstance(s, Dir):
-            files.extend(FindFiles(env, s, filters))
+        if isinstance(x, Dir):
+            files.extend(FindFiles(env, x, filters))
         else:
-            if any([fnmatch.fnmatch(s.abspath, filter) for filter in filters]):
-                if os.path.isfile(s.abspath.replace('/build/', '/projects/')):
-                    files.append(s)
+            if any([fnmatch.fnmatch(x.abspath, filter) for filter in filters]):
+                if os.path.isfile(x.abspath.replace('/build/', '/projects/')):
+                    files.append(x)
     return files
 
 
