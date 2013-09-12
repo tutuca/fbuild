@@ -53,7 +53,6 @@ def FindFiles(env, fromDir, filters=None):
             if any([fnmatch.fnmatch(x.abspath, filter) for filter in filters]):
                 if os.path.isfile(x.abspath.replace('/build/', '/projects/')):
                     files.append(x)
-    # if '' in files: import ipdb;ipdb.set_trace()
     return files
 
 

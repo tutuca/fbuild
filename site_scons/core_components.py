@@ -547,7 +547,7 @@ class HeaderOnlyComponent(Component):
         self._header_file_list = []
         # Look for the files in each include directory.
         for include_dir in self._includes:
-            for x in self._env.Glob(include_dir.abspath + '/*'):
+            for x in self._env.Glob('%s/*' % include_dir.abspath):
                 if any([fnmatch.fnmatch(x.abspath, filter) for filter in HEADERS_FILTER]):
                     if os.path.isfile(x.abspath.replace('/build/', '/projects/')):
                         self._header_file_list.append(x)
