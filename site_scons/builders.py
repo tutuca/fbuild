@@ -31,7 +31,7 @@ import os
 from SCons.Builder import Builder
 from SCons.Action import Action
 
-from utils import ChainCalls, FindHeaders, FindSources, CheckPath, WaitProcessExists
+from utils import ChainCalls, FindHeaders, FindSources, CheckPath, WaitProcessExists, RemoveDuplicates
 
 
 HEADERS = [".h", ".hpp"]
@@ -599,8 +599,8 @@ def RunInfo(env, target, source):
     env.Cprint("\n----------- %s -----------\n" % name, "blue")
     env.CprintSameLine([("The Project type is: ", "end"), ("%s \n" % project_type, "green")])
     # Separate sources and headers
-    headers_list = [x.name for x in source for y in HEADERS if x.name.endswith(y)]
-    sources_list = [x.name for x in source for y in SOURCES if x.name.endswith(y)]
+    headers_list = sorted(RemoveDuplicates([x for x in source for y in HEADERS if x.name.endswith(y)]))
+    sources_list = sorted(RemoveDuplicates([x for x in source for y in SOURCES if x.name.endswith(y)]))
     # Print headers and sources
     if headers_list:
         env.Cprint("List of headers:", "end")
