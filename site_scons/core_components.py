@@ -1248,7 +1248,8 @@ class UnitTestComponent(ProgramComponent):
         project_deps.remove(self._project_name)
         for dep in project_deps:
             dep_component = self._component_graph.get(dep)
-            project_deps += dep_component._dependencies
+            if dep_component:
+                project_deps += dep_component._dependencies
         project_deps = utils.RemoveDuplicates(project_deps)
         self._env['PROJECT_DEPS'] = project_deps
 
