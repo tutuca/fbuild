@@ -43,12 +43,12 @@ function check_install {
         echo "      me to do it? (your password could be required)"
         REPLY="extremelyLongStringUnlikelyToBeUsed"
         while [[ "$REPLY" != "y" && "$REPLY" != "n" && "$REPLY" != "" ]]; do
-            read -p "Install (y/[n])?" REPLY
+            read -p "Install ([y]/n)?" REPLY
             if [[ "$REPLY" != "y" && "$REPLY" != "n" && "$REPLY" != "" ]]; then
                 echo -e "\e[0;31mID-10-T Error: please insert 'y' or 'n' or nothing. \e[0m"
             fi
         done
-        if [ "$REPLY" = "y" ]; then
+        if [[ "$REPLY" = "y" || "$REPLY" = "" ]]; then
             sudo packer -S $pkg
             if [ "$?" -ne "0" ]; then
                 echo -e "\e[0;31m[error] $1 (part of $pkg) could not be installed, exiting\e[0m"
