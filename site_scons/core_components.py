@@ -1107,23 +1107,19 @@ class UnitTestComponent(ProgramComponent):
         # Create alias for aliasGroups.
         self._CreateGroupAliases()
         # Create targets.
-        self._run_valgrind_builder = self._CreateValgrindTarget(program_builder)
+        run_valgrind_builder = self._CreateValgrindTarget(program_builder)
         self._CreateASanTarget(program_builder)
         self._CreateCoverageTarget(run_test_target, program_builder)
         self._CreateJenkinsTarget(flags, run_test_target, program_builder)
         self._CreateReadyToCommitTtarget(flags, run_test_target, program_builder)
-        self._run_test_builder = self._CreateTestTarget(run_test_target, program_builder)
-        self._builders['install'] = self._run_test_builder
-        # Create the 'all:xxx targets'
-        self._CreateGeneralTargets()
-        # Return the builder that execute the test.
-        return self._run_test_builder
-
-    def _CreateGeneralTargets(self):
+        run_test_builder = self._CreateTestTarget(run_test_target, program_builder)
+        self._builders['install'] = run_test_builder
         # Create alias for 'all:test'.
-        self._env.Alias('all:test', self._run_test_builder, "Run all tests")
+        self._env.Alias('all:test', run_test_builder, "Run all tests")
         # Create the alias for 'all:valgrind'
-        self._env.Alias('all:valgrind', self._run_valgrind_builder, 'Run valgrind in all the projects')
+        self._env.Alias('all:valgrind', run_valgrind_builder, 'Run valgrind in all the projects')
+        # Return the builder that execute the test.
+        return run_test_builder
 
     def _CheckForFlags(self):
         # Get the component of the project.
