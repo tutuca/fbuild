@@ -271,6 +271,7 @@ class Component(object):
             try:
                 component = self._component_graph[dependency]
             except (IndexError, KeyError):
+                print "_GetObjectsFiles()"
                 self._env.cerror(
                     '[error] %s depends on %s which could not be found' %
                     (self.name, dependency)
@@ -329,6 +330,7 @@ class Component(object):
             try:
                 component = self._component_graph[dependency]
             except KeyError:
+                print '_GetIncludePaths()'
                 self._env.cerror(
                     '[error] %s depends on %s which could not be found' %
                     (self.name, dependency)
@@ -360,6 +362,7 @@ class Component(object):
             try:
                 component = self._component_graph[dependencies]
             except KeyError:
+                print '_GetLibs()'
                 self._env.cerror(
                     '[error] %s depends on %s which could not be found' %
                     (self.name, dependencies)
