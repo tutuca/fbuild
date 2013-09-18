@@ -249,11 +249,11 @@ def WalkDirsForSconscripts(env, topdir, ignore=None):
         component.Process()
 
 def _InstallComponentAndDep(env, component_name):
-    comp_tail = [component_name]
+    comp_queue = [component_name]
     downloadedDependencies = False
     while comp_tail:
         # Take the first element in the tail
-        comp = comp_tail.pop(0)
+        comp = comp_queue.pop(0)
         component = componentGraph.get(comp)
         if component is not None:
             dep_list_comp = component._dependencies
@@ -265,7 +265,9 @@ def _InstallComponentAndDep(env, component_name):
         if dep_list_comp:
             for dep in dep_list_comp:
                 if not dep in comp_tail:
-                    comp_tail.append(dep)
+                    comp_queue.append(dep)
         if component is None:
             downloadedDependencies = env.CheckoutDependencyNow(comp, env)
+            if not downloadedDependencies:
+                break
     return downloadedDependencies
