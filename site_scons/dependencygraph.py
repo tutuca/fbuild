@@ -268,6 +268,4 @@ def _InstallComponentAndDep(env, component_name):
                     comp_queue.append(dep)
         if component is None:
             downloadedDependencies = env.CheckoutDependencyNow(comp, env)
-            if not downloadedDependencies:
-                break
     return downloadedDependencies
