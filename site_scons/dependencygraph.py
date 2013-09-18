@@ -251,7 +251,7 @@ def WalkDirsForSconscripts(env, topdir, ignore=None):
 def _InstallComponentAndDep(env, component_name):
     comp_queue = [component_name]
     downloadedDependencies = False
-    while comp_tail:
+    while comp_queue:
         # Take the first element in the tail
         comp = comp_queue.pop(0)
         component = componentGraph.get(comp)
