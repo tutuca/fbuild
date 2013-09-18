@@ -250,7 +250,6 @@ def WalkDirsForSconscripts(env, topdir, ignore=None):
 
 def _InstallComponentAndDep(env, component_name):
     comp_tail = [component_name]
-    
     downloadedDependencies = False
     while comp_tail:
         # Take the first element in the tail
@@ -269,10 +268,4 @@ def _InstallComponentAndDep(env, component_name):
                     comp_tail.append(dep)
         if component is None:
             downloadedDependencies = env.CheckoutDependencyNow(comp, env)
-
     return downloadedDependencies
-
-def _CheckCircularDependencies(component, deps_installing, deps_to_install):
-    for dep in deps_installing:
-        if dep in deps_to_install:
-            raise fbuild_exceptions.CircularDependencyError()
