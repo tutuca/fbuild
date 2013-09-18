@@ -252,7 +252,7 @@ def _InstallComponentAndDep(env, component_name):
     comp_queue = [component_name]
     downloadedDependencies = False
     while comp_queue:
-        # Take the first element in the tail
+        # Take the first element in the queue
         comp = comp_queue.pop(0)
         component = componentGraph.get(comp)
         if component is not None:
@@ -264,7 +264,7 @@ def _InstallComponentAndDep(env, component_name):
 
         if dep_list_comp:
             for dep in dep_list_comp:
-                if not dep in comp_tail:
+                if not dep in comp_queue:
                     comp_queue.append(dep)
         if component is None:
             downloadedDependencies = env.CheckoutDependencyNow(comp, env)
