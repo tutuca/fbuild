@@ -22,7 +22,7 @@
 
 
 import platform
-
+import os
 from SCons.Script import AddOption
 
 
@@ -44,8 +44,13 @@ def LinuxOptions(env):
               action='store_true',
               help='Sets the effective C++ mode',
               default=False)
+    namecheck = os.path.join(os.getcwd(), "install", "libs", "libnamecheck.so")
     # Common options.
     commonFlags = ['-Wall', '-Wextra', '-pedantic', '-ansi']
+    print namecheck
+    if os.path.exists(namecheck):
+
+      commonFlags.append('-fplugin='+namecheck)
     env.Append(CXXFLAGS=commonFlags, CFLAGS=commonFlags)
     # Options for 64bit archs
     (arch, binType) = platform.architecture()
