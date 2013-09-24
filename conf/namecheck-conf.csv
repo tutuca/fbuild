@@ -1,0 +1,14 @@
+ClassDeclaration,1
+VariableDeclaration,2
+EnumTypeDeclaration,1
+EnumValueDeclaration,1
+FunctionDeclaration,2
+ParameterDeclaration,2
+TypeDeclaration,1
+StructDeclaration,1
+UnionDeclaration,1
+UnionValueDeclaration,1
+MethodDeclaration,2
+AttributeDeclaration,4
+NamespaceDeclaration,1
+GlobalConstDeclaration,3

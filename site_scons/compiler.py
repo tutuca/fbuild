@@ -45,12 +45,11 @@ def LinuxOptions(env):
               help='Sets the effective C++ mode',
               default=False)
     namecheck = os.path.join(os.getcwd(), "install", "libs", "libnamecheck.so")
+    namecheck_conf = os.path.join(os.getcwd(), "conf", "namecheck-conf.csv")
     # Common options.
     commonFlags = ['-Wall', '-Wextra', '-pedantic', '-ansi']
-    print namecheck
-    if os.path.exists(namecheck):
-
-      commonFlags.append('-fplugin='+namecheck)
+    if os.path.exists(namecheck) and os.path.exists(namecheck_conf):
+        commonFlags.append(['-fplugin=%s' % namecheck, '-fplugin-arg-libnamecheck-path=%s' % namecheck_conf])
     env.Append(CXXFLAGS=commonFlags, CFLAGS=commonFlags)
     # Options for 64bit archs
     (arch, binType) = platform.architecture()
