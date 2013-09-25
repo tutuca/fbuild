@@ -130,7 +130,7 @@ def ChainCalls(env, cmds, silent=True):
         cmd = cmds[0]
         with open(os.devnull, "w") as fnull:
             stdout = fnull if silent else None
-            if not silent:
+            if silent:
                 print '>>', cmd
             #errors always shows
             cmd_proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)

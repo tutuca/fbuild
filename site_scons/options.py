@@ -30,9 +30,9 @@ def init(env):
     AddOption(
         '--verbose',
         dest='verbose',
-        action='store_false',
+        action='store_true',
         help='Display a more detailed output.',
-        default=True
+        default=False
     )
     AddOption(
         '--testsuite',

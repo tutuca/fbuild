@@ -56,7 +56,7 @@ qtmoc_message = '%s[moc] $SOURCE%s' % (colors['blue'], colors['end'])
 
 
 def init(env):
-    if env.GetOption('verbose'):
+    if not env.GetOption('verbose'):
         PrettyMessages(env)
     env.Cprint = Cprint
     env.CprintSameLine = CprintSameLine
