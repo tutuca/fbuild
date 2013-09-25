@@ -66,13 +66,12 @@ def LinuxOptions(env):
         env.Append(CPPDEFINES=['DEBUG'])
 
 def ManageOutput(sh, escape, cmd, args, env):
-    # import ipdb; ipdb.set_trace()
     """Spawn which echos stdout/stderr from the child."""
     # convert env from unicode strings
     asciienv = {}
     for key, value in env.iteritems():
         asciienv[key] = str(value)    
-        
+    print ' '.join(args)    
     p = subprocess.Popen(
         ' '.join(args), 
         env=asciienv, 
@@ -85,7 +84,7 @@ def ManageOutput(sh, escape, cmd, args, env):
     # Does this screw up the relative order of the two?
     sys.stdout.write(stdout)
     sys.stderr.write(stderr)
-    return p.returncode
+    return p.wait()
 
 def AddNameCheck(env):
     namecheck = os.path.join(os.getcwd(), "install", "libs", "libnamecheck.so")
