@@ -113,10 +113,16 @@
         <installer distro="*" target="flex" manager="APT-GET"/>
     </component>
   
- <component name="gcc_plugin" type="HLIB">
+    <component name="gcc_plugin" type="HLIB">
         <installer distro="UBUNTU" target="gcc-4.6-plugin-dev" manager="APT-GET"/>
         <installer distro="ARCH" target="boost" manager="PACKER"/>
 	<install_checker>stat -f /usr/lib/gcc/x86_64-linux-gnu/4.6/plugin/include/gcc-plugin.h</install_checker>
+    </component>
+
+    <component name="gcc_plugin_4.7" type="HLIB">
+        <installer distro="UBUNTU" target="gcc-4.7-plugin-dev" manager="APT-GET"/>
+        <installer distro="ARCH" target="boost" manager="PACKER"/>
+	<install_checker>stat -f /usr/lib/gcc/x86_64-linux-gnu/4.7/plugin/include/gcc-plugin.h</install_checker>
     </component>
   
     <component name="gmock" type="LIB" deps="gtest,pthread">
