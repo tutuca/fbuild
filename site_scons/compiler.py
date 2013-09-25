@@ -39,7 +39,6 @@ def init(env):
     if binType == 'ELF':
         LinuxOptions(env)
 
-
 def LinuxOptions(env):
     AddOption('--effective',
               dest='effective',
@@ -62,12 +61,3 @@ def LinuxOptions(env):
         dbgFlags = ['-ggdb3']
         env.Append(CXXFLAGS=dbgFlags, CFLAGS=dbgFlags)
         env.Append(CPPDEFINES=['DEBUG'])
-
-
-def AddNameCheck(env):
-    namecheck = os.path.join(os.getcwd(), "install", "libs", "libnamecheck.so")
-    namecheck_conf = os.path.join(os.getcwd(), "conf", "namecheck-conf.csv")
-    if os.path.exists(namecheck) and os.path.exists(namecheck_conf):
-        plugin = '-fplugin=%s' % namecheck
-        conf = '-fplugin-arg-libnamecheck-path=%s' % namecheck_conf
-        env.Append(CXXFLAGS=[plugin,conf], CFLAGS=[plugin, conf])

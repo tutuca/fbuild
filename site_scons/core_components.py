@@ -27,6 +27,8 @@
 import os
 import abc
 import fnmatch
+import subprocess
+import sys
 
 from SCons import Node
 from re import sub
@@ -724,6 +726,17 @@ class HeaderOnlyComponent(Component):
         return info_builder
 
     def _CreateNameCheckTarget(self, sources):
+        # Set paths to the plug-in and the configuration file.
+        namecheck = os.path.join(os.getcwd(), "install", "libs", "libnamecheck.so")
+        namecheck_conf = os.path.join(os.getcwd(), "conf", "namecheck-conf.csv")
+        if os.path.exists(namecheck) and os.path.exists(namecheck_conf):
+            # Add the flags to the compiler if the plug-in is present.
+            plugin = '-fplugin=%s' % namecheck
+            conf = '-fplugin-arg-libnamecheck-path=%s' % namecheck_conf
+            self._env.Append(CXXFLAGS=[plugin,conf], CFLAGS=[plugin, conf])
+        # Change the SPAWN of SCons
+        name_check = NameCheck(self.name)
+        self._env['SPAWN']=name_check.namecheck_spawn
         if self._builders['name-check'] is not None:
             return self._builders['name-check']
         target = self._env.Dir(self.name)
@@ -1425,3 +1438,19 @@ class UnitTestComponent(ProgramComponent):
         self._env.Append(VALGRIND_OPTIONS='--vgdb=yes')
         self._env.Append(VALGRIND_OPTIONS='--vgdb-error=0')
         return mocko_builder
+
+class NameCheck:
+    def __init__(self, project_name):
+        self._project_name = project_name
+    def namecheck_spawn( self, sh, escape, cmd, args, env ):
+        print self._project_name
+        p = subprocess.Popen(
+                ' '.join(args),
+                stderr=subprocess.PIPE,
+                stdout=subprocess.PIPE,
+                shell=True,
+                universal_newlines=True)
+        (stdout, stderr) = p.communicate()        
+        sys.stdout.write(stdout)
+        sys.stderr.write(stderr)
+        return p.returncode

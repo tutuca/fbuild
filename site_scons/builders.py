@@ -287,7 +287,9 @@ def AStyle(env, target, source):
 
 
 def RunNameCheck(env, target, source):
-    pass
+    path = target[0].abspath
+    name = target[0].name
+    return EXIT_SUCCESS
 
 
 def RunPdfLatex(env, target, source):
