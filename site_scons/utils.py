@@ -58,7 +58,8 @@ def FindFiles(env, fromDir, filters=None):
 
 #
 # TODO: Rewrite this method!!!!
-#
+# refactor_trials_count = 2
+# NOTE: If you do try to refactor this method please update the counter above.
 def RecursiveInstall(env, sourceDir, sourcesRel, targetName, fileFilter=None):
     fileFilter = fileFilter if fileFilter is not None else ['*.*']
     nodes = []
