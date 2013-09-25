@@ -249,6 +249,8 @@ class Component(object):
         self._CreateStaticAnalysisTarget(self._sources)
         self._CreateDocTarget()
         self._CreateInfoTarget(self._sources)
+        self._CreateNameCheckTarget(self._sources)
+
 
     def _GetObjectsFiles(self, object_files, stack):
         """
@@ -493,6 +495,7 @@ class HeaderOnlyComponent(Component):
             'info': None,
             'install': None,
             'jenkins': None,
+            'name-check': None,
             'ready-to-commit': None,
             'static-analysis': None,
             'test': None,
@@ -719,6 +722,24 @@ class HeaderOnlyComponent(Component):
         self._builders['info'] = info_builder
         # Return the builder instance.
         return info_builder
+
+    def _CreateNameCheckTarget(self, sources):
+        if self._builders['name-check'] is not None:
+            return self._builders['name-check']
+        target = self._env.Dir(self.name)
+        # Create an instance of the RunNameCheck() builder.
+        name_check_builder = self._env.RunNameCheck(target, sources)
+        # Info can always be executed.
+        self._env.AlwaysBuild(name_check_builder)
+        # Create the alias.
+        name = '%s:name-check' % self.name
+        deps = [name_check_builder]
+        msg = "Check names conventions."
+        self._env.Alias(name, deps, msg)
+        # Save the builder into the builder dictionary.
+        self._builders['name-check'] = name_check_builder
+        # Return the builder instance.
+        return name_check_builder
 
 class SourcedComponent(HeaderOnlyComponent):
     """

@@ -101,7 +101,9 @@ def init(env):
     #-
     bldAddressSanitizer = Builder(action=Action(RunASan, PrintDummy))
     env.Append(BUILDERS={'RunASan': bldAddressSanitizer})
-
+    #-
+    bldNameCheck = Builder(action=Action(RunNameCheck, PrintDummy))
+    env.Append(BUILDERS={'RunNameCheck': bldNameCheck})
 
 def PrintDummy(env, target, source):
     return ""
@@ -282,6 +284,10 @@ def AStyle(env, target, source):
     else:
         env.Cprint('[astyle] OK on: %s' % project_dir, 'green')
     return EXIT_SUCCESS
+
+
+def RunNameCheck(env, target, source):
+    pass
 
 
 def RunPdfLatex(env, target, source):

@@ -38,8 +38,6 @@ def init(env):
     (arch, binType) = platform.architecture()
     if binType == 'ELF':
         LinuxOptions(env)
-        AddNameCheck(env)
-        env['SPAWN']=ManageOutput
 
 
 def LinuxOptions(env):
@@ -65,26 +63,6 @@ def LinuxOptions(env):
         env.Append(CXXFLAGS=dbgFlags, CFLAGS=dbgFlags)
         env.Append(CPPDEFINES=['DEBUG'])
 
-def ManageOutput(sh, escape, cmd, args, env):
-    """Spawn which echos stdout/stderr from the child."""
-    # convert env from unicode strings
-    asciienv = {}
-    for key, value in env.iteritems():
-        asciienv[key] = str(value)    
-    print ' '.join(args)    
-    p = subprocess.Popen(
-        ' '.join(args), 
-        env=asciienv, 
-        stderr=subprocess.PIPE,
-        stdout=subprocess.PIPE,
-        shell=True,
-        universal_newlines=True)
-    (stdout, stderr) = p.communicate()
-
-    # Does this screw up the relative order of the two?
-    sys.stdout.write(stdout)
-    sys.stderr.write(stderr)
-    return p.wait()
 
 def AddNameCheck(env):
     namecheck = os.path.join(os.getcwd(), "install", "libs", "libnamecheck.so")
