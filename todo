@@ -14,8 +14,6 @@ soporte para reglas (ej: un modo para correr g++ con -Weffc++, otro para valgrin
 
 modo profiling: compila para gprof
 modo coverage: compila para gcov
-modo doxygen: en vez del compilador, llama a doxygen
-modo cppcheck: en vez del compilador, llama a cppcheck
 (opcional: que esté comentado) modo tesis: compila los fuentes de latex
 modo help: muestra los targets de arriba
 
