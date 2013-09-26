@@ -1298,6 +1298,7 @@ class UnitTestComponent(ProgramComponent):
         # Create alias for aliasGroups.
         self._CreateGroupAliases()
         # Create targets.
+        self._CreateNameCheckTarget(sources)
         run_valgrind_builder = self._CreateValgrindTarget(program_builder)
         self._CreateASanTarget(program_builder)
         self._CreateCoverageTarget(run_test_target, program_builder)
