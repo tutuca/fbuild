@@ -47,6 +47,7 @@ def init(env):
     SConsEnvironment.CreateHeaderOnlyLibrary = CreateHeaderOnlyLibrary
     SConsEnvironment.CreateTest = CreateTest
     SConsEnvironment.CreatePdfLaTeX = CreatePdfLaTeX
+    SConsEnvironment.CreateDoc = CreateDoc
     #SConsEnvironment.CreateAutoToolsProject = CreateAutoToolsProject
 
 
@@ -176,6 +177,16 @@ def CreatePdfLaTeX(env, name, latexfile='', options='', aliasGroups=None):
                                     latexfile,
                                     aliasGroups))
 
+def CreateDoc(env, name, doxyfile=None, aliasGroups = []):
+    docName = name + ':doc'
+    if doxyfile == None:
+        doxyfile = os.path.abspath(env['DEFAULT_DOXYFILE'])
+    return componentGraph.add(DocComponent(componentGraph,
+                                    env,
+                                    docName,
+                                    env.Dir('.'),
+                                    doxyfile,
+                                    aliasGroups))
 
 #def CreateAutoToolsProject(env, name, ext_dir, lib_targets, configurationFile, aliasGroups=None):
     #if aliasGroups == None:
