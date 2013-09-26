@@ -42,3 +42,10 @@ def init(env):
         default="*",
         help='Specifies the test suite that will be run. Default is all tests suit.'
     )
+    AddOption(
+        '--namecheck',
+        dest='namecheck',
+        action='store_true',
+        help='Check names conventions.',
+        default=False
+    )

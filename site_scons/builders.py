@@ -101,9 +101,7 @@ def init(env):
     #-
     bldAddressSanitizer = Builder(action=Action(RunASan, PrintDummy))
     env.Append(BUILDERS={'RunASan': bldAddressSanitizer})
-    #-
-    bldNameCheck = Builder(action=Action(RunNameCheck, PrintDummy))
-    env.Append(BUILDERS={'RunNameCheck': bldNameCheck})
+
 
 def PrintDummy(env, target, source):
     return ""
@@ -283,12 +281,6 @@ def AStyle(env, target, source):
         env.cerror('[astyle] ERROR running astyle on: %s' % project_dir)
     else:
         env.Cprint('[astyle] OK on: %s' % project_dir, 'green')
-    return EXIT_SUCCESS
-
-
-def RunNameCheck(env, target, source):
-    path = target[0].abspath
-    name = target[0].name
     return EXIT_SUCCESS
 
 

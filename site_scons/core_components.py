@@ -276,7 +276,6 @@ class Component(object):
             try:
                 component = self._component_graph[dependency]
             except (IndexError, KeyError):
-                print "_GetObjectsFiles()"
                 self._env.cerror(
                     '[error] %s depends on %s which could not be found' %
                     (self.name, dependency)
@@ -335,7 +334,6 @@ class Component(object):
             try:
                 component = self._component_graph[dependency]
             except KeyError:
-                print '_GetIncludePaths()'
                 self._env.cerror(
                     '[error] %s depends on %s which could not be found' %
                     (self.name, dependency)
@@ -367,7 +365,6 @@ class Component(object):
             try:
                 component = self._component_graph[dependencies]
             except KeyError:
-                print '_GetLibs()'
                 self._env.cerror(
                     '[error] %s depends on %s which could not be found' %
                     (self.name, dependencies)
@@ -727,33 +724,24 @@ class HeaderOnlyComponent(Component):
         return info_builder
 
     def _CreateNameCheckTarget(self, sources):
-        # Set paths to the plug-in and the configuration file.
-        namecheck = os.path.join(os.getcwd(), "install", "libs", "libnamecheck.so")
-        namecheck_conf = os.path.join(os.getcwd(), "conf", "namecheck-conf.csv")
-        if os.path.exists(namecheck) and os.path.exists(namecheck_conf):
-            # Add the flags to the compiler if the plug-in is present.
-            plugin = '-fplugin=%s' % namecheck
-            conf = '-fplugin-arg-libnamecheck-path=%s' % namecheck_conf
-            self._env.Append(CXXFLAGS=[plugin,conf], CFLAGS=[plugin, conf])
-        # Change the SPAWN of SCons
-        name_check = NameCheck()
-        self._env['SPAWN'] = name_check.namecheck_spawn
-        if self._builders['name-check'] is not None:
-            return self._builders['name-check']
-        target = self._env.Dir(self.name)
-        # Create an instance of the RunNameCheck() builder.
-        name_check_builder = self._env.RunNameCheck(target, sources)
-        # Info can always be executed.
-        self._env.AlwaysBuild(name_check_builder)
-        # Create the alias.
-        name = '%s:name-check' % self.name
-        deps = [name_check_builder]
-        msg = "Check names conventions."
-        self._env.Alias(name, deps, msg)
-        # Save the builder into the builder dictionary.
-        self._builders['name-check'] = name_check_builder
-        # Return the builder instance.
-        return name_check_builder
+        if self._env.GetOption('namecheck'):
+            # Set paths to the plug-in and the configuration file.
+            namecheck = os.path.join(os.getcwd(), "install", "libs", "libnamecheck.so")
+            namecheck_conf = os.path.join(os.getcwd(), "conf", "namecheck-conf.csv")
+            if os.path.exists(namecheck) and os.path.exists(namecheck_conf):
+                # Add the flags to the compiler if the plug-in is present.
+                plugin = '-fplugin=%s' % namecheck
+                conf = '-fplugin-arg-libnamecheck-path=%s' % namecheck_conf
+                self._env.Append(
+                    CXXFLAGS=[plugin, conf], CFLAGS=[plugin, conf])
+            else:
+                self._env.cerror(
+                    'Please check if you have isntalled Namecheck and the configuration file.')
+            # Change the SPAWN of SCons
+            name_check = NameCheck(self._env)
+            self._env['SPAWN'] = name_check.namecheck_spawn
+
+        return 0
 
 class SourcedComponent(HeaderOnlyComponent):
     """
@@ -1442,23 +1430,31 @@ class UnitTestComponent(ProgramComponent):
 
 class NameCheck:
 
-    def __init__(self):
+    """
+    This class is used to parse the output from namecheck.
+    """
+
+    def __init__(self, env):
         target = sys.argv
+        self._env = env
         try:
             self._project_name = target[1].split(':')[0]
         except IndexError as e:
             self._project_name = None
 
-    def namecheck_spawn( self, sh, escape, cmd, args, env ):
+    def namecheck_spawn(self, sh, escape, cmd, args, env):
+        # Execute the command.
         p = subprocess.Popen(
-                ' '.join(args),
-                stderr=subprocess.PIPE,
-                shell=True,
-                universal_newlines=True)
+            ' '.join(args),
+            stderr=subprocess.PIPE,
+            shell=True,
+            universal_newlines=True)
+        # Take the stderr File
         err = p.stderr
         reg = './%s/.' % self._project_name
         for line in err:
+            # Check if the project name is into the path of the warning.
             is_there = re.search(reg, line)
             if is_there:
-                print line
-        return p.returncode
+                self._env.Cprint('%s' % line.strip(), 'end')
+        return p.wait()
