@@ -825,7 +825,7 @@ class HeaderOnlyComponent(Component):
             self._env.Append(CXXFLAGS=flags, CFLAGS=flags, LINKFLAGS=linker_flags)
         return result
 
-    def _CreateJenkinsTarget(self, program_builder, target=None, ):
+    def _CreateJenkinsTarget(self, program_builder, target=None):
         flags = self._CheckForFlags()
         if self._builders['jenkins'] is not None:
             return self._builders['jenkins']
@@ -1484,7 +1484,7 @@ class UnitTestComponent(ProgramComponent):
         self._env.Append(VALGRIND_OPTIONS='--vgdb-error=0')
         return mocko_builder
 
-class NameCheck:
+class NameCheck():
 
     """
     This class is used to parse the output from namecheck.
@@ -1494,11 +1494,21 @@ class NameCheck:
         target = sys.argv
         self._env = env
         try:
-            self._project_name = target[1].split(':')[0]
+            # Take the project and the action from the target.
+            name, action = target[1].split(':')
         except IndexError as e:
             self._project_name = None
+            self._action = None
+        self._project_name = name
+        self._action = action
 
     def namecheck_spawn(self, sh, escape, cmd, args, env):
+        # Check if jenkins was executed.
+        report_file = self.IsForJenkins()
+        write_in_report = False
+        if report_file:
+            report = open(report_file, 'a+')
+            write_in_report = True
         # Execute the command.
         p = subprocess.Popen(
             ' '.join(args),
@@ -1513,4 +1523,21 @@ class NameCheck:
             is_there = re.search(reg, line)
             if is_there:
                 self._env.Cprint('%s' % line.strip(), 'end')
+            # Write the line into a file.
+            if is_there and write_in_report:
+                report.write(line)
+        if write_in_report:
+            report.close()
         return p.wait()
+
+    def IsForJenkins(self):
+        report_file = None
+        if self._action == 'jenkins':
+            path = os.path.join(os.getcwd(), "install", "reports", "namecheck")
+            if not os.path.exists(path):
+                os.mkdir(path)
+            project_path = os.path.join(path, "%s" % self._project_name)
+            if not os.path.exists(project_path):
+                os.mkdir(project_path)
+            report_file = os.path.join(project_path, '%s' % 'namecheck-report.txt')
+        return report_file
