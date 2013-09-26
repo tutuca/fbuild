@@ -29,6 +29,7 @@ import abc
 import fnmatch
 import subprocess
 import sys
+import re
 
 from SCons import Node
 from re import sub
@@ -735,8 +736,8 @@ class HeaderOnlyComponent(Component):
             conf = '-fplugin-arg-libnamecheck-path=%s' % namecheck_conf
             self._env.Append(CXXFLAGS=[plugin,conf], CFLAGS=[plugin, conf])
         # Change the SPAWN of SCons
-        name_check = NameCheck(self.name)
-        self._env['SPAWN']=name_check.namecheck_spawn
+        name_check = NameCheck()
+        self._env['SPAWN'] = name_check.namecheck_spawn
         if self._builders['name-check'] is not None:
             return self._builders['name-check']
         target = self._env.Dir(self.name)
@@ -1440,17 +1441,24 @@ class UnitTestComponent(ProgramComponent):
         return mocko_builder
 
 class NameCheck:
-    def __init__(self, project_name):
-        self._project_name = project_name
+
+    def __init__(self):
+        target = sys.argv
+        try:
+            self._project_name = target[1].split(':')[0]
+        except IndexError as e:
+            self._project_name = None
+
     def namecheck_spawn( self, sh, escape, cmd, args, env ):
-        print self._project_name
         p = subprocess.Popen(
                 ' '.join(args),
                 stderr=subprocess.PIPE,
-                stdout=subprocess.PIPE,
                 shell=True,
                 universal_newlines=True)
-        (stdout, stderr) = p.communicate()        
-        sys.stdout.write(stdout)
-        sys.stderr.write(stderr)
+        err = p.stderr
+        reg = './%s/.' % self._project_name
+        for line in err:
+            is_there = re.search(reg, line)
+            if is_there:
+                print line
         return p.returncode
