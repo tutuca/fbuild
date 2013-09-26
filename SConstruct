@@ -48,10 +48,6 @@ termcolor.init(env)
 import scons_defaults
 scons_defaults.init(env, vars)
 
-# Things to debug the environment
-import debug
-debug.init(env)
-
 # Imports compiler stuff
 import compiler
 compiler.init(env)

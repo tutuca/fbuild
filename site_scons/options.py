@@ -37,10 +37,26 @@ def init(env):
         default=False
     )
     AddOption(
-        '--testsuite',
-        dest='testsuite',
-        action='store',
-        type='string',
-        default="*",
-        help='Specifies the test suite that will be run. Default is all tests suit.'
-    )
+        '--buildtests',
+        dest='buildtests',
+        action='store_true',
+        help='''this flag is used to test the build environment, it will parse 
+                the buildtests folder instead of the projects folder''',
+        default=False)
+    AddOption(
+        '--forcerun',
+        dest='forcerun',
+        action='store_true',
+        help='''if indicated, tests will run regardless something they depend 
+                on changed, if not indicated, tests will only run if something that they depend on changed''',
+        default=False)
+    AddOption(
+        '--nostdin',
+        dest='nostdin',
+        action='store_true',
+        help='''this flag is used to avoid the environment to use stdin to ask 
+                stuff, it should assume the default behavior (added to support Eclipse plugin)''',
+        default=False)
+
+    if env.GetOption('buildtests'):
+        env['WS_DIR'] = env.Dir('#/buildtests').abspath
