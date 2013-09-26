@@ -495,7 +495,6 @@ class HeaderOnlyComponent(Component):
             'info': None,
             'install': None,
             'jenkins': None,
-            'name-check': None,
             'ready-to-commit': None,
             'static-analysis': None,
             'test': None,
@@ -528,6 +527,8 @@ class HeaderOnlyComponent(Component):
         self._SetTargets()
         # Create the installer.
         installer = self._CreateInstallerBuilder([])
+        # Create jenkins output
+        self._CreateJenkinsTarget(installer)
         # Create the alias group.
         self._CreateGroupAliases()
         # Set the installer into the builders dictionary.
@@ -743,6 +744,162 @@ class HeaderOnlyComponent(Component):
 
         return 0
 
+
+    def _CheckForFlags(self):
+        # Get the component of the project.
+        try :
+            name = self._project_name
+        except AttributeError:
+            name = self.name
+        project_component = self._component_graph.get(name)
+        # Flags for check the calling targets.
+        jenkins = utils.WasTargetInvoked('%s:jenkins' % name)
+        coverage = utils.WasTargetInvoked('%s:coverage' % name)
+        rtc = (utils.WasTargetInvoked('%s:rtc' % name) or
+              utils.WasTargetInvoked('%s:ready-to-commit' % name))
+        asan = utils.WasTargetInvoked('%s:asan' % name)
+        # Create the dictionary of flags.
+        result = {
+            'jenkins': jenkins,
+            'coverage': coverage,
+            'ready-to-commit': rtc,
+            'asan': asan
+        }
+        # Check for needed reports.
+        self._env.NEED_COVERAGE = jenkins or coverage
+        self._env.NEED_TEST_REPORT =  jenkins or rtc
+        self._env.NEED_CLOC_XML = jenkins
+        self._env.NEED_VALGRIND_REPORT = jenkins or rtc
+        self._env.NEED_CPPCHECK_XML = jenkins or rtc
+        self._env.NEED_ASAN = asan
+        # Add flags to the environment for gtest and gmock.
+        aux = [f for f in self._env['CXXFLAGS'] if f not in ['-ansi', '-pedantic']]
+        aux.append('-Wno-sign-compare')
+        CXXFLAGS = aux
+        if not '-ggdb3' in CXXFLAGS:
+            CXXFLAGS.append('-ggdb3')
+        self._env.Replace(CXXFLAGS=CXXFLAGS, CFLAGS=CXXFLAGS)
+        project_component._env.Append(CXXFLAGS=self._env.get('CXXFLAGS_PROJECT', []))
+        project_component._env.Append(LDFLAGS=self._env.get('LDFLAGS_PROJECT', []))
+        project_component._env.Append(CFLAGS=self._env.get('CFLAGS_PROJECT', []))
+        project_component._env.Append(LINKFLAGS=self._env.get('LINKFLAGS_PROJECT', []))
+        # Check if we need test report.
+        if self._env.NEED_TEST_REPORT:
+            test_report = self._env.Dir(self._env['INSTALL_REPORTS_DIR'])
+            test_report = test_report.Dir('test').Dir(name)
+            self._env.test_report = 'xml:%s/test-report.xml' % test_report.abspath
+        # Check if we need the coverage flag.
+        if self._env.NEED_COVERAGE:
+            flags = ['--coverage']
+            self._env.Append(CXXFLAGS=flags, CFLAGS=flags, LINKFLAGS=flags)
+            project_component._env.Append(CXXFLAGS=flags, CFLAGS=flags, LINKFLAGS=flags)
+        # Check if we need the output of cloc in xml file.
+        if self._env.NEED_CLOC_XML:
+            project_component._env.Replace(CLOC_OUTPUT_FORMAT='xml')
+        # Check if we need the output of cppchec in xml format.
+        if self._env.NEED_CPPCHECK_XML:
+            project_component._env.Append(CPPCHECK_OPTIONS='--xml')
+        # Check if we need to create an xml report for valgrind.
+        if self._env.NEED_VALGRIND_REPORT:
+            # Create the directory to store the valgrind report.
+            report_dir = self._env['INSTALL_REPORTS_DIR']
+            valgrind_report_dir = self._env.Dir(report_dir).Dir('valgrind')
+            valgrind_report_dir = valgrind_report_dir.Dir(name)
+            if not os.path.exists(valgrind_report_dir.abspath):
+                os.makedirs(valgrind_report_dir.abspath)
+            # Set the path to the report file.
+            report_file = '%s/valgrind-report.xml' % valgrind_report_dir.abspath
+            flags = ' --xml=yes --xml-file=%s ' % report_file
+            self._env.Append(VALGRIND_OPTIONS=flags)
+        # Check if necessary change the compiler for ASan.
+        if self._env.NEED_ASAN:
+            # Set clang as compiler
+            compiler_c = 'clang'
+            compiler_cpp = 'clang++'
+            project_component._env.Replace(CC=compiler_c, CXX=compiler_cpp)
+            self._env.Replace(CC=compiler_c, CXX=compiler_cpp)
+            # Set flags for address sanitizer
+            flags = ['-fsanitize=address-full', '-fno-omit-frame-pointer', '-g0', '-w']
+            linker_flags = ['-fsanitize=address']
+            project_component._env.Append(CXXFLAGS=flags, CFLAGS=flags, LINKFLAGS=linker_flags)
+            self._env.Append(CXXFLAGS=flags, CFLAGS=flags, LINKFLAGS=linker_flags)
+        return result
+
+    def _CreateJenkinsTarget(self, program_builder, target=None, ):
+        flags = self._CheckForFlags()
+        if self._builders['jenkins'] is not None:
+            return self._builders['jenkins']
+        # Get the component of the project.
+        try :
+            name = self._project_name
+        except AttributeError:
+            name = self.name
+
+        project_component = self._component_graph.get(name)
+        # Create the alias.
+        jenkins = self._env.Alias(
+            '%s:jenkins' % name,
+            None,
+            "Build the environmnet's project for the Jenkins server."
+        )
+        # If the target 'jenkins' was invoked...
+        if flags and flags['jenkins']:
+            # Get the builders from which the jenkins target will depend on.
+            sources = project_component.GetSourcesFiles()
+            includes = project_component.GetIncludeFiles()
+            source = sources + includes
+            try:
+                astyle_check = project_component._CreateAstyleCheckTarget(source)
+                self._env.Depends(jenkins, astyle_check)
+            except AttributeError:
+                self._env.cerror("Not processing Astyle Check")
+            
+            try:
+                cppcheck = project_component._CreateStaticAnalysisTarget(source)
+                self._env.Depends(jenkins, cppcheck)
+            except AttributeError:
+                self._env.cerror("Not processing CppCheck")
+            
+            try:
+                cccc = project_component._CreateCCCCTarget(source)
+                self._env.Depends(jenkins, cccc)
+            except AttributeError:
+                self._env.cerror("Not processing CCCC")
+
+            try:
+                cccc = project_component._CreateCCCCTarget(source)
+                self._env.Depends(jenkins, cccc)
+            except AttributeError:
+                self._env.cerror("Not processing CCCC")
+
+            try:
+                cloc = project_component._CreateClocTarget(source)
+                self._env.Depends(jenkins, cloc)
+            except AttributeError:
+                self._env.cerror("Not processing Cloc")
+
+            try:
+                doc = project_component._CreateDocTarget()
+                self._env.Depends(jenkins, doc)
+            except AttributeError:
+                self._env.cerror("Not processing Doxygen")
+
+            try:
+                valgrind = self._CreateValgrindTarget(program_builder)
+                self._env.Depends(jenkins, valgrind)
+            except AttributeError:
+                self._env.cerror("Not processing Valgrind")
+
+            if target:
+                try:
+                    coverage = self._CreateCoverageTarget(target, program_builder)
+                    self._env.Depends(jenkins, coverage)
+                except AttributeError:
+                    self._env.cerror("Not processing Coverage")
+
+        self._builders['jenkins'] = jenkins
+        return jenkins
+
 class SourcedComponent(HeaderOnlyComponent):
     """
         This class represents a sourced component.
@@ -887,6 +1044,8 @@ class ObjectComponent(SourcedComponent):
         self._CreateObjectFiles()
         # Create the installer.
         installer = self._CreateInstallerBuilder(self._objects)
+        # Create jenkins output
+        self._CreateJenkinsTarget(installer)
         # Create the group aliases.
         self._CreateGroupAliases()
         self._builders['install'] = installer
@@ -955,6 +1114,8 @@ class StaticLibraryComponent(ObjectComponent):
         slib_builder = self._CreateStaticLibraryBuilder(target)
         # Create an installer builders.
         installer = self._CreateInstallerBuilder([slib_builder])
+        # Create jenkins output
+        self._CreateJenkinsTarget(installer)
         # Create the group aliases.
         self._CreateGroupAliases()
         self._builders['install'] = installer
@@ -1006,6 +1167,8 @@ class DynamicLibraryComponent(ObjectComponent):
         dlib_builder = self._CreateSharedLibraryBuilder(target)
         # Create the installer builder.
         installer = self._CreateInstallerBuilder([dlib_builder])
+        # Create jenkins output
+        self._CreateJenkinsTarget(installer)
         self._builders['install'] = installer
         return installer
 
@@ -1060,6 +1223,8 @@ class ProgramComponent(ObjectComponent):
         program_builder = self._CreateProgramBuilder(target)
         # Create an instance of the Install() builder.
         installer = self._CreateInstallerBuilder([program_builder])
+        # Create jenkins output
+        self._CreateJenkinsTarget(program_builder)
         # Create the group aliases.
         self._CreateGroupAliases()
         self._builders['install'] = installer
@@ -1136,8 +1301,8 @@ class UnitTestComponent(ProgramComponent):
         run_valgrind_builder = self._CreateValgrindTarget(program_builder)
         self._CreateASanTarget(program_builder)
         self._CreateCoverageTarget(run_test_target, program_builder)
-        self._CreateJenkinsTarget(flags, run_test_target, program_builder)
-        self._CreateReadyToCommitTtarget(flags, run_test_target, program_builder)
+        self._CreateJenkinsTarget(program_builder, target=run_test_target,)
+        self._CreateReadyToCommitTarget(run_test_target, program_builder)
         run_test_builder = self._CreateTestTarget(run_test_target, program_builder)
         self._builders['install'] = run_test_builder
         # Create alias for 'all:test'.
@@ -1145,97 +1310,6 @@ class UnitTestComponent(ProgramComponent):
         # Create the alias for 'all:valgrind'
         self._env.Alias('all:valgrind', run_valgrind_builder, 'Run valgrind in all the projects')
         # Return the builder that execute the test.
-        return run_test_builder
-
-    def _CheckForFlags(self):
-        # Get the component of the project.
-        project_component = self._component_graph.get(self._project_name)
-        # Flags for check the calling targets.
-        jenkins = utils.WasTargetInvoked('%s:jenkins' % self._project_name)
-        coverage = utils.WasTargetInvoked('%s:coverage' % self._project_name)
-        rtc = (utils.WasTargetInvoked('%s:rtc' % self._project_name) or
-              utils.WasTargetInvoked('%s:ready-to-commit' % self._project_name))
-        asan = utils.WasTargetInvoked('%s:asan' % self._project_name)
-        # Create the dictionary of flags.
-        result = {
-            'jenkins': jenkins,
-            'coverage': coverage,
-            'ready-to-commit': rtc,
-            'asan': asan
-        }
-        # Check for needed reports.
-        self._env.NEED_COVERAGE = jenkins or coverage
-        self._env.NEED_TEST_REPORT =  jenkins or rtc
-        self._env.NEED_CLOC_XML = jenkins
-        self._env.NEED_VALGRIND_REPORT = jenkins or rtc
-        self._env.NEED_CPPCHECK_XML = jenkins or rtc
-        self._env.NEED_ASAN = asan
-        # Add flags to the environment for gtest and gmock.
-        aux = [f for f in self._env['CXXFLAGS'] if f not in ['-ansi', '-pedantic']]
-        aux.append('-Wno-sign-compare')
-        CXXFLAGS = aux
-        if not '-ggdb3' in CXXFLAGS:
-            CXXFLAGS.append('-ggdb3')
-        self._env.Replace(CXXFLAGS=CXXFLAGS, CFLAGS=CXXFLAGS)
-        project_component._env.Append(CXXFLAGS=self._env.get('CXXFLAGS_PROJECT', []))
-        project_component._env.Append(LDFLAGS=self._env.get('LDFLAGS_PROJECT', []))
-        project_component._env.Append(CFLAGS=self._env.get('CFLAGS_PROJECT', []))
-        project_component._env.Append(LINKFLAGS=self._env.get('LINKFLAGS_PROJECT', []))
-        # Check if we need test report.
-        if self._env.NEED_TEST_REPORT:
-            test_report = self._env.Dir(self._env['INSTALL_REPORTS_DIR'])
-            test_report = test_report.Dir('test').Dir(self._project_name)
-            self._env.test_report = 'xml:%s/test-report.xml' % test_report.abspath
-        # Check if we need the coverage flag.
-        if self._env.NEED_COVERAGE:
-            flags = ['--coverage']
-            self._env.Append(CXXFLAGS=flags, CFLAGS=flags, LINKFLAGS=flags)
-            project_component._env.Append(CXXFLAGS=flags, CFLAGS=flags, LINKFLAGS=flags)
-        # Check if we need the output of cloc in xml file.
-        if self._env.NEED_CLOC_XML:
-            project_component._env.Replace(CLOC_OUTPUT_FORMAT='xml')
-        # Check if we need the output of cppchec in xml format.
-        if self._env.NEED_CPPCHECK_XML:
-            project_component._env.Append(CPPCHECK_OPTIONS='--xml')
-        # Check if we need to create an xml report for valgrind.
-        if self._env.NEED_VALGRIND_REPORT:
-            # Create the directory to store the valgrind report.
-            report_dir = self._env['INSTALL_REPORTS_DIR']
-            valgrind_report_dir = self._env.Dir(report_dir).Dir('valgrind')
-            valgrind_report_dir = valgrind_report_dir.Dir(self._project_name)
-            if not os.path.exists(valgrind_report_dir.abspath):
-                os.makedirs(valgrind_report_dir.abspath)
-            # Set the path to the report file.
-            report_file = '%s/valgrind-report.xml' % valgrind_report_dir.abspath
-            flags = ' --xml=yes --xml-file=%s ' % report_file
-            self._env.Append(VALGRIND_OPTIONS=flags)
-        # Check if necessary change the compiler for ASan.
-        if self._env.NEED_ASAN:
-            # Set clang as compiler
-            compiler_c = 'clang'
-            compiler_cpp = 'clang++'
-            project_component._env.Replace(CC=compiler_c, CXX=compiler_cpp)
-            self._env.Replace(CC=compiler_c, CXX=compiler_cpp)
-            # Set flags for address sanitizer
-            flags = ['-fsanitize=address-full', '-fno-omit-frame-pointer', '-g0', '-w']
-            linker_flags = ['-fsanitize=address']
-            project_component._env.Append(CXXFLAGS=flags, CFLAGS=flags, LINKFLAGS=linker_flags)
-            self._env.Append(CXXFLAGS=flags, CFLAGS=flags, LINKFLAGS=linker_flags)
-        return result
-
-    def _CreateTestTarget(self, target, program_builder):
-        run_test_builder = self._env.RunUnittest(target, program_builder)
-        # Check if the user want to run the tests anyway.
-        if self._env.GetOption('forcerun'):
-            self._env.AlwaysBuild(run_test_builder)
-        # Make the execution of test depends from files in 'ref' dir.
-        for refFile in utils.FindFiles(self._env, self._dir.Dir('ref')):
-            self._env.Depends(program_builder, refFile)
-        # Create the alias for 'project:test'.
-        name = '%s:test' % self._project_name
-        deps = [run_test_builder]
-        msg = "Run test for %s" % self._project_name
-        self._env.Alias(name, deps, msg)
         return run_test_builder
 
     def _CreateValgrindTarget(self, program_builder):
@@ -1320,42 +1394,23 @@ class UnitTestComponent(ProgramComponent):
         self._builders['coverage'] = cov
         return cov
 
-    def _CreateJenkinsTarget(self, flags, target, program_builder):
-        if self._builders['jenkins'] is not None:
-            return self._builders['jenkins']
-        # Get the component of the project.
-        project_component = self._component_graph.get(self._project_name)
-        # Create the alias.
-        jenkins = self._env.Alias(
-            '%s:jenkins' % self._project_name,
-            None,
-            "Build the environmnet's project for the Jenkins server."
-        )
-        # If the target 'jenkins' was invoked...
-        if flags['jenkins']:
-            # Get the builders from which the jenkins target will depend on.
-            sources = project_component.GetSourcesFiles()
-            includes = project_component.GetIncludeFiles()
-            source = sources + includes
-            astyle_check = project_component._CreateAstyleCheckTarget(source)
-            cppcheck = project_component._CreateStaticAnalysisTarget(source)
-            cccc = project_component._CreateCCCCTarget(source)
-            cloc = project_component._CreateClocTarget(source)
-            doc = project_component._CreateDocTarget()
-            valgrind = self._CreateValgrindTarget(program_builder)
-            coverage = self._CreateCoverageTarget(target, program_builder)
-            # Create dependencies.
-            self._env.Depends(jenkins, astyle_check)
-            self._env.Depends(jenkins, cppcheck)
-            self._env.Depends(jenkins, valgrind)
-            self._env.Depends(jenkins, coverage)
-            self._env.Depends(jenkins, cccc)
-            self._env.Depends(jenkins, cloc)
-            self._env.Depends(jenkins, doc)
-        self._builders['jenkins'] = jenkins
-        return jenkins
+    def _CreateTestTarget(self, target, program_builder):
+        run_test_builder = self._env.RunUnittest(target, program_builder)
+        # Check if the user want to run the tests anyway.
+        if self._env.GetOption('forcerun'):
+            self._env.AlwaysBuild(run_test_builder)
+        # Make the execution of test depends from files in 'ref' dir.
+        for refFile in utils.FindFiles(self._env, self._dir.Dir('ref')):
+            self._env.Depends(program_builder, refFile)
+        # Create the alias for 'project:test'.
+        name = '%s:test' % self._project_name
+        deps = [run_test_builder]
+        msg = "Run test for %s" % self._project_name
+        self._env.Alias(name, deps, msg)
+        return run_test_builder
 
-    def _CreateReadyToCommitTtarget(self, flags, run_test_target, program_builder):
+    def _CreateReadyToCommitTarget(self, run_test_target, program_builder):
+        flags = self._CheckForFlags()
         if self._builders['ready-to-commit'] is not None:
             return self._builders['ready-to-commit']
         # Get the component of the project.
