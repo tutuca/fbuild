@@ -1262,38 +1262,27 @@ class UnitTestComponent(ProgramComponent):
         passed_file_name = '%s.passed' % self._project_name
         run_test_target = os.path.join(self._dir.abspath, passed_file_name)
         # Check for the flags we need to set in the environment.
-        
+        flags = self._CheckForFlags()
         # Check for use 'mocko'.
         sources = []
         if self._env._USE_MOCKO:
             self._UseMocko(sources)
         # Create the builder that creates the test executable.
         program_builder = self._CreateProgramBuilder(target, sources)
-        # Create an instance of the RunUnittest() builder.
-        run_test_builder = self._env.RunUnittest(run_test_target, program_builder)
-        # Check if the user want to run the tests anyway.
-        if self._env.GetOption('forcerun'):
-            self._env.AlwaysBuild(run_test_builder)
-        # Make the execution of test depends from files in 'ref' dir.
-        for refFile in utils.FindFiles(self._env, self._dir.Dir('ref')):
-            self._env.Depends(program_builder, refFile)
-        # Create the alias for 'project:test'.
-        name = '%s:test' % self._project_name
-        deps = [run_test_builder]
-        msg = "Run test for %s" % self._project_name
-        self._env.Alias(name, deps, msg)
-        # Create alias for 'all:test'.
-        self._env.Alias('all:test', run_test_builder, "Run all tests")
         # Create alias for aliasGroups.
         self._CreateGroupAliases()
         # Create targets.
-        self._CreateValgrindTarget(program_builder)
+        run_valgrind_builder = self._CreateValgrindTarget(program_builder)
         self._CreateASanTarget(program_builder)
         self._CreateCoverageTarget(run_test_target, program_builder)
-        self._CreateReadyToCommitTarget(run_test_target, program_builder)
-        # Create jenkins output
         self._CreateJenkinsTarget(program_builder, target=run_test_target,)
+        self._CreateReadyToCommitTarget(run_test_target, program_builder)
+        run_test_builder = self._CreateTestTarget(run_test_target, program_builder)
         self._builders['install'] = run_test_builder
+        # Create alias for 'all:test'.
+        self._env.Alias('all:test', run_test_builder, "Run all tests")
+        # Create the alias for 'all:valgrind'
+        self._env.Alias('all:valgrind', run_valgrind_builder, 'Run valgrind in all the projects')
         # Return the builder that execute the test.
         return run_test_builder
 
@@ -1338,7 +1327,8 @@ class UnitTestComponent(ProgramComponent):
         project_deps.remove(self._project_name)
         for dep in project_deps:
             dep_component = self._component_graph.get(dep)
-            project_deps += dep_component._dependencies
+            if dep_component:
+                project_deps += dep_component._dependencies
         project_deps = utils.RemoveDuplicates(project_deps)
         self._env['PROJECT_DEPS'] = project_deps
 
@@ -1377,6 +1367,21 @@ class UnitTestComponent(ProgramComponent):
         self._env.AlwaysBuild(run_test_builder)
         self._builders['coverage'] = cov
         return cov
+
+    def _CreateTestTarget(self, target, program_builder):
+        run_test_builder = self._env.RunUnittest(target, program_builder)
+        # Check if the user want to run the tests anyway.
+        if self._env.GetOption('forcerun'):
+            self._env.AlwaysBuild(run_test_builder)
+        # Make the execution of test depends from files in 'ref' dir.
+        for refFile in utils.FindFiles(self._env, self._dir.Dir('ref')):
+            self._env.Depends(program_builder, refFile)
+        # Create the alias for 'project:test'.
+        name = '%s:test' % self._project_name
+        deps = [run_test_builder]
+        msg = "Run test for %s" % self._project_name
+        self._env.Alias(name, deps, msg)
+        return run_test_builder
 
     def _CreateReadyToCommitTarget(self, run_test_target, program_builder):
         flags = self._CheckForFlags()

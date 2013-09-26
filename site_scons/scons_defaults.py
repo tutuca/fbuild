@@ -105,7 +105,7 @@ def init(env, vars):
             PathVariable.PathIsDirCreate)
         )
     vars.Update(env)
-    if not env.GetOption('verbose'):
+    if env.GetOption('verbose'):
         env.cdebug('Install information:')
         env.cdebug('    bin dir    : ' + env['INSTALL_BIN_DIR'])
         env.cdebug('    lib dir    : ' + env['INSTALL_LIB_DIR'])
