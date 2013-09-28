@@ -48,11 +48,17 @@ def init(env, vars):
     # Get the scons root path, this can be tricky because
     # scons can be ran with the -v option
     INSTALL_DIR = os.path.join(env.Dir('#').abspath, "install")
+    
+    if env.GetOption('buildtests') or env.GetOption('testsuite'):
+        PROJECTS_DIR = env.Dir('#/buildtests').abspath
+    else:
+        PROJECTS_DIR = env.Dir('#/projects').abspath    
+
     vars.AddVariables(
         PathVariable(
             'WS_DIR',
             'workspace directory',
-            env.Dir('#/projects').abspath,
+            PROJECTS_DIR,
             PathVariable.PathIsDirCreate)
         )
     vars.AddVariables(

@@ -46,3 +46,18 @@ class PdfLaTeXComponent(Component):
             ' for ' + self.name.split(':')[0])
         for alias in self._alias_groups:
             self._env.Alias(alias, pdf, "Build group " + alias)
+
+class DocComponent(Component):
+    def __init__(self, componentGraph, env, name, compDir, doxyfile, aliasGroups):
+        super(DocComponent).__init__(componentGraph, env, name, compDir, [], aliasGroups)
+        self.doxyfile = doxyfile
+    
+    def Process(self):
+        Component.Process(self)
+        targetDocDir = self.env.Dir(self.env['INSTALL_DOC_DIR']).Dir(self.name)
+        doc = self.env.RunDoxygen(targetDocDir, self.doxyfile)
+        self.env.Clean(doc, targetDocDir)
+        self.env.Alias(self.name, doc, 'Generate documentation for ' + self.name)
+
+        for alias in self.aliasGroups:
+            self.env.Alias(alias, doc, "Build group " + alias)

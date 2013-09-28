@@ -1,7 +1,7 @@
 # fudepan-build: The build system for FuDePAN projects 
 #
 # Copyright (C) 2011-2012 Esteban Papp, Hugo Arregui,
-#               2013 Gonzalo Bonigo, Gustavo Ojeda, Matías Iturburu,
+#               2013 Gonzalo Bonigo, Gustavo Ojeda, Matias Iturburu,
 #                    Leandro Moreno, FuDePAN
 # 
 # This file is part of the fudepan-build build system.
@@ -26,10 +26,10 @@ env = Environment()
 
 hasQt = extension_qt.HasQt(env)
 
+env['QT_PRESENT'] = hasQt
+
 if hasQt:
     env = Environment(tools=['default', 'qt4'])
-
-env['QT_PRESENT'] = hasQt
 
 Export('env')
 
@@ -84,13 +84,4 @@ import fudepan
 fudepan.SetDefines(env)
 
 ## Walk over the tree finding components
-dependencygraph.WalkDirsForSconscripts(env, topdir = env['WS_DIR'],
-                                       ignore = [
-                                                 #'gmock/scons',
-                                                 #'test_doc',
-                                                 #'test_program',
-                                                 #'test_qt',
-                                                 #'test_shared',
-                                                 #'test_static',
-                                                 #'test_ut'
-                                                ])
+dependencygraph.WalkDirsForSconscripts(env)

@@ -181,7 +181,7 @@ def CreateDoc(env, name, doxyfile=None, aliasGroups = []):
     docName = name + ':doc'
     if doxyfile == None:
         doxyfile = os.path.abspath(env['DEFAULT_DOXYFILE'])
-    return componentGraph.add(DocComponent(componentGraph,
+    return componentGraph.Add(DocComponent(componentGraph,
                                     env,
                                     docName,
                                     env.Dir('.'),
@@ -201,11 +201,11 @@ def CreateDoc(env, name, doxyfile=None, aliasGroups = []):
                                         #aliasGroups))
 
 
-def WalkDirsForSconscripts(env, topdir, ignore=None):
+def WalkDirsForSconscripts(env, topdir='', ignore=None):
     global componentGraph
     global downloadedDependencies
-
     ignore = ignore if ignore is not None else []
+    topdir = topdir if topdir else env['WS_DIR']
 
     # Step 1: load all the components in the dependency graph
     # if we find a download dependency, we download it and re-process
