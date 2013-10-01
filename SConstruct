@@ -27,7 +27,7 @@ env = Environment()
 hasQt = extension_qt.HasQt(env)
 
 if hasQt:
-    env = Environment(tools=['default', 'qt4'])
+    env = Environment(tools=['default', 'qt4', 'qt5'])
 
 env['QT_PRESENT'] = hasQt
 
