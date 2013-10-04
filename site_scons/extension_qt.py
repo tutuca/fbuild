@@ -32,8 +32,7 @@ def HasQt(env):
     hasQt = False
     moc4 = env.WhereIs('moc-qt4') or env.WhereIs('moc4')
     if moc4:
-        qtdir = os.path.split(os.path.split(moc4)[0])[0]
-        os.environ['QT4DIR'] = qtdir
+        os.environ['QT4DIR'] = '/usr/share/qt4/'
         hasQt = True
     else:
         moc = env.WhereIs('moc')
@@ -43,14 +42,21 @@ def HasQt(env):
             hasQt = True
     return hasQt
 
+def detectPkgconfigPath():
+    pkgpath = '/usr/lib/x86_64-linux-gnu/pkgconfig'
+    if os.path.exists(os.path.join(pkgpath,'QtCore.pc')):
+        return pkgpath
 
+    return ""
+        
 def init(env):
     # This is a base component, it will include the qt base include path
-    qtdir = os.environ.get('QT4DIR') or os.environ.get('QTDIR')
     QT_INCLUDE_ROOT = os.getenv(
         "QT_INCLUDE_ROOT",
-        os.path.join(qtdir, 'include', 'qt4')
+        '/usr/include/qt4/'
     )
+    env['QT4_GOBBLECOMMENTS']=1
+    env['ENV']['PKG_CONFIG_PATH'] = detectPkgconfigPath()
     env.CreateExternalComponent(
         'QtInc',
         [env.Dir(os.getenv("QT_INCLUDE", QT_INCLUDE_ROOT))],
@@ -58,13 +64,15 @@ def init(env):
         [],
         False
     )
+
     validModules = [
         'QtCore',
         'QtGui',
         'QtOpenGL',
         'Qt3Support',
-        'QtAssistant',  # deprecated
-        'QtAssistantClient',
+        #'QtAssistant',  # deprecated
+        #'QtMultimedia', # deprecated
+        #'QtAssistantClient', # deprecated
         'QtScript',
         'QtDBus',
         'QtSql',
@@ -81,7 +89,6 @@ def init(env):
         'QtWebKit',
         'QtHelp',
         'QtScriptTools',
-        'QtMultimedia',
     ]
     for module in validModules:
         env.CreateExternalComponent(
@@ -91,3 +98,4 @@ def init(env):
             ['QtInc'],
             True
         )
+    env.EnableQt4Modules(validModules)
