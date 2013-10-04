@@ -60,7 +60,7 @@ def FindFiles(env, fromDir, filters=None):
 
 #
 # TODO: Rewrite this method!!!!
-# refactor_trials_count = 2
+# refactor_trials_count = 3
 # NOTE: If you do try to refactor this method please update the counter above.
 def RecursiveInstall(env, sourceDir, sourcesRel, targetName, fileFilter=None):
     fileFilter = fileFilter if fileFilter is not None else ['*.*']
@@ -68,7 +68,23 @@ def RecursiveInstall(env, sourceDir, sourcesRel, targetName, fileFilter=None):
     for s in sourcesRel:
         nodes.extend(FindFiles(env, s, fileFilter))
     l = len(sourceDir.abspath) + 1
-    relnodes = [n.abspath[l:] for n in nodes]
+    relnodes = []
+    for n in nodes:
+        # Add the path if the sourceDir is in the source path.
+        if sourceDir.abspath in n.abspath:
+            relnodes.append(n.abspath[l:])
+        # If not, go back one path in the sourceDir and check if now
+        # is into the source path.
+        else:
+            # Take the path after the abspath.
+            path = sourceDir.abspath.split(os.path.abspath(''))[1]
+            for i in range(1, path.count('/')):
+                # Remove the last directory in the path.
+                path = os.path.dirname(path)
+                # Check if the path was added to relnodes before.
+                if path in n.abspath and not relnodes[-1] in n.abspath:
+                    # remove the first '/'
+                    relnodes.append(n.abspath.split(path)[1][1:])
     targetHeaderDir = env.Dir(env['INSTALL_HEADERS_DIR']).Dir(targetName).abspath
     targets = []
     sources = []
