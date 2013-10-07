@@ -1053,9 +1053,9 @@ class ObjectComponent(SourcedComponent):
         object_builder = self._env.Object(
             target,
             source,
-            CPPPATH=include_paths,
-            LIBPATH=libpaths,
-            LIBS=libs
+            CPPPATH=self._env.get('CPPPATH',[])+include_paths,
+            LIBPATH=self._env.get('LIBPATH', [])+libpaths,
+            LIBS=self._env.get('LIBS', [])+libs
         )
         # Return the builder instance.
         return object_builder

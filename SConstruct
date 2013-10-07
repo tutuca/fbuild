@@ -19,17 +19,11 @@
 # You should have received a copy of the GNU General Public License
 # along with fudepan-build.  If not, see <http://www.gnu.org/licenses/>.
 
-import extension_qt
+#import extension_qt
 import SCons
 
-env = Environment()
-
-hasQt = extension_qt.HasQt(env)
-
-if hasQt:
-    env = Environment(tools=['default', 'qt4'])
-
-env['QT_PRESENT'] = hasQt
+env = Environment(tools=['default', 'qt4'])
+env['QT_PRESENT'] = True
 
 Export('env')
 
@@ -79,10 +73,6 @@ dependencygraph.init(env)
 # Add OS Components
 import os_specifics_linux
 os_specifics_linux.init(env)
-
-# Add Qt
-if hasQt:
-    extension_qt.init(env)
 
 import fudepan
 fudepan.SetDefines(env)
