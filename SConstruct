@@ -19,7 +19,6 @@
 # You should have received a copy of the GNU General Public License
 # along with fudepan-build.  If not, see <http://www.gnu.org/licenses/>.
 
-#import extension_qt
 import SCons
 
 env = Environment(tools=['default', 'qt4'])
