@@ -68,31 +68,40 @@ def RecursiveInstall(env, sourceDir, sourcesRel, targetName, fileFilter=None):
     for s in sourcesRel:
         nodes.extend(FindFiles(env, s, fileFilter))
     l = len(sourceDir.abspath) + 1
-    relnodes = []
+    relnodes_abspath = []
+    relnodes_shrtpath = []
+    srcnodes = []
     for n in nodes:
         # Add the path if the sourceDir is in the source path.
         if sourceDir.abspath in n.abspath:
-            relnodes.append(n.abspath[l:])
+            srcnodes.append(n.abspath[l:])
         # If not, go back one path in the sourceDir and check if now
         # is into the source path.
         else:
             # Take the path after the abspath.
             path = sourceDir.abspath.split(os.path.abspath(''))[1]
+            node_path = ''
             for i in range(1, path.count('/')):
                 # Remove the last directory in the path.
                 path = os.path.dirname(path)
                 # Check if the path was added to relnodes before.
-                if path in n.abspath and not relnodes[-1] in n.abspath:
+                if path in n.abspath and not node_path in relnodes_shrtpath:
                     # remove the first '/'
-                    relnodes.append(n.abspath.split(path)[1][1:])
+                    node_path = n.abspath.split(path)[1][1:]
+                    relnodes_shrtpath.append(node_path)
+                    relnodes_abspath.append(n.abspath)
     targetHeaderDir = env.Dir(env['INSTALL_HEADERS_DIR']).Dir(targetName).abspath
     targets = []
     sources = []
-    for n in relnodes:
+    # if targetName == 'ucpapp': import ipdb; ipdb.set_trace()
+    for n in srcnodes:
         t = env.File(os.path.join(targetHeaderDir, n))
         s = sourceDir.File(n)
         targets.append(t)
         sources.append(s)
+    for i in range(0, len(relnodes_shrtpath)):
+        t = env.File(os.path.join(targetHeaderDir, relnodes_shrtpath[i]))
+        s = relnodes_abspath[i]
     iAs = env.InstallAs(targets, sources)
     return iAs
 
