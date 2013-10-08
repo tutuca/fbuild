@@ -4,7 +4,6 @@ install/
 conf/projects.local
 projects/
 bin/local.sh
-buildtests/
 
 .cproject
 .project

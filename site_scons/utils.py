@@ -67,43 +67,54 @@ def RecursiveInstall(env, sourceDir, sourcesRel, targetName, fileFilter=None):
     nodes = []
     for s in sourcesRel:
         nodes.extend(FindFiles(env, s, fileFilter))
-    l = len(sourceDir.abspath) + 1
-    relnodes_abspath = []
-    relnodes_shrtpath = []
+    relnodes = []
     srcnodes = []
-    for n in nodes:
-        # Add the path if the sourceDir is in the source path.
-        if sourceDir.abspath in n.abspath:
-            srcnodes.append(n.abspath[l:])
-        # If not, go back one path in the sourceDir and check if now
-        # is into the source path.
-        else:
-            # Take the path after the abspath.
-            path = sourceDir.abspath.split(os.path.abspath(''))[1]
-            node_path = ''
-            for i in range(1, path.count('/')):
-                # Remove the last directory in the path.
-                path = os.path.dirname(path)
-                # Check if the path was added to relnodes before.
-                if path in n.abspath and not node_path in relnodes_shrtpath:
-                    # remove the first '/'
-                    node_path = n.abspath.split(path)[1][1:]
-                    relnodes_shrtpath.append(node_path)
-                    relnodes_abspath.append(n.abspath)
+    srcnodes, relnodes = pathParser(nodes, sourceDir)
     targetHeaderDir = env.Dir(env['INSTALL_HEADERS_DIR']).Dir(targetName).abspath
     targets = []
     sources = []
-    # if targetName == 'ucpapp': import ipdb; ipdb.set_trace()
+    # Add the sources in the "src/" path
     for n in srcnodes:
         t = env.File(os.path.join(targetHeaderDir, n))
         s = sourceDir.File(n)
         targets.append(t)
         sources.append(s)
-    for i in range(0, len(relnodes_shrtpath)):
-        t = env.File(os.path.join(targetHeaderDir, relnodes_shrtpath[i]))
-        s = relnodes_abspath[i]
+    # Add the sources that are not into "src/" path.
+    for src, hdr in relnodes:
+        t = env.File(os.path.join(targetHeaderDir, hdr))
+        s = src
+        targets.append(t)
+        sources.append(s)
     iAs = env.InstallAs(targets, sources)
     return iAs
+
+
+def pathParser(nodes, sourceDir):
+    """
+    This method separate the source that will go to the source directory
+    and the sources that will not go there.
+    """
+    forsrc = []
+    others = []
+    l = len(sourceDir.abspath) + 1
+    for n in nodes:
+        # Add the path if the sourceDir is in the source path.
+        if sourceDir.abspath in n.abspath:
+            forsrc.append(n.abspath[l:])
+        else:
+            # Take the path after the abspath.
+            path = sourceDir.abspath.split(os.getcwd())[1]
+            node_path = ''
+            # Go back one path and check if it is into the abspath.
+            for i in range(1, path.count('/')):
+                # Remove the last directory in the path.
+                path = os.path.dirname(path)
+                # Check if the path was added to relnodes before.
+                if path in n.abspath and not (n.abspath, node_path) in others:
+                    # remove the first '/'
+                    node_path = n.abspath.split("%s/" % path)[1]
+                    others.append((n.abspath, node_path))
+    return forsrc, others
 
 
 def RemoveDuplicates(seq, idfun=None): 
