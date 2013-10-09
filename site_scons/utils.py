@@ -74,17 +74,15 @@ def RecursiveInstall(env, sourceDir, sourcesRel, targetName, fileFilter=None):
     targets = []
     sources = []
     # Add the sources in the "src/" path
-    for n in srcnodes:
-        t = env.File(os.path.join(targetHeaderDir, n))
-        s = sourceDir.File(n)
+    for src, hdr in srcnodes:
+        t = env.File(os.path.join(targetHeaderDir, hdr))
         targets.append(t)
-        sources.append(s)
+        sources.append(src)
     # Add the sources that are not into "src/" path.
     for src, hdr in relnodes:
         t = env.File(os.path.join(targetHeaderDir, hdr))
-        s = src
         targets.append(t)
-        sources.append(s)
+        sources.append(src)
     iAs = env.InstallAs(targets, sources)
     return iAs
 
@@ -96,14 +94,15 @@ def pathParser(nodes, sourceDir):
     """
     forsrc = []
     others = []
-    l = len(sourceDir.abspath) + 1
+    source_path = sourceDir.abspath
+    l = len(source_path) + 1
     for n in nodes:
         # Add the path if the sourceDir is in the source path.
-        if sourceDir.abspath in n.abspath:
-            forsrc.append(n.abspath[l:])
+        if source_path in n.abspath:
+            forsrc.append((n.abspath, n.abspath.replace('%s/' % source_path, '')))
         else:
             # Take the path after the abspath.
-            path = sourceDir.abspath.split(os.getcwd())[1]
+            path = source_path.replace(os.getcwd(), '')
             node_path = ''
             # Go back one path and check if it is into the abspath.
             for i in range(1, path.count('/')):
@@ -111,7 +110,7 @@ def pathParser(nodes, sourceDir):
                 path = os.path.dirname(path)
                 # Check if the path was added to relnodes before.
                 if path in n.abspath and not (n.abspath, node_path) in others:
-                    # remove the first '/'
+                    # Take the path after the in common path.
                     node_path = n.abspath.split("%s/" % path)[1]
                     others.append((n.abspath, node_path))
     return forsrc, others
