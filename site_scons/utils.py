@@ -95,7 +95,6 @@ def pathParser(nodes, sourceDir):
     forsrc = []
     others = []
     source_path = sourceDir.abspath
-    l = len(source_path) + 1
     for n in nodes:
         # Add the path if the sourceDir is in the source path.
         if source_path in n.abspath:
