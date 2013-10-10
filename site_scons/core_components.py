@@ -1497,8 +1497,11 @@ class NameCheck():
             # Take the project and the action from the target.
             name, action = target[1].split(':')
         except IndexError as e:
-            self._project_name = None
-            self._action = None
+            name = None
+            action = None
+        except ValueError as e:
+            name = target[1]
+            action = None
         self._project_name = name
         self._action = action
 

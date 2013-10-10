@@ -8,7 +8,14 @@ TypeDeclaration,1
 StructDeclaration,1
 UnionDeclaration,1
 UnionValueDeclaration,1
-MethodDeclaration,2
-AttributeDeclaration,4
-NamespaceDeclaration,1
+PublicMethodDeclaration,2
+PrivateMethodDeclaration,2
+ProtectedMethodDeclaration,2
+PublicAttributeDeclaration,4
+PrivateAttributeDeclaration,4
+ProtectedAttributeDeclaration,4
+NamespaceDeclaration,0,^NS\u\l.*?,should start with NS followed by an uppercase letter and lowercase afterwards
+NamespaceDeclaration,0,^NS\u\l[\l\u]*?$,should not be written using underscore or digit
+NamespaceDeclaration,0,.*?\l+$,should end with lowercase
 GlobalConstDeclaration,3
+TemplateTypeParameterDeclaration,1
