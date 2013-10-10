@@ -25,12 +25,30 @@
 
 TMP_DIR="_tmp_downloads/"
 function check_build_essential {
-    # TODO: Check if the distro has installed:
-    #                   -> gcc
-    #                   -> g++
-    #                   -> libc6-dev
-    #                   -> make
-    #                   -> dpkg-dev
+    if [ ! "$(pacman -Q -s base-devel | grep -e 'The GNU Compiler Collection - C and C++ frontends')" ]; then
+        echo -e "\e[0;33m[warn] A problem with 'base-devel' had been found.\e[0m"
+        echo "info: 'pacman -S base-devel' should solve this, do you want"
+        echo "       me to do it? (your password could be required)"
+        
+        REPLY="Null"
+        
+        while [[ "$REPLY" != "y" && "$REPLY" != "n" && "$REPLY" != "" ]]; do
+            read -p "Install ([y]/n)?" REPLY
+            if [[ "$REPLY" != "y" && "$REPLY" != "n" && "$REPLY" != "" ]]; then
+                echo -e "\e[0;31mID-10-T Error: please insert 'y' or 'n' or nothing. \e[0m"
+            fi
+        done
+        if [[ "$REPLY" = "y" || "$REPLY" = "" ]]; then
+            pacman -S base-devel
+            if [ "$?" -ne "0" ]; then
+                echo -e "\e[0;31m[error] 'base-devel' it is required and could not be installed, exiting\e[0m"
+                return 1
+            fi
+        else
+            echo -e "\e[0;31m[error] 'base-devel' required, exiting\e[0m"
+            return 1
+        fi
+    fi
     return 0
 }
 

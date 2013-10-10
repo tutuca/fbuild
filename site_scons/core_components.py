@@ -1452,7 +1452,8 @@ class UnitTestComponent(ProgramComponent):
         src = [mocko_list, mocko_exe]  # NOTE: Respect the order!
         mocko_builder = self._env.RunMocko(targets, src)
         # Add mocko_bind.cpp to the sources.
-        sources.append(mocko_bind_cpp)
+        if not mocko_bind_cpp in self._sources:
+            sources.append(mocko_bind_cpp)
         # Add flags for valgrind.
         self._env.Append(VALGRIND_OPTIONS='--vgdb=yes')
         self._env.Append(VALGRIND_OPTIONS='--vgdb-error=0')

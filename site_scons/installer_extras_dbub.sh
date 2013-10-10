@@ -34,12 +34,12 @@ function check_build_essential {
         REPLY="extremelyLongStringUnlikelyToBeUsed"
         
         while [[ "$REPLY" != "y" && "$REPLY" != "n" && "$REPLY" != "" ]]; do
-            read -p "Install (y/[n])?" REPLY
+            read -p "Install ([y]/n)?" REPLY
             if [[ "$REPLY" != "y" && "$REPLY" != "n" && "$REPLY" != "" ]]; then
                 echo -e "\e[0;31mID-10-T Error: please insert 'y' or 'n' or nothing. \e[0m"
             fi
         done
-        if [ "$REPLY" = "y" ]; then
+        if [[ "$REPLY" = "y" || "$REPLY" = "" ]]; then
             sudo apt-get install build-essential
             if [ "$?" -ne "0" ]; then
                 echo -e "\e[0;31m[error] 'build-essential' it is required and could not be installed, exiting\e[0m"
@@ -59,17 +59,17 @@ function check_astyle_2_03 {
     ASTYLE_PATH_INSTALL="astyle/build/gcc"
     
     if [[ ! "$(which astyle)" || "$(echo $(astyle -V 2>&1 | cut -f4 -d' ') '< 2.03' | bc -l)" != 0 ]]; then
-        echo -e "\e[0;33m[Warning] AStyle version should be at least 2.03\e[0m"
+        echo -e "\e[0;33m[warn] AStyle version should be at least 2.03\e[0m"
         echo "info: Do you want me to install it? (your password could be required)"
             
         REPLY="extremelyLongStringUnlikelyToBeUsed"
         while [[ "$REPLY" != "y" && "$REPLY" != "n" && "$REPLY" != "" ]]; do
-            read -p "Install (y/[n])?" REPLY
+            read -p "Install ([y]/n)?" REPLY
             if [[ "$REPLY" != "y" && "$REPLY" != "n" && "$REPLY" != "" ]]; then
                 echo -e "\e[0;31mID-10-T Error: please insert 'y' or 'n' or nothing. \e[0m"
             fi
         done
-        if [ "$REPLY" = "y" ]; then
+        if [[ "$REPLY" = "y" || "$REPLY" = "" ]]; then
             wget -O $ASTYLE_TAR $ASTYLE_URL
             if [ "$?" -ne "0" ]; then
                 echo -e "\e[0;31m[error] 'astyle 2.03' could not be downloaded\e[0m"
