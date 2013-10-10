@@ -30,7 +30,7 @@ function check_build_essential {
         echo "info: 'pacman -S base-devel' should solve this, do you want"
         echo "       me to do it? (your password could be required)"
         
-        REPLY="extremelyLongStringUnlikelyToBeUsed"
+        REPLY="Null"
         
         while [[ "$REPLY" != "y" && "$REPLY" != "n" && "$REPLY" != "" ]]; do
             read -p "Install ([y]/n)?" REPLY
