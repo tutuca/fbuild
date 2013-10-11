@@ -20,7 +20,7 @@
 # along with fudepan-build.  If not, see <http://www.gnu.org/licenses/>.
 
 
-"""
+""".
     The qt settings and modules loading
 """
 
@@ -30,9 +30,7 @@ import os
 
 def HasQt(env):
     hasQt = False
-    import ipdb; ipdb.set_trace()
     moc4 = env.WhereIs('moc-qt4') or env.WhereIs('moc4')
-    moc5 = env.WhereIs('moc-qt5') or env.WhereIs('moc5')
     if moc4:
         qtdir = os.path.split(os.path.split(moc4)[0])[0]
         os.environ['QT4DIR'] = qtdir
@@ -49,7 +47,6 @@ def HasQt(env):
 def init(env):
     # This is a base component, it will include the qt base include path
     qtdir = os.environ.get('QT4DIR') or os.environ.get('QTDIR')
-    print env['QTDIR']
     QT_INCLUDE_ROOT = os.getenv(
         "QT_INCLUDE_ROOT",
         os.path.join(qtdir, 'include', 'qt4')
