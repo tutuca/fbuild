@@ -28,6 +28,9 @@
 import os
 import abc
 import fnmatch
+import subprocess
+import sys
+import re
 
 from SCons import Node
 from re import sub
@@ -250,6 +253,8 @@ class Component(object):
         self._CreateStaticAnalysisTarget(self._sources)
         self._CreateDocTarget()
         self._CreateInfoTarget(self._sources)
+        self._CreateNameCheckTarget(self._sources)
+
 
     def _GetObjectsFiles(self, object_files, stack):
         """
@@ -720,6 +725,27 @@ class HeaderOnlyComponent(Component):
         # Return the builder instance.
         return info_builder
 
+    def _CreateNameCheckTarget(self, sources):
+        if self._env.GetOption('namecheck'):
+            # Set paths to the plug-in and the configuration file.
+            namecheck = os.path.join(os.getcwd(), "install", "libs", "libnamecheck.so")
+            namecheck_conf = os.path.join(os.getcwd(), "conf", "namecheck-conf.csv")
+            if os.path.exists(namecheck) and os.path.exists(namecheck_conf):
+                # Add the flags to the compiler if the plug-in is present.
+                plugin = '-fplugin=%s' % namecheck
+                conf = '-fplugin-arg-libnamecheck-path=%s' % namecheck_conf
+                self._env.Append(
+                    CXXFLAGS=[plugin, conf], CFLAGS=[plugin, conf])
+            else:
+                self._env.cerror(
+                    'Please check if you have isntalled Namecheck and the configuration file.')
+            # Change the SPAWN of SCons
+            name_check = NameCheck(self._env)
+            self._env['SPAWN'] = name_check.namecheck_spawn
+
+        return 0
+
+
     def _CheckForFlags(self):
         # Get the component of the project.
         try :
@@ -800,7 +826,7 @@ class HeaderOnlyComponent(Component):
             self._env.Append(CXXFLAGS=flags, CFLAGS=flags, LINKFLAGS=linker_flags)
         return result
 
-    def _CreateJenkinsTarget(self, program_builder, target=None, ):
+    def _CreateJenkinsTarget(self, program_builder, target=None):
         flags = self._CheckForFlags()
         if self._builders['jenkins'] is not None:
             return self._builders['jenkins']
@@ -1273,6 +1299,7 @@ class UnitTestComponent(ProgramComponent):
         # Create alias for aliasGroups.
         self._CreateGroupAliases()
         # Create targets.
+        self._CreateNameCheckTarget(sources)
         run_valgrind_builder = self._CreateValgrindTarget(program_builder)
         self._CreateASanTarget(program_builder)
         self._CreateCoverageTarget(run_test_target, program_builder)
@@ -1458,3 +1485,64 @@ class UnitTestComponent(ProgramComponent):
         self._env.Append(VALGRIND_OPTIONS='--vgdb=yes')
         self._env.Append(VALGRIND_OPTIONS='--vgdb-error=0')
         return mocko_builder
+
+class NameCheck():
+
+    """
+    This class is used to parse the output from namecheck.
+    """
+
+    def __init__(self, env):
+        target = sys.argv
+        self._env = env
+        try:
+            # Take the project and the action from the target.
+            name, action = target[1].split(':')
+        except IndexError as e:
+            name = None
+            action = None
+        except ValueError as e:
+            name = target[1]
+            action = None
+        self._project_name = name
+        self._action = action
+
+    def namecheck_spawn(self, sh, escape, cmd, args, env):
+        # Check if jenkins was executed.
+        report_file = self.IsForJenkins()
+        write_in_report = False
+        if report_file:
+            report = open(report_file, 'a+')
+            write_in_report = True
+        # Execute the command.
+        p = subprocess.Popen(
+            ' '.join(args),
+            stderr=subprocess.PIPE,
+            shell=True,
+            universal_newlines=True)
+        # Take the stderr File
+        err = p.stderr
+        reg = './%s/.' % self._project_name
+        for line in err:
+            # Check if the project name is into the path of the warning.
+            is_there = re.search(reg, line)
+            if is_there:
+                self._env.Cprint('%s' % line.strip(), 'end')
+            # Write the line into a file.
+            if is_there and write_in_report:
+                report.write(line)
+        if write_in_report:
+            report.close()
+        return p.wait()
+
+    def IsForJenkins(self):
+        report_file = None
+        if self._action == 'jenkins':
+            path = os.path.join(os.getcwd(), "install", "reports", "namecheck")
+            if not os.path.exists(path):
+                os.mkdir(path)
+            project_path = os.path.join(path, "%s" % self._project_name)
+            if not os.path.exists(project_path):
+                os.mkdir(project_path)
+            report_file = os.path.join(project_path, '%s' % 'namecheck-report.txt')
+        return report_file

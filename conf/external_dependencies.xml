@@ -124,6 +124,12 @@
         <installer distro="ARCH" target="boost" manager="PACKER"/>
 	      <install_checker>stat -f /usr/lib/gcc/x86_64-linux-gnu/4.7/plugin/include/gcc-plugin.h</install_checker>
     </component>
+
+    <component name="gettext" type="HLIB">
+       <installer distro="UBUNTU" target="gettext" manager="APT-GET"/>
+       <installer distro="ARCH" target="boost" manager="PACKER"/>
+      <install_checker>stat -f /usr/lib/gettext/project-id</install_checker>
+    </component>
   
     <component name="gettext" type="HLIB">
         <installer distro="UBUNTU" target="gettext" manager="APT-GET"/>
