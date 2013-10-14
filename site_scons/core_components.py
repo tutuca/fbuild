@@ -1053,9 +1053,9 @@ class ObjectComponent(SourcedComponent):
         object_builder = self._env.Object(
             target,
             source,
-            CPPPATH=self._env.get('CPPPATH',[])+include_paths,
-            LIBPATH=self._env.get('LIBPATH', [])+libpaths,
-            LIBS=self._env.get('LIBS', [])+libs
+            CPPPATH=include_paths+self._env.get('CPPPATH',[]),
+            LIBPATH=libpaths+self._env.get('LIBPATH', []),
+            LIBS=libs+self._env.get('LIBS', [])
         )
         # Return the builder instance.
         return object_builder
@@ -1107,7 +1107,7 @@ class StaticLibraryComponent(ObjectComponent):
         slib_builder = self._env.StaticLibrary(
             target,
             self.GetObjectsFiles(),
-            CPPPATH=self._env.get('CPPPATH', [])+includes
+            CPPPATH=includes+self._env.get('CPPPATH', [])
 
         )
         # Create the all:buil alias.
@@ -1161,9 +1161,9 @@ class DynamicLibraryComponent(ObjectComponent):
         dlib_builder = self._env.SharedLibrary(
             target,
             self.GetSourcesFiles(),
-            CPPPATH=self._env.get('CPPPATH',[])+includes,
-            LIBPATH=self._env.get('LIBPATH', [])+libpaths,
-            LIBS=self._env.get('LIBS', [])+libs
+            CPPPATH=includes+self._env.get('CPPPATH',[]),
+            LIBPATH=libpaths+self._env.get('LIBPATH', []),
+            LIBS=libs+self._env.get('LIBS', [])
         )
         # Create the all:build alias.
         self._env.Alias('all:build', dlib_builder, "Build all targets")
@@ -1222,9 +1222,9 @@ class ProgramComponent(ObjectComponent):
         program_builder = self._env.Program(
             target,
             sources,
-            CPPPATH=self._env.get('CPPPATH',[])+includes,
-            LIBPATH=self._env.get('LIBPATH', [])+libpaths,
-            LIBS=self._env.get('LIBS', [])+libs
+            CPPPATH=includes+self._env.get('CPPPATH',[]),
+            LIBPATH=libpaths+self._env.get('LIBPATH', []),
+            LIBS=libs+self._env.get('LIBS', [])
         )
         # Craete the all:build alias.
         self._env.Alias('all:build', program_builder, "Build all targets")
