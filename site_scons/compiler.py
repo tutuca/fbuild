@@ -24,7 +24,9 @@
 
 
 import platform
-
+import os
+import sys
+import subprocess
 from SCons.Script import AddOption
 
 
@@ -38,7 +40,6 @@ def init(env):
     (arch, binType) = platform.architecture()
     if binType == 'ELF':
         LinuxOptions(env)
-
 
 def LinuxOptions(env):
     AddOption('--effective',
