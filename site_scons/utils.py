@@ -60,25 +60,59 @@ def FindFiles(env, fromDir, filters=None):
 
 #
 # TODO: Rewrite this method!!!!
-# refactor_trials_count = 2
+# refactor_trials_count = 3
 # NOTE: If you do try to refactor this method please update the counter above.
 def RecursiveInstall(env, sourceDir, sourcesRel, targetName, fileFilter=None):
     fileFilter = fileFilter if fileFilter is not None else ['*.*']
     nodes = []
     for s in sourcesRel:
         nodes.extend(FindFiles(env, s, fileFilter))
-    l = len(sourceDir.abspath) + 1
-    relnodes = [n.abspath[l:] for n in nodes]
+    relnodes = []
+    srcnodes = []
+    srcnodes, relnodes = pathParser(nodes, sourceDir)
     targetHeaderDir = env.Dir(env['INSTALL_HEADERS_DIR']).Dir(targetName).abspath
     targets = []
     sources = []
-    for n in relnodes:
-        t = env.File(os.path.join(targetHeaderDir, n))
-        s = sourceDir.File(n)
+    # Add the sources in the "src/" path
+    for src, hdr in srcnodes:
+        t = env.File(os.path.join(targetHeaderDir, hdr))
         targets.append(t)
-        sources.append(s)
+        sources.append(src)
+    # Add the sources that are not into "src/" path.
+    for src, hdr in relnodes:
+        t = env.File(os.path.join(targetHeaderDir, hdr))
+        targets.append(t)
+        sources.append(src)
     iAs = env.InstallAs(targets, sources)
     return iAs
+
+
+def pathParser(nodes, sourceDir):
+    """
+    This method separate the source that will go to the source directory
+    and the sources that will not go there.
+    """
+    forsrc = []
+    others = []
+    source_path = sourceDir.abspath
+    for n in nodes:
+        # Add the path if the sourceDir is in the source path.
+        if source_path in n.abspath:
+            forsrc.append((n.abspath, n.abspath.replace('%s/' % source_path, '')))
+        else:
+            # Take the path after the abspath.
+            path = source_path.replace(os.getcwd(), '')
+            node_path = ''
+            # Go back one path and check if it is into the abspath.
+            for i in range(1, path.count('/')):
+                # Remove the last directory in the path.
+                path = os.path.dirname(path)
+                # Check if the path was added to relnodes before.
+                if path in n.abspath and not (n.abspath, node_path) in others:
+                    # Take the path after the in common path.
+                    node_path = n.abspath.split("%s/" % path)[1]
+                    others.append((n.abspath, node_path))
+    return forsrc, others
 
 
 def RemoveDuplicates(seq, idfun=None): 

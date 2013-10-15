@@ -1074,7 +1074,7 @@ class ObjectComponent(SourcedComponent):
         # Get the list of libraries to link, and its directories.
         (libs, libpaths) = self.GetLibs()
         # Create the target for each file.
-        target = source.abspath.split('.')[0]
+        target = os.path.splitext(source.abspath)[0]
         # Create an instance of the Object() builder.
         object_builder = self._env.Object(
             target,

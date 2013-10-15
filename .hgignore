@@ -3,7 +3,6 @@ install/
 .sconsign.dblite
 conf/projects.local
 bin/local.sh
-buildtests/
 
 .cproject
 .project
