@@ -792,8 +792,8 @@ class HeaderOnlyComponent(Component):
         # Check if we need the coverage flag.
         if self._env.NEED_COVERAGE:
             flags = ['--coverage']
-            self._env.Append(CXXFLAGS=flags, CFLAGS=flags, LINKFLAGS=flags)
-            project_component._env.Append(CXXFLAGS=flags, CFLAGS=flags, LINKFLAGS=flags)
+            self._AppendComponentFlags(project_component, flags)
+            self._AppendComponentFlags(self, flags)
         # Check if we need the output of cloc in xml file.
         if self._env.NEED_CLOC_XML:
             project_component._env.Replace(CLOC_OUTPUT_FORMAT='xml')
@@ -822,9 +822,28 @@ class HeaderOnlyComponent(Component):
             # Set flags for address sanitizer
             flags = ['-fsanitize=address-full', '-fno-omit-frame-pointer', '-g0', '-w']
             linker_flags = ['-fsanitize=address']
-            project_component._env.Append(CXXFLAGS=flags, CFLAGS=flags, LINKFLAGS=linker_flags)
-            self._env.Append(CXXFLAGS=flags, CFLAGS=flags, LINKFLAGS=linker_flags)
+            self._AppendComponentFlags(project_component, flags, l_flags=linker_flags)
+            self._AppendComponentFlags(self, flags, l_flags=linker_flags)
         return result
+
+    def _ExtendFlagsList(self, to_check, flags_list):
+        result = flags_list.extend([x for x in to_check if not x in flags_list])
+        return result
+
+    def _AppendComponentFlags(self, component, flags, cxx_flags=None, c_flags=None, l_flags=None):
+        if not cxx_flags:
+            cxx_flags = flags
+        if not c_flags:
+            c_flags = flags
+        if not l_flags:
+            l_flags = flags
+        cxxflags = component._env.get('CXXFLAGS', '')
+        cxxflags = self._ExtendFlagsList(cxx_flags, cxxflags)
+        cflags = component._env.get('CFLAGS', '')
+        cflags = self._ExtendFlagsList(c_flags, cflags)
+        lflags = component._env.get('LINKFLAGS', '')
+        lflags = self._ExtendFlagsList(l_flags, lflags)
+        component._env.Append(CXXFLAGS=cxxflags, CFLAGS=cflags, LINKFLAGS=lflags)
 
     def _CreateJenkinsTarget(self, program_builder, target=None):
         flags = self._CheckForFlags()
