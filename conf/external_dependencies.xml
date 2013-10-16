@@ -1,6 +1,6 @@
 <external_dependencies>
     <!-- Format of a component:
-
+    
     <component
         name="ComponentName"
         type=["LIB" | "HLIB" | "PRO"]
@@ -9,7 +9,7 @@
         <installer
             distro=["UBUNTU" | "ARCH" | "*"]
             target=["PackageName" | "Url"]
-            manager=["HG" | "SVN" | "WGET"] |
+            manager=["HG" | "SVN" | "WGET"] | 
                     ["APT-GET" | "APTITUDE" | "PACKER" | "PACMAN" | "*"] />
         <install_checker> ShellScript </install_checker>
         <execute_after> ShellScript </execute_after>
@@ -17,7 +17,7 @@
 
     Explanation:
     ============
-
+    
     <component>
     name   -  It's the name the component will have in fbuild, i.e., the name you
               will use in the SConscripts when you specify the component as a
@@ -46,7 +46,7 @@
         The installer specifies how to install the component.
     distro  -  Specify under which distribution this installer must be run. fbuild
                supports tow distributions: "UBUNTU" and "ARCH".
-               If the installer can be executed in both distributions you can use
+               If the installer can be executed in both distributions you can use 
                "*" as value.
     target  -  This is the name of what needs to be download/install. Depending on
                the manager type, it can be a package's name or an url.
@@ -74,21 +74,21 @@
         last executed command to decide if the component is in the system, 0 means 
         TRUE (installed), anything else means FALSE (not installed).
                                                                          (Optional)
-
+    
     <execute_after>
-        In this tag you can put shell script that will be executed immediately
-        after the component is download/checkout. This was specially design for
+        In this tag you can put shell script that will be executed immediately 
+        after the component is download/checkout. This was specially design for 
         those components that after being download need to be unpack or compile.
                                                                          (Optional)
-
+    
     IMPORTANT:
         Please maintain alphabetical order based on name to ease maintenance -->
-
-
+        
+    
     <component name="bison" type="PRO">
-        <installer distro="*" target="bison" manager="*"/>
+        <installer distro="*" target="bison" manager="APT-GET"/>
     </component>
-
+    
     <component name="boost_thread" type="LIB">
         <installer distro="UBUNTU" target="libboost-thread-dev" manager="APT-GET"/>
         <installer distro="ARCH" target="boost" manager="PACKER"/>
@@ -103,29 +103,20 @@
         <installer distro="UBUNTU" target="libboost-system-dev" manager="APT-GET"/>
         <installer distro="ARCH" target="boost" manager="PACKER"/>
     </component>
-
-    <component name="dos2unix" type="PRO">
-        <installer distro="*" target="dos2unix" manager="*"/>
-    </component>
-
+    
     <component name="expat" type="LIB">
         <installer distro="UBUNTU" target="libexpat-dev" manager="APT-GET"/>
         <installer distro="ARCH" target="expat" manager="PACKER"/>
     </component>
-
+    
     <component name="flex" type="PRO">
-        <installer distro="*" target="flex" manager="*"/>
+        <installer distro="*" target="flex" manager="APT-GET"/>
     </component>
-
+  
     <component name="gcc_plugin" type="HLIB">
         <installer distro="UBUNTU" target="gcc-4.6-plugin-dev" manager="APT-GET"/>
         <installer distro="ARCH" target="boost" manager="PACKER"/>
-	<install_checker>stat -f /usr/lib/gcc/x86_64-linux-gnu/4.6/plugin/include/gcc-plugin.h</install_checker>
-    </component>
-
-    <component name="freetype" type="PRO">
-        <installer distro="UBUNTU" target="libfreetype6-dev" manager="APT-GET"/>
-        <install_checker>dpkg -s libfreetype6-dev</install_checker>
+	      <install_checker> stat -f /usr/lib/gcc/x86_64-linux-gnu/4.6/plugin/include/gcc-plugin.h</install_checker>
     </component>
 
     <component name="gcc_plugin_4.7" type="HLIB">
@@ -135,11 +126,11 @@
     </component>
 
     <component name="gettext" type="HLIB">
-       <installer distro="UBUNTU" target="gettext" manager="APT-GET"/>
-       <installer distro="ARCH" target="boost" manager="PACKER"/>
-      <install_checker>stat -f /usr/lib/gettext/project-id</install_checker>
+        <installer distro="UBUNTU" target="gettext" manager="APT-GET"/>
+        <installer distro="ARCH" target="boost" manager="PACKER"/>
+        <install_checker>stat -f /usr/lib/gettext/project-id</install_checker>
     </component>
-  
+
     <component name="gmock" type="LIB" deps="gtest,pthread">
         <installer
             distro="*"
@@ -152,14 +143,9 @@
             sudo cp -r {TMP_DIR}/gmock/include/gmock /usr/include/gmock
         </execute_after>
     </component>
-
+    
     <component name="gmock_main" type="LIB" deps="gmock"/>
-
-    <component name="gomp" type="LIB">
-        <installer distro="UBUNTU" target="libgomp" manager="APT-GET"/>
-        <installer distro="ARCH" target="libgomp" manager="PACKER"/>
-    </component>
-
+    
     <component name="gtest" type="LIB" deps="pthread">
         <installer
             distro="*"
@@ -172,34 +158,9 @@
             sudo cp -r {TMP_DIR}/gtest/include/gtest /usr/include/gtest
         </execute_after>
     </component>
-
+    
     <component name="gtest_main" type="LIB" deps="gtest"/>
-
-    <component name="jrtp" type="LIB">
-        <installer
-            distro="*"
-            target="https://200.69.202.173:5555/usvn/svn/UCP-Invap/trunk/libs/jrtplib-3.9.1"
-            manager="SVN"/>
-        <execute_after>
-            cd ./{TMP_DIR}/jrtp; cmake .; make -j4; sudo make install; make clean; sudo ldconfig
-        </execute_after>
-        <install_checker>stat -f /usr/local/lib/libjrtp.a</install_checker>
-    </component>
-
-    <component name="loog-ppl0" type="PRO">
-        <installer distro="UBUNTU" target="libcloog-ppl0" manager="APT-GET"/>
-        <install_checker>dpkg -s libcloog-ppl0</install_checker>
-    </component>
-
-    <component  name="maxima"  type="PRO">
-        <installer distro="*" target="maxima" manager="*"/>
-    </component>
-
-    <component name="ncurses" type="LIB">
-        <installer distro="UBUNTU" target="libncurses5-dev" manager="APT-GET"/>
-        <installer distro="ARCH" target="ncurses" manager="PACKER"/>
-    </component>
-
+    
     <component name="odeint" type="HLIB" check="boost/numeric/odeint.hpp"
                deps="boost_system,boost_thread">
         <installer
@@ -212,89 +173,7 @@
         </execute_after>
         <install_checker>stat -f /usr/include/boost/numeric/odeint.hpp</install_checker>
     </component>
-
-    <component name="png" type="PRO">
-        <installer distro="UBUNTU" target="libpng12-dev" manager="APT-GET"/>
-        <install_checker>dpkg -s libpng12-dev</install_checker>
-    </component>
-
-
-    <component name="protobuf" type="LIB">
-        <installer
-            distro="UBUNTU"
-            target="https://200.69.202.173:5555/usvn/svn/UCP-Invap/trunk/libs/protobuf-2.5.0"
-            manager="SVN"/>
-        <execute_after>
-            cd ./{TMP_DIR}/protobuf/; ./configure; make -j4; sudo make install
-            sudo ldconfig
-        </execute_after>
-        <install_checker>stat -f /usr/local/lib/libprotobuf.a</install_checker>
-    </component>
-
-    <component name="rsync" type="PRO">
-        <installer distro="*" target="rsync" manager="*"/>
-    </component>
-
-    <component name="SDL" type="LIB" deps="loog-ppl0,xext">
-        <installer
-            distro="*"
-            target="https://200.69.202.173:5555/usvn/svn/UCP-Invap/trunk/libs/SDL-1.2.15"
-            manager="SVN"/>
-        <execute_after>
-            cd ./{TMP_DIR}/SDL; ./configure --enable-audio=no CFLAGS="-O3 -march=corei7-avx -mtune=corei7-avx -floop-parallelize-all -fprefetch-loop-arrays"; make -j8; sudo make install
-            sudo ldconfig
-        </execute_after>
-        <install_checker>stat -f /usr/local/lib/libSDL.so</install_checker>
-    </component>
-
-    <component name="SDL_gfx" type="LIB" deps="SDL">
-        <installer
-            distro="*"
-            target="https://200.69.202.173:5555/usvn/svn/UCP-Invap/trunk/libs/SDL_gfx-2.0.24"
-            manager="SVN"/>
-        <execute_after>
-            cd ./{TMP_DIR}/SDL_gfx; ./configure CFLAGS="-O3 -march=corei7-avx -mtune=corei7-avx -floop-parallelize-all -fprefetch-loop-arrays"; make -j8; sudo make install
-            sudo ldconfig
-        </execute_after>
-        <install_checker>stat -f /usr/local/lib/libSDL_gfx.so</install_checker>
-    </component>
-
-
-    <component name="SDL_image" type="LIB" deps="SDL,png">
-        <installer
-            distro="*"
-            target="https://200.69.202.173:5555/usvn/svn/UCP-Invap/trunk/libs/SDL_image-1.2.12"
-            manager="SVN"/>
-        <execute_after>
-            cd ./{TMP_DIR}/SDL_image; ./configure CFLAGS="-O3 -march=corei7-avx -mtune=corei7-avx -floop-parallelize-all -fprefetch-loop-arrays"; make -j8; sudo make install
-            sudo ldconfig
-        </execute_after>
-        <install_checker>stat -f /usr/local/lib/libSDL_image.so</install_checker>
-    </component>
-
-    <component name="SDL_ttf" type="LIB" deps="SDL,freetype">
-        <installer
-            distro="*"
-            target="https://200.69.202.173:5555/usvn/svn/UCP-Invap/trunk/libs/SDL_ttf-2.0.11"
-            manager="SVN"/>
-        <execute_after>
-            cd ./{TMP_DIR}/SDL_ttf; ./configure CFLAGS="-O3 -march=corei7-avx -mtune=corei7-avx -floop-parallelize-all -fprefetch-loop-arrays"; make -j8; sudo make install
-            sudo ldconfig
-        </execute_after>
-        <install_checker>stat -f /usr/local/lib/libSDL_ttf.so</install_checker>
-    </component>
-
-    <component name="ttf-dejavu" type="PRO">
-        <installer distro="UBUNTU" target="ttf-dejavu" manager="APT-GET"/>
-        <installer distro="ARCH" target="ttf-dejavu" manager="PACKER"/>
-        <install_checker>stat -f /usr/share/fonts/truetype/ttf-dejavu/DejaVuSans.ttf</install_checker>
-    </component>
-
-    <component name="ttf-ubuntu-family" type="PRO">
-        <installer distro="UBUNTU" target="ttf-ubuntu-font-family" manager="APT-GET"/>
-        <install_checker>stat -f /usr/share/fonts/truetype/ubuntu-font-family/UbuntuMono-R.ttf</install_checker>
-    </component>
-
+    
     <component name="xdrfile" type="LIB">
         <installer
             distro="*"
@@ -307,16 +186,5 @@
             cd ./{TMP_DIR}/xdrfile; make; sudo make install
         </execute_after>
     </component>
-
-    <component name="xext" type="PRO">
-        <installer distro="UBUNTU" target="libxext-dev" manager="APT-GET"/>
-        <install_checker>dpkg -s libxext-dev</install_checker>
-    </component>
-
-    <component name="zip" type="PRO">
-        <installer distro="*" target="zip" manager="*"/>
-    </component>
-
-    <component name="rt" type="LIB"/>
 
 </external_dependencies>
