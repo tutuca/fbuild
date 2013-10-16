@@ -67,19 +67,11 @@ def RecursiveInstall(env, sourceDir, sourcesRel, targetName, fileFilter=None):
     nodes = []
     for s in sourcesRel:
         nodes.extend(FindFiles(env, s, fileFilter))
-    relnodes = []
-    srcnodes = []
-    srcnodes, relnodes = pathParser(nodes, sourceDir)
     targetHeaderDir = env.Dir(env['INSTALL_HEADERS_DIR']).Dir(targetName).abspath
     targets = []
     sources = []
     # Add the sources in the "src/" path
-    for src, hdr in srcnodes:
-        t = env.File(os.path.join(targetHeaderDir, hdr))
-        targets.append(t)
-        sources.append(src)
-    # Add the sources that are not into "src/" path.
-    for src, hdr in relnodes:
+    for src, hdr in PathGenerator(nodes, sourceDir):
         t = env.File(os.path.join(targetHeaderDir, hdr))
         targets.append(t)
         sources.append(src)
@@ -87,18 +79,18 @@ def RecursiveInstall(env, sourceDir, sourcesRel, targetName, fileFilter=None):
     return iAs
 
 
-def pathParser(nodes, sourceDir):
+def PathGenerator(nodes, sourceDir):
     """
     This method separate the source that will go to the source directory
     and the sources that will not go there.
     """
     forsrc = []
-    others = []
     source_path = sourceDir.abspath
+    element = ()
     for n in nodes:
         # Add the path if the sourceDir is in the source path.
         if source_path in n.abspath:
-            forsrc.append((n.abspath, n.abspath.replace('%s/' % source_path, '')))
+            element = (n.abspath, n.abspath.replace('%s/' % source_path, ''))
         else:
             # Take the path after the abspath.
             path = source_path.replace(os.getcwd(), '')
@@ -108,11 +100,11 @@ def pathParser(nodes, sourceDir):
                 # Remove the last directory in the path.
                 path = os.path.dirname(path)
                 # Check if the path was added to relnodes before.
-                if path in n.abspath and not (n.abspath, node_path) in others:
+                if path in n.abspath and not (n.abspath, node_path) == element:
                     # Take the path after the in common path.
                     node_path = n.abspath.split("%s/" % path)[1]
-                    others.append((n.abspath, node_path))
-    return forsrc, others
+                    element = (n.abspath, node_path)
+        yield element
 
 
 def RemoveDuplicates(seq, idfun=None): 
