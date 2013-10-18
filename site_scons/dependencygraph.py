@@ -33,7 +33,7 @@ from SCons.Script.SConscript import SConsEnvironment
 from core_components import *
 from components import *
 import fbuild_exceptions
-
+from termcolor import Cprint
 
 downloadedDependencies = False
 
@@ -56,14 +56,14 @@ class ComponentDictionary(dict):
     def Add(self, component, check=True):
         if check:
             if not component.name.islower():
-                component.env.Cprint('[warn] modules names should be lower case: ' + component.name, 'yellow')
+                Cprint('[warn] modules names should be lower case: ' + component.name, 'yellow')
         # Its possible that a component is tried to be added twice because a new
         # dependency was downloaded and
         if component.name not in self:
             self[component.name] = component
             return component
         else:
-            component.env.Cprint('[warn] component tried to be re-added %s' % component.name, 'red')
+            Cprint('[warn] component tried to be re-added %s' % component.name, 'red')
 
     def GetComponentsNames(self):
         return self.keys()
