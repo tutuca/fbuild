@@ -47,6 +47,7 @@ def init(env):
     SConsEnvironment.CreateHeaderOnlyLibrary = CreateHeaderOnlyLibrary
     SConsEnvironment.CreateTest = CreateTest
     SConsEnvironment.CreatePdfLaTeX = CreatePdfLaTeX
+    SConsEnvironment.CreateDoc = CreateDoc
     #SConsEnvironment.CreateAutoToolsProject = CreateAutoToolsProject
 
 
@@ -176,6 +177,16 @@ def CreatePdfLaTeX(env, name, latexfile='', options='', aliasGroups=None):
                                     latexfile,
                                     aliasGroups))
 
+def CreateDoc(env, name, doxyfile=None, aliasGroups = []):
+    docName = name + ':doc'
+    if doxyfile == None:
+        doxyfile = os.path.abspath(env['DEFAULT_DOXYFILE'])
+    return componentGraph.Add(DocComponent(componentGraph,
+                                    env,
+                                    docName,
+                                    env.Dir('.'),
+                                    doxyfile,
+                                    aliasGroups))
 
 #def CreateAutoToolsProject(env, name, ext_dir, lib_targets, configurationFile, aliasGroups=None):
     #if aliasGroups == None:
@@ -190,11 +201,11 @@ def CreatePdfLaTeX(env, name, latexfile='', options='', aliasGroups=None):
                                         #aliasGroups))
 
 
-def WalkDirsForSconscripts(env, topdir, ignore=None):
+def WalkDirsForSconscripts(env, topdir='', ignore=None):
     global componentGraph
     global downloadedDependencies
-
     ignore = ignore if ignore is not None else []
+    topdir = topdir if topdir else env['WS_DIR']
 
     # Step 1: load all the components in the dependency graph
     # if we find a download dependency, we download it and re-process
