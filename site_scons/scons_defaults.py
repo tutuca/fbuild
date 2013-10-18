@@ -49,11 +49,11 @@ def init(env, vars):
     # scons can be ran with the -v option
     INSTALL_DIR = os.path.join(env.Dir('#').abspath, "install")
     
-    if env.GetOption('buildtests') or env.GetOption('testsuite'):
+    if env.GetOption('buildtests'):
         PROJECTS_DIR = env.Dir('#/buildtests').abspath
     else:
         PROJECTS_DIR = env.Dir('#/projects').abspath    
-
+    print PROJECTS_DIR
     vars.AddVariables(
         PathVariable(
             'WS_DIR',
