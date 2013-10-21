@@ -53,7 +53,6 @@ def init(env, vars):
         PROJECTS_DIR = env.Dir('#/buildtests').abspath
     else:
         PROJECTS_DIR = env.Dir('#/projects').abspath    
-    print PROJECTS_DIR
     vars.AddVariables(
         PathVariable(
             'WS_DIR',
