@@ -26,11 +26,11 @@ env = Environment()
 
 hasQt = extension_qt.HasQt(env)
 
+
+
 if hasQt:
     env = Environment(tools=['default', 'qt4'])
-
-env['QT_PRESENT'] = hasQt
-
+    env['QT_PRESENT'] = hasQt
 Export('env')
 
 vars = Variables('SConfig')
@@ -47,10 +47,6 @@ termcolor.init(env)
 # Default configuration options
 import scons_defaults
 scons_defaults.init(env, vars)
-
-# Things to debug the environment
-import debug
-debug.init(env)
 
 # Imports compiler stuff
 import compiler
@@ -88,13 +84,4 @@ import fudepan
 fudepan.SetDefines(env)
 
 ## Walk over the tree finding components
-dependencygraph.WalkDirsForSconscripts(env, topdir = env['WS_DIR'],
-                                       ignore = [
-                                                 #'gmock/scons',
-                                                 #'test_doc',
-                                                 #'test_program',
-                                                 #'test_qt',
-                                                 #'test_shared',
-                                                 #'test_static',
-                                                 #'test_ut'
-                                                ])
+dependencygraph.WalkDirsForSconscripts(env)

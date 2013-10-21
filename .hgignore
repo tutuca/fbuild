@@ -3,7 +3,7 @@ install/
 .sconsign.dblite
 conf/projects.local
 bin/local.sh
-
+projects/*
 .cproject
 .project
 .pydevproject

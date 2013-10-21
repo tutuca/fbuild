@@ -33,7 +33,7 @@ from SCons.Script.SConscript import SConsEnvironment
 from core_components import *
 from components import *
 import fbuild_exceptions
-
+from termcolor import Cprint
 
 downloadedDependencies = False
 
@@ -47,6 +47,7 @@ def init(env):
     SConsEnvironment.CreateHeaderOnlyLibrary = CreateHeaderOnlyLibrary
     SConsEnvironment.CreateTest = CreateTest
     SConsEnvironment.CreatePdfLaTeX = CreatePdfLaTeX
+    SConsEnvironment.CreateDoc = CreateDoc
     #SConsEnvironment.CreateAutoToolsProject = CreateAutoToolsProject
 
 
@@ -55,14 +56,14 @@ class ComponentDictionary(dict):
     def Add(self, component, check=True):
         if check:
             if not component.name.islower():
-                component.env.Cprint('[warn] modules names should be lower case: ' + component.name, 'yellow')
+                Cprint('[warn] modules names should be lower case: ' + component.name, 'yellow')
         # Its possible that a component is tried to be added twice because a new
         # dependency was downloaded and
         if component.name not in self:
             self[component.name] = component
             return component
         else:
-            component.env.Cprint('[warn] component tried to be re-added %s' % component.name, 'red')
+            Cprint('[warn] component tried to be re-added %s' % component.name, 'red')
 
     def GetComponentsNames(self):
         return self.keys()
@@ -176,6 +177,16 @@ def CreatePdfLaTeX(env, name, latexfile='', options='', aliasGroups=None):
                                     latexfile,
                                     aliasGroups))
 
+def CreateDoc(env, name, doxyfile=None, aliasGroups = []):
+    docName = name + ':doc'
+    if doxyfile == None:
+        doxyfile = os.path.abspath(env['DEFAULT_DOXYFILE'])
+    return componentGraph.Add(DocComponent(componentGraph,
+                                    env,
+                                    docName,
+                                    env.Dir('.'),
+                                    doxyfile,
+                                    aliasGroups))
 
 #def CreateAutoToolsProject(env, name, ext_dir, lib_targets, configurationFile, aliasGroups=None):
     #if aliasGroups == None:
@@ -190,11 +201,11 @@ def CreatePdfLaTeX(env, name, latexfile='', options='', aliasGroups=None):
                                         #aliasGroups))
 
 
-def WalkDirsForSconscripts(env, topdir, ignore=None):
+def WalkDirsForSconscripts(env, topdir='', ignore=None):
     global componentGraph
     global downloadedDependencies
-
     ignore = ignore if ignore is not None else []
+    topdir = topdir if topdir else env['WS_DIR']
 
     # Step 1: load all the components in the dependency graph
     # if we find a download dependency, we download it and re-process
