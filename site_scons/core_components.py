@@ -758,7 +758,8 @@ class HeaderOnlyComponent(Component):
         coverage = utils.WasTargetInvoked('%s:coverage' % name)
         rtc = (utils.WasTargetInvoked('%s:rtc' % name) or
               utils.WasTargetInvoked('%s:ready-to-commit' % name))
-        asan = utils.WasTargetInvoked('%s:asan' % name)
+        asan = (utils.WasTargetInvoked('%s:asan' % name) or
+                utils.WasTargetInvoked('all:asan'))
         # Create the dictionary of flags.
         result = {
             'jenkins': jenkins,
