@@ -1342,7 +1342,7 @@ class UnitTestComponent(ProgramComponent):
         # Create targets.
         self._CreateNameCheckTarget(sources)
         run_valgrind_builder = self._CreateValgrindTarget(program_builder)
-        self._CreateASanTarget(program_builder)
+        run_asan_builder = self._CreateASanTarget(program_builder)
         self._CreateCoverageTarget(run_test_target, program_builder)
         self._CreateJenkinsTarget(program_builder, target=run_test_target,)
         self._CreateReadyToCommitTarget(run_test_target, program_builder)
@@ -1352,6 +1352,9 @@ class UnitTestComponent(ProgramComponent):
         self._env.Alias('all:test', run_test_builder, "Run all tests")
         # Create the alias for 'all:valgrind'
         self._env.Alias('all:valgrind', run_valgrind_builder, 'Run valgrind in all the projects')
+        # Create the alias for 'all:asan'
+        self._env.Alias('all:asan', run_asan_builder, 'Run Address Sanitizer in all the projects')
+
         # Return the builder that execute the test.
         return run_test_builder
 
