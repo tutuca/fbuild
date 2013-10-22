@@ -827,10 +827,31 @@ class HeaderOnlyComponent(Component):
         return result
 
     def _ExtendFlagsList(self, to_check, flags_list):
-        result = flags_list.extend([x for x in to_check if not x in flags_list])
-        return result
+        """
+        Description:
+            Extend the flags list with the new flags. Does not add flags that are already added.
+        Arguments:
+            - flags: The flags that you want to add.
+            - flags_list: The list of flags where you want add the flags.
+        Return:
+            The new list of flags
+        """
+        return flags_list.extend([x for x in to_check if not x in flags_list])
 
     def _AppendComponentFlags(self, component, flags, cxx_flags=None, c_flags=None, l_flags=None):
+        """
+        Description:
+            This method add flags to the compiler and/or linker.
+        Arguments:
+            - component: The component where you want add the flags
+            - flags: the flags that you will add.
+        Optional Aruments:
+            - cxx_flags: flags for C++
+            - c_flags: flags for C
+            - l_flags: flags for the linker
+        Return:
+            None.
+        """
         if not cxx_flags:
             cxx_flags = flags
         if not c_flags:
