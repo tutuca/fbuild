@@ -908,12 +908,6 @@ class HeaderOnlyComponent(Component):
                 self._env.cerror("Not processing CCCC")
 
             try:
-                cccc = project_component._CreateCCCCTarget(source)
-                self._env.Depends(jenkins, cccc)
-            except AttributeError:
-                self._env.cerror("Not processing CCCC")
-
-            try:
                 cloc = project_component._CreateClocTarget(source)
                 self._env.Depends(jenkins, cloc)
             except AttributeError:
