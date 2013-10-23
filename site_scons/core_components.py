@@ -252,10 +252,12 @@ class Component(object):
         self._CreateClocTarget(self._sources)
         self._CreateStaticAnalysisTarget(self._sources)
         self._CreateDocTarget()
-        self._CreateInfoTarget(self._sources)
+        run_info_builder = self._CreateInfoTarget(self._sources)
         self._CreateNameCheckTarget(self._sources)
         # Create the alias for 'all:cccc'
-        self._env.Alias('all:cccc', run_cccc_builder, 'Run CCCC in all the projects')
+        self._env.Alias('all:cccc', run_cccc_builder, 'Run CCCC in all projects')
+        # Create the alias for 'all:info'
+        self._env.Alias('all:info', run_info_builder, 'Take info about all projects')
 
 
     def _GetObjectsFiles(self, object_files, stack):
