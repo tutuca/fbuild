@@ -248,12 +248,14 @@ class Component(object):
         """Create targets for most modules."""
         self._CreateAstyleCheckTarget(self._sources)
         self._CreateAstyleTarget(self._sources)
-        self._CreateCCCCTarget(self._sources)
+        run_cccc_builder = self._CreateCCCCTarget(self._sources)
         self._CreateClocTarget(self._sources)
         self._CreateStaticAnalysisTarget(self._sources)
         self._CreateDocTarget()
         self._CreateInfoTarget(self._sources)
         self._CreateNameCheckTarget(self._sources)
+        # Create the alias for 'all:cccc'
+        self._env.Alias('all:cccc', run_cccc_builder, 'Run CCCC in all the projects')
 
 
     def _GetObjectsFiles(self, object_files, stack):
@@ -1344,15 +1346,15 @@ class UnitTestComponent(ProgramComponent):
         run_test_builder = self._CreateTestTarget(run_test_target, program_builder)
         self._builders['install'] = run_test_builder
         # Create alias for 'all:test'.
-        self._env.Alias('all:test', run_test_builder, "Run all tests")
+        self._env.Alias('all:test', run_test_builder, "Run tests in all projects")
         # Create the alias for 'all:valgrind'
-        self._env.Alias('all:valgrind', run_valgrind_builder, 'Run valgrind in all the projects')
+        self._env.Alias('all:valgrind', run_valgrind_builder, 'Run valgrind in all projects')
 		# Create the alias for 'all:asan'
-        self._env.Alias('all:asan', run_asan_builder, 'Run Address Sanitizer in all the projects')        
+        self._env.Alias('all:asan', run_asan_builder, 'Run Address Sanitizer in all projects')        
 		# Create the alias for 'all:ready-to-commit'
-        self._env.Alias('all:ready-to-commit', run_rtc_builder, 'Run ready-to-commit in all the projects')
+        self._env.Alias('all:ready-to-commit', run_rtc_builder, 'Run ready-to-commit in all projects')
         # Create the alias for 'all:coverage'
-        self._env.Alias('all:coverage', run_coverage_builder, 'Run coverage in all the projects')
+        self._env.Alias('all:coverage', run_coverage_builder, 'Run coverage in all projects')
 
         # Return the builder that execute the test.
         return run_test_builder
