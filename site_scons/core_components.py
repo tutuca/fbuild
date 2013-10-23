@@ -1340,15 +1340,17 @@ class UnitTestComponent(ProgramComponent):
         run_asan_builder = self._CreateASanTarget(program_builder)
         self._CreateCoverageTarget(run_test_target, program_builder)
         self._CreateJenkinsTarget(program_builder, target=run_test_target,)
-        self._CreateReadyToCommitTarget(run_test_target, program_builder)
+        run_rtc_builder = self._CreateReadyToCommitTarget(run_test_target, program_builder)
         run_test_builder = self._CreateTestTarget(run_test_target, program_builder)
         self._builders['install'] = run_test_builder
         # Create alias for 'all:test'.
         self._env.Alias('all:test', run_test_builder, "Run all tests")
         # Create the alias for 'all:valgrind'
         self._env.Alias('all:valgrind', run_valgrind_builder, 'Run valgrind in all the projects')
-        # Create the alias for 'all:asan'
-        self._env.Alias('all:asan', run_asan_builder, 'Run Address Sanitizer in all the projects')
+		# Create the alias for 'all:asan'
+        self._env.Alias('all:asan', run_asan_builder, 'Run Address Sanitizer in all the projects')        
+		# Create the alias for 'all:ready-to-commit'
+        self._env.Alias('all:ready-to-commit', run_rtc_builder, 'Run ready-to-commit in all the projects')
 
         # Return the builder that execute the test.
         return run_test_builder
@@ -1451,49 +1453,45 @@ class UnitTestComponent(ProgramComponent):
         return run_test_builder
 
     def _CreateReadyToCommitTarget(self, run_test_target, program_builder):
-        flags = self._CheckForFlags()
         if self._builders['ready-to-commit'] is not None:
             return self._builders['ready-to-commit']
         # Get the component of the project.
         project_component = self._component_graph.get(self._project_name)
+        # Create an instance of the RunReadyToCommit() builder.
+        target = self._env.Dir('$INSTALL_REPORTS_DIR')
+        target = target.Dir('ready-to-commit').Dir(self._project_name)
+        target = target.File('ReadyToCommitReportFile.txt')
+        rtc_builder = self._env.RunReadyToCommit(target, None)
+        self._env.AlwaysBuild(rtc_builder)
+        self._env['PROJECT_NAME'] = self._project_name
+        # Get the builders from which the ready-to-commit target will
+        # depend on.
+        sources = project_component.GetSourcesFiles()
+        includes = project_component.GetIncludeFiles()
+        source = sources + includes
+        astyle_check = project_component._CreateAstyleCheckTarget(source)
+        cppcheck = project_component._CreateStaticAnalysisTarget(source)
+        valgrind = self._CreateValgrindTarget(program_builder)
+        run_test = self._env.RunUnittest(run_test_target, program_builder)
+        # Create dependencies.
+        self._env.Depends(rtc_builder, astyle_check)
+        self._env.Depends(rtc_builder, cppcheck)
+        self._env.Depends(rtc_builder, run_test)
+        self._env.Depends(rtc_builder, valgrind)
         # Create the alias.
-        ready_to_commit = self._env.Alias(
+        self._env.Alias(
             '%s:ready-to-commit' % self._project_name,
-            None,
+            rtc_builder,
             "Check if the project is ready to be commited."
         )
         # Create a shorter alias.
         self._env.Alias(
             '%s:rtc' % self._project_name,
-            ready_to_commit,
+            rtc_builder,
             "Alias of the target: ready-to-commit."
         )
-        # If the target 'ready-to-commit' was invoked...
-        if flags['ready-to-commit']:
-            # Create an instance of the RunReadyToCommit() builder.
-            target = self._env.Dir('$INSTALL_REPORTS_DIR')
-            target = target.Dir('ready-to-commit').Dir(self._project_name)
-            target = target.File('ReadyToCommitReportFile.txt')
-            rtc_builder = self._env.RunReadyToCommit(target, None)
-            self._env.AlwaysBuild(rtc_builder)
-            self._env['PROJECT_NAME'] = self._project_name
-            # Get the builders from which the ready-to-commit target will
-            # depend on.
-            sources = project_component.GetSourcesFiles()
-            includes = project_component.GetIncludeFiles()
-            source = sources + includes
-            astyle_check = project_component._CreateAstyleCheckTarget(source)
-            cppcheck = project_component._CreateStaticAnalysisTarget(source)
-            valgrind = self._CreateValgrindTarget(program_builder)
-            run_test = self._env.RunUnittest(run_test_target, program_builder)
-            # Create dependencies.
-            self._env.Depends(rtc_builder, astyle_check)
-            self._env.Depends(rtc_builder, cppcheck)
-            self._env.Depends(rtc_builder, run_test)
-            self._env.Depends(rtc_builder, valgrind)
-            self._env.Depends(ready_to_commit, rtc_builder)
-        self._builders['ready-to-commit'] = ready_to_commit
-        return ready_to_commit
+        self._builders['ready-to-commit'] = rtc_builder
+        return rtc_builder
 
     def _UseMocko(self, sources):
         # Path to the list.mocko file.
