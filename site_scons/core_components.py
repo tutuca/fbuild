@@ -1340,7 +1340,7 @@ class UnitTestComponent(ProgramComponent):
         self._CreateNameCheckTarget(sources)
         run_valgrind_builder = self._CreateValgrindTarget(program_builder)
         run_asan_builder = self._CreateASanTarget(program_builder)
-        self._CreateCoverageTarget(run_test_target, program_builder)
+        run_coverage_builder = self._CreateCoverageTarget(run_test_target, program_builder)
         self._CreateJenkinsTarget(program_builder, target=run_test_target,)
         run_rtc_builder = self._CreateReadyToCommitTarget(run_test_target, program_builder)
         run_test_builder = self._CreateTestTarget(run_test_target, program_builder)
