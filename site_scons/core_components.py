@@ -1351,6 +1351,8 @@ class UnitTestComponent(ProgramComponent):
         self._env.Alias('all:asan', run_asan_builder, 'Run Address Sanitizer in all the projects')        
 		# Create the alias for 'all:ready-to-commit'
         self._env.Alias('all:ready-to-commit', run_rtc_builder, 'Run ready-to-commit in all the projects')
+        # Create the alias for 'all:coverage'
+        self._env.Alias('all:coverage', run_coverage_builder, 'Run coverage in all the projects')
 
         # Return the builder that execute the test.
         return run_test_builder
@@ -1434,8 +1436,8 @@ class UnitTestComponent(ProgramComponent):
         # Coverage can always be built.
         self._env.AlwaysBuild(cov)
         self._env.AlwaysBuild(run_test_builder)
-        self._builders['coverage'] = cov
-        return cov
+        self._builders['coverage'] = run_lcov_builder
+        return run_lcov_builder
 
     def _CreateTestTarget(self, target, program_builder):
         run_test_builder = self._env.RunUnittest(target, program_builder)
