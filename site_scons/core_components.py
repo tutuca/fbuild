@@ -758,7 +758,8 @@ class HeaderOnlyComponent(Component):
         coverage = utils.WasTargetInvoked('%s:coverage' % name)
         rtc = (utils.WasTargetInvoked('%s:rtc' % name) or
               utils.WasTargetInvoked('%s:ready-to-commit' % name))
-        asan = utils.WasTargetInvoked('%s:asan' % name)
+        asan = (utils.WasTargetInvoked('%s:asan' % name) or
+                utils.WasTargetInvoked('all:asan'))
         # Create the dictionary of flags.
         result = {
             'jenkins': jenkins,
@@ -827,10 +828,31 @@ class HeaderOnlyComponent(Component):
         return result
 
     def _ExtendFlagsList(self, to_check, flags_list):
-        result = flags_list.extend([x for x in to_check if not x in flags_list])
-        return result
+        """
+        Description:
+            Extend the flags list with the new flags. Does not add flags that are already added.
+        Arguments:
+            - flags: The flags that you want to add.
+            - flags_list: The list of flags where you want add the flags.
+        Return:
+            The new list of flags
+        """
+        return flags_list.extend([x for x in to_check if not x in flags_list])
 
     def _AppendComponentFlags(self, component, flags, cxx_flags=None, c_flags=None, l_flags=None):
+        """
+        Description:
+            This method add flags to the compiler and/or linker.
+        Arguments:
+            - component: The component where you want add the flags
+            - flags: the flags that you will add.
+        Optional Aruments:
+            - cxx_flags: flags for C++
+            - c_flags: flags for C
+            - l_flags: flags for the linker
+        Return:
+            None.
+        """
         if not cxx_flags:
             cxx_flags = flags
         if not c_flags:
@@ -880,12 +902,6 @@ class HeaderOnlyComponent(Component):
             except AttributeError:
                 self._env.cerror("Not processing CppCheck")
             
-            try:
-                cccc = project_component._CreateCCCCTarget(source)
-                self._env.Depends(jenkins, cccc)
-            except AttributeError:
-                self._env.cerror("Not processing CCCC")
-
             try:
                 cccc = project_component._CreateCCCCTarget(source)
                 self._env.Depends(jenkins, cccc)
@@ -1321,7 +1337,7 @@ class UnitTestComponent(ProgramComponent):
         # Create targets.
         self._CreateNameCheckTarget(sources)
         run_valgrind_builder = self._CreateValgrindTarget(program_builder)
-        self._CreateASanTarget(program_builder)
+        run_asan_builder = self._CreateASanTarget(program_builder)
         self._CreateCoverageTarget(run_test_target, program_builder)
         self._CreateJenkinsTarget(program_builder, target=run_test_target,)
         run_rtc_builder = self._CreateReadyToCommitTarget(run_test_target, program_builder)
@@ -1331,7 +1347,9 @@ class UnitTestComponent(ProgramComponent):
         self._env.Alias('all:test', run_test_builder, "Run all tests")
         # Create the alias for 'all:valgrind'
         self._env.Alias('all:valgrind', run_valgrind_builder, 'Run valgrind in all the projects')
-        # Create the alias for 'all:ready-to-commit'
+		# Create the alias for 'all:asan'
+        self._env.Alias('all:asan', run_asan_builder, 'Run Address Sanitizer in all the projects')        
+		# Create the alias for 'all:ready-to-commit'
         self._env.Alias('all:ready-to-commit', run_rtc_builder, 'Run ready-to-commit in all the projects')
 
         # Return the builder that execute the test.
