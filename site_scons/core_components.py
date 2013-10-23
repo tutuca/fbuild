@@ -1343,7 +1343,7 @@ class UnitTestComponent(ProgramComponent):
         self._CreateNameCheckTarget(sources)
         run_valgrind_builder = self._CreateValgrindTarget(program_builder)
         self._CreateASanTarget(program_builder)
-        self._CreateCoverageTarget(run_test_target, program_builder)
+        run_coverage_builder = self._CreateCoverageTarget(run_test_target, program_builder)
         self._CreateJenkinsTarget(program_builder, target=run_test_target,)
         self._CreateReadyToCommitTarget(run_test_target, program_builder)
         run_test_builder = self._CreateTestTarget(run_test_target, program_builder)
@@ -1352,6 +1352,8 @@ class UnitTestComponent(ProgramComponent):
         self._env.Alias('all:test', run_test_builder, "Run all tests")
         # Create the alias for 'all:valgrind'
         self._env.Alias('all:valgrind', run_valgrind_builder, 'Run valgrind in all the projects')
+        # Create the alias for 'all:coverage'
+        self._env.Alias('all:coverage', run_coverage_builder, 'Run coverage in all the projects')
         # Return the builder that execute the test.
         return run_test_builder
 
@@ -1434,8 +1436,8 @@ class UnitTestComponent(ProgramComponent):
         # Coverage can always be built.
         self._env.AlwaysBuild(cov)
         self._env.AlwaysBuild(run_test_builder)
-        self._builders['coverage'] = cov
-        return cov
+        self._builders['coverage'] = run_lcov_builder
+        return run_lcov_builder
 
     def _CreateTestTarget(self, target, program_builder):
         run_test_builder = self._env.RunUnittest(target, program_builder)
