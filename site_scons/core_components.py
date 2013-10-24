@@ -758,7 +758,8 @@ class HeaderOnlyComponent(Component):
             name = self.name
         project_component = self._component_graph.get(name)
         # Flags for check the calling targets.
-        jenkins = utils.WasTargetInvoked('%s:jenkins' % name)
+        jenkins = (utils.WasTargetInvoked('%s:jenkins' % name) or 
+                    utils.WasTargetInvoked('all:jenkins'))
         coverage = utils.WasTargetInvoked('%s:coverage' % name)
         rtc = (utils.WasTargetInvoked('%s:rtc' % name) or
               utils.WasTargetInvoked('%s:ready-to-commit' % name))
@@ -886,7 +887,12 @@ class HeaderOnlyComponent(Component):
         jenkins = self._env.Alias(
             '%s:jenkins' % name,
             None,
-            "Build the environmnet's project for the Jenkins server."
+            "Build the project's environment for the Jenkins server."
+        )
+        jenkins_all = self._env.Alias(
+            'all:jenkins',
+            None,
+            "Build the jenkins enviroment for all the projects"
         )
         # If the target 'jenkins' was invoked...
         if flags and flags['jenkins']:
@@ -897,45 +903,52 @@ class HeaderOnlyComponent(Component):
             try:
                 astyle_check = project_component._CreateAstyleCheckTarget(source)
                 self._env.Depends(jenkins, astyle_check)
+                self._env.Depends(jenkins_all, astyle_check)
             except AttributeError:
-                self._env.cerror("Not processing Astyle Check")
+                self._env.cerror("Not processing Astyle Check in %s" % name)
             
             try:
                 cppcheck = project_component._CreateStaticAnalysisTarget(source)
                 self._env.Depends(jenkins, cppcheck)
+                self._env.Depends(jenkins_all, cppcheck)
             except AttributeError:
-                self._env.cerror("Not processing CppCheck")
+                self._env.cerror("Not processing CppCheck in %s" % name)
             
             try:
                 cccc = project_component._CreateCCCCTarget(source)
                 self._env.Depends(jenkins, cccc)
+                self._env.Depends(jenkins_all, cccc)
             except AttributeError:
-                self._env.cerror("Not processing CCCC")
+                self._env.cerror("Not processing CCCC in %s" % name)
 
             try:
                 cloc = project_component._CreateClocTarget(source)
                 self._env.Depends(jenkins, cloc)
+                self._env.Depends(jenkins_all, cloc)
             except AttributeError:
-                self._env.cerror("Not processing Cloc")
+                self._env.cerror("Not processing Cloc in %s" % name)
 
             try:
                 doc = project_component._CreateDocTarget()
                 self._env.Depends(jenkins, doc)
+                self._env.Depends(jenkins_all, doc)
             except AttributeError:
-                self._env.cerror("Not processing Doxygen")
+                self._env.cerror("Not processing Doxygen in %s" % name)
 
             try:
                 valgrind = self._CreateValgrindTarget(program_builder)
                 self._env.Depends(jenkins, valgrind)
+                self._env.Depends(jenkins_all, valgrind)
             except AttributeError:
-                self._env.cerror("Not processing Valgrind")
+                self._env.cerror("Not processing Valgrind in %s" % name)
 
             if target:
                 try:
                     coverage = self._CreateCoverageTarget(target, program_builder)
                     self._env.Depends(jenkins, coverage)
+                    self._env.Depends(jenkins_all, coverage)
                 except AttributeError:
-                    self._env.cerror("Not processing Coverage")
+                    self._env.cerror("Not processing Coverage in %s" % name)
 
         self._builders['jenkins'] = jenkins
         return jenkins
