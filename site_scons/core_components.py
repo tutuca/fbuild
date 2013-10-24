@@ -887,12 +887,12 @@ class HeaderOnlyComponent(Component):
         jenkins = self._env.Alias(
             '%s:jenkins' % name,
             None,
-            "Build the environmnet's project for the Jenkins server."
+            "Build the project's environment for the Jenkins server."
         )
         jenkins_all = self._env.Alias(
             'all:jenkins',
             None,
-            "Build all the environmnet's project for the Jenkins server."
+            "Build the jenkins enviroment for all the projects"
         )
         # If the target 'jenkins' was invoked...
         if flags and flags['jenkins']:
