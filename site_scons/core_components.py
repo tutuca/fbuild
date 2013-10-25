@@ -303,15 +303,15 @@ class Component(object):
         if len(stack) == 1:
             # If we're here is because we are looking for the include of this
             # component.
+            # So we add the _includes from this component
+            include_paths |= set(self._includes)
+
             if isinstance(self, UnitTestComponent):
                 # If this is a UnitTestComponent we need the include directories
-                # from its component.
-                component = self._component_graph.get(self._project_name)
+                # from its component too.
+                component = self._component_graph[self._project_name]
                 include_paths |= set(component._includes)
-            else:
-                # For any other component we use the _includes list.
-                for path in self._includes:
-                    include_paths.add(path)
+            
             # We also add the install/include/ and the build/project/ directories.
             include_paths.add(self._env.Dir('$INSTALL_HEADERS_DIR'))
             include_paths.add(self._dir)
@@ -482,8 +482,8 @@ class HeaderOnlyComponent(Component):
     def _sources(self):
         return self.GetIncludeFiles()
 
-    def __init__(self, graph, env, name, dir, deps, inc, als=None):
-        super(HeaderOnlyComponent, self).__init__(graph, env, name, dir, deps, inc, [], als)
+    def __init__(self, graph, env, name, dir, deps, ext_inc, als=None):
+        super(HeaderOnlyComponent, self).__init__(graph, env, name, dir, deps, ext_inc, [], als)
         self._project_dir = self._env.Dir('WS_DIR').Dir(self.name)
         self._builders = {  # Maintain alphabetical order.
             'asan': None,
