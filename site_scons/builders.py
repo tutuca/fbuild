@@ -28,7 +28,7 @@
 import subprocess
 import os.path
 import shutil
-import os
+import os, re
 from SCons.Builder import Builder
 from SCons.Action import Action
 
@@ -620,14 +620,22 @@ def RunInfo(env, target, source):
 
 def _RunCppCheck(report_dir, files, headers, options):
     report_file = os.path.join(report_dir.abspath, 'static-analysis-report')
+    regex_for_report = re.compile(r'\[(\/\w+|-|\w+|.c|:|\])*')
     if 'xml' in options:
-        cmd = "cppcheck --check-config %s %s %s 2> %s.xml" % (options, files, 
-            headers, report_file)
+        report_file = report_file+'.xml'
+        cmd = "cppcheck --check-config %s %s %s 2" % (options, files, 
+            headers, )
     else:
-        cmd = "cppcheck %s %s %s 2> %s.txt" % (options, files, 
-            headers, report_file)
-    cppcheck_proc = subprocess.Popen(cmd, shell=True)
-    return cppcheck_proc.wait()
+        report_file = report_file+'.txt'
+        cmd = "cppcheck %s %s %s" % (options, files, 
+            headers)
+    print "Report at: ", report_file
+    with open(report_file, 'w+') as rf:
+        pipe = subprocess.Popen(
+            cmd, 
+            shell=True, 
+            stderr=rf
+        )
 
 def _RunSplint(report_dir, files, headers):
     report_file = os.path.join(report_dir.abspath, 'static-analysis-report')
