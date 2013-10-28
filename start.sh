@@ -2,7 +2,9 @@
 
 # fudepan-build: The build system for FuDePAN projects 
 #
-# Copyright (C) 2013 Gonzalo Bonigo, Gustavo Ojeda FuDePAN
+# Copyright (C) 2011-2012 Esteban Papp, Hugo Arregui,
+#               2013 Gonzalo Bonigo, Gustavo Ojeda, Matias Iturburu,
+#                    Leandro Moreno, FuDePAN
 # 
 # This file is part of the fudepan-build build system.
 # 
@@ -19,30 +21,82 @@
 # You should have received a copy of the GNU General Public License
 # along with fudepan-build.  If not, see <http://www.gnu.org/licenses/>.
 
-# Detect internet connectivity
-if [ -z "$(ip r | grep default | cut -d ' ' -f 3)" ]; then
-    internet_connection="error"
+# This file was written in shell scripting because we do not have python at 
+# this point.
+# After the first check that python is there, we jump to a python environment 
+# to ensure we support as many platforms as we can. If another platform 
+# besides *nix is required, a different "shell env script" should be created. 
+# i.e. for windows a env.bat should be created.
+
+# Please try not to much too much logic here, we should maintain this file 
+# as simple as possible
+
+# Install section: this section install all the pre-requisites of the 
+# environment. If other installers are supported they should maintain the
+# function interface
+
+if [ "$(which apt-get 2>/dev/null)" ]; then
+    source ./site_scons/installer_aptget.sh
+    source ./site_scons/installer_extras_dbub.sh
+elif [ "$(which packer)" ]; then
+    source ./site_scons/installer_packer.sh
+    source ./site_scons/installer_extras_dbub.sh
 else
-    echo ping -q -w 1 -c 1 `ip r | grep default | cut -d ' ' -f 3` > /dev/null && internet_connection="ok" || internet_connection="error"
-fi
-
-# Update the fudepan environment
-if [[ "$(which hg)" && -z $FBUILD_NO_UPDATE ]]; then
-    if [ $internet_connection = "ok" ]; then
-        # Check mercurial version.
-        hg_version=$(hg --version | grep "version"|cut -d"(" -f2|cut -d" " -f2|cut -d")" -f1)
-        if [[ "$hg_version" == "2.1.0" || "$hg_version" == "2.1" ]]; then
-            # fbuild doesn't work with mercurial 2.1.
-            echo -e "\e[0;31m[error] fbuild does not work with mercurial version 2.1.\e[0m"
-        else
-            echo -e "\e[0;35mChecking for updates in the environment\e[0m"
-            hg pull -u
+    function check_install {
+        if [ "$3" ]; then     
+           echo -e "\e[0;31m[error] $2 not found, need to install it to continue\e[0m"
         fi
-    else
-        echo -e "\e[0;33m[warn] FuDePan environment not updated since there is no internet connection\e[0m"
-    fi
+    }
 fi
+# We need to check if build essential is installed
+check_build_essential
+if [ "$?" -ne "0" ]; then return $?; fi
+# three parameters: 
+# 1) binary to check for existance
+# 2) required?
+check_install make true
+if [ "$?" -ne "0" ]; then return $?; fi
+check_install python true
+if [ "$?" -ne "0" ]; then return $?; fi
+check_install scons true
+if [ "$?" -ne "0" ]; then return $?; fi
+check_install g++ true
+if [ "$?" -ne "0" ]; then return $?; fi
+check_install moc
+if [ "$?" -ne "0" ]; then return $?; fi
+check_install doxygen
+if [ "$?" -ne "0" ]; then return $?; fi
+check_install dot
+if [ "$?" -ne "0" ]; then return $?; fi
+check_astyle_2_03
+if [ "$?" -ne "0" ]; then return $?; fi
+check_install svn true 
+if [ "$?" -ne "0" ]; then return $?; fi
+check_install wget true 
+if [ "$?" -ne "0" ]; then return $?; fi
+check_install cccc false
+if [ "$?" -ne "0" ]; then return $?; fi
+check_install cloc false
+if [ "$?" -ne "0" ]; then return $?; fi
+check_install valgrind true
+if [ "$?" -ne "0" ]; then return $?; fi
+check_install cppcheck false
+if [ "$?" -ne "0" ]; then return $?; fi
+check_install lcov false
+if [ "$?" -ne "0" ]; then return $?; fi
+check_install clang false
+if [ "$?" -ne "0" ]; then return $?; fi
 
-export FBUILD_ENV_STARTED=true
 
-source env.sh
+# Backward compatibility
+alias fbuild=scons
+
+echo -e "FuDePAN-build 2.0"
+echo -e "Copyright (C) 2011-2012 Esteban Papp, Hugo Arregui,"
+echo -e "              2013 Gonzalo Bonigo, Gustavo Ojeda, Matias Iturburu, Leandro Moreno, FuDePAN"
+echo -e "This program comes with ABSOLUTELY NO WARRANTY; for details see http://www.gnu.org/licenses/gpl-3.0.html"
+echo -e "FuDePAN-build is free software, and you are welcome to redistribute it under certain conditions; for more information visit http://www.gnu.org/licenses/gpl-3.0.html\n"
+
+echo -e "\e[0;32mWelcome to the FuDePAN console environment\e[0m"
+
+return 0

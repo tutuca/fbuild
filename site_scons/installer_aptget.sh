@@ -2,7 +2,9 @@
 
 # fudepan-build: The build system for FuDePAN projects 
 #
-# Copyright (C) 2011-2012 Esteban Papp, Hugo Arregui, 2013 Gonzalo Bonigo, FuDePAN
+# Copyright (C) 2011-2012 Esteban Papp, Hugo Arregui,
+#               2013 Gonzalo Bonigo, Gustavo Ojeda, Matias Iturburu,
+#                    Leandro Moreno, FuDePAN
 # 
 # This file is part of the fudepan-build build system.
 # 
@@ -20,6 +22,15 @@
 # along with fudepan-build.  If not, see <http://www.gnu.org/licenses/>.
 
 # This is check_install implementation for Debian/Ubuntu systems
+
+if [ -f /etc/lsb-release ]; then
+    source /etc/lsb-release
+    OS=$DISTRIB_ID
+    VER=$DISTRIB_RELEASE
+elif [ -f /etc/debian_version ]; then
+    OS=Debian  # XXX or Ubuntu??
+    VER=$(cat /etc/debian_version);
+fi
 
 function check_install {
     declare -A mappings
@@ -43,16 +54,28 @@ function check_install {
         echo "      me to do it? (your password could be required)"
         REPLY="extremelyLongStringUnlikelyToBeUsed"
         while [[ "$REPLY" != "y" && "$REPLY" != "n" && "$REPLY" != "" ]]; do
-            read -p "Install (y/[n])?" REPLY
+            read -p "Install ([y]/n)?" REPLY
             if [[ "$REPLY" != "y" && "$REPLY" != "n" && "$REPLY" != "" ]]; then
                 echo -e "\e[0;31mID-10-T Error: please insert 'y' or 'n' or nothing. \e[0m"
             fi
         done
-        if [ "$REPLY" = "y" ]; then
-            sudo apt-get install $pkg
-            if [ "$?" -ne "0" ]; then
-                echo -e "\e[0;31m[error] $1 (part of $pkg) could not be installed, exiting\e[0m"
-                return 1
+        if [[ "$REPLY" = "y" || "$REPLY" = "" ]]; then
+            # Check if pkg is clang, a different behave is necessary here.
+            if [ "$pkg" == "clang" ]; then
+                # Ubuntu 13.04 has clang with Address Sanitizer.
+                if [ "$VER" == "13.04" ]; then
+                    sudo apt-get install $pkg
+                else
+                    echo -e "\e[0;93mYou should install Clang manually. Please, check the documentation to do it.\e[0m"
+                    echo -e "\e[0;93mhttp://tracker.fudepan.org.ar/youtrack/issue/fbuild-147\e[0m"
+                    return 1
+                fi
+            else
+                sudo apt-get install $pkg
+                if [ "$?" -ne "0" ]; then
+                    echo -e "\e[0;31m[error] $1 (part of $pkg) could not be installed, exiting\e[0m"
+                    return 1
+                fi
             fi
         else
             if [ "$2" = "true" ]; then
@@ -62,33 +85,5 @@ function check_install {
         fi
     fi
     unset mappings
-    return 0
-}
-
-function check_build_essential {
-    if [ ! "$(dpkg -s build-essential | grep -e 'Status: install ok installed')" ]; then
-        echo -e "\e[0;33m[warn] A problem with 'build-essential' had been found.\e[0m"
-        echo "info: 'sudo apt-get install build-essential' should solve this, do you want"
-        echo "       me to do it? (your password could be required)"
-        
-        REPLY="extremelyLongStringUnlikelyToBeUsed"
-        
-        while [[ "$REPLY" != "y" && "$REPLY" != "n" && "$REPLY" != "" ]]; do
-            read -p "Install (y/[n])?" REPLY
-            if [[ "$REPLY" != "y" && "$REPLY" != "n" && "$REPLY" != "" ]]; then
-                echo -e "\e[0;31mID-10-T Error: please insert 'y' or 'n' or nothing. \e[0m"
-            fi
-        done
-        if [ "$REPLY" = "y" ]; then
-            sudo apt-get install build-essential
-            if [ "$?" -ne "0" ]; then
-                echo -e "\e[0;31m[error] 'build-essential' it is required and could not be installed, exiting\e[0m"
-                return 1
-            fi
-        else
-            echo -e "\e[0;31m[error] 'build-essential' required, exiting\e[0m"
-            return 1
-        fi
-    fi
     return 0
 }

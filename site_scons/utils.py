@@ -1,19 +1,21 @@
-# fudepan-build: The build system for FuDePAN projects 
+# fudepan-build: The build system for FuDePAN projects
 #
-# Copyright (C) 2011 Esteban Papp, 2013 Gonzalo Bonigo, FuDePAN
-# 
+# Copyright (C) 2011-2012 Esteban Papp, Hugo Arregui,
+#               2013 Gonzalo Bonigo, Gustavo Ojeda, Matias Iturburu,
+#                    Leandro Moreno, FuDePAN
+#
 # This file is part of the fudepan-build build system.
-# 
+#
 # fudepan-build is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
-# 
+#
 # fudepan-build is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU General Public License
 # along with fudepan-build.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -27,116 +29,107 @@ import subprocess
 import fnmatch
 import sys
 import os
-
+from distutils.dir_util import mkpath
 from SCons.Node.FS import Dir
 import fbuild_exceptions
 
 
-# Contants for the distributions supported.
+# Constants for the distributions supported.
 DISTRO_UBUNTU = 'UBUNTU'
 DISRTO_ARCH = 'ARCH'
-# Path to the /etc/issue file which contains the distro.
+# Path to the /etc/issue file which contains the distribution.
 _DISRTO_FILE = '/etc/issue'
+# Path to the process file system.
+_PROC_DIR = '/proc/%d'
+
 
 def FindFiles(env, fromDir, filters=None):
-    if filters == None:
-        filters = ['*']
+    filters = filters if filters is not None else ['*']
     path = fromDir.abspath
     files = []
-    for s in env.Glob(path + '/*'):
-        if isinstance(s, Dir): #s.isdir doesn't work as expected in variant dir (when the dir is not created)
-            files.extend(FindFiles(env, s, filters))
+    for x in env.Glob(path + '/*'):
+        #s.isdir doesn't work as expected in variant dir (when the dir is not created)
+        if isinstance(x, Dir):
+            files.extend(FindFiles(env, x, filters))
         else:
-            if any([fnmatch.fnmatch(s.abspath, filter) for filter in filters]):
-                files.append(s)
+            if any([fnmatch.fnmatch(x.abspath, filter) for filter in filters]):
+                if os.path.isfile(x.abspath.replace('/build/', '/projects/')):
+                    files.append(x)
     return files
 
 
+#
+# TODO: Rewrite this method!!!!
+# refactor_trials_count = 3
+# NOTE: If you do try to refactor this method please update the counter above.
 def RecursiveInstall(env, sourceDir, sourcesRel, targetName, fileFilter=None):
-    if fileFilter == None:
-        fileFilter = ['*.*']
+    fileFilter = fileFilter if fileFilter is not None else ['*.*']
     nodes = []
     for s in sourcesRel:
         nodes.extend(FindFiles(env, s, fileFilter))
-    l = len(sourceDir.abspath) + 1
-    relnodes = [ n.abspath[l:] for n in nodes ]
     targetHeaderDir = env.Dir(env['INSTALL_HEADERS_DIR']).Dir(targetName).abspath
     targets = []
     sources = []
-    for n in relnodes:
-        t = env.File(os.path.join(targetHeaderDir, n))
-        s = sourceDir.File(n)
-        targets.append( t )
-        sources.append( s )
+    # Add the sources in the "src/" path
+    for src, hdr in PathGenerator(nodes, sourceDir):
+        t = env.File(os.path.join(targetHeaderDir, hdr))
+        targets.append(t)
+        sources.append(src)
     iAs = env.InstallAs(targets, sources)
     return iAs
 
 
-## {{{ http://code.activestate.com/recipes/52560/ (r1)
-def RemoveDuplicates(s):
-    """Return a list of the elements in s, but without duplicates.
-
-    For example, unique([1,2,3,1,2,3]) is some permutation of [1,2,3],
-    unique("abcabc") some permutation of ["a", "b", "c"], and
-    unique(([1, 2], [2, 3], [1, 2])) some permutation of
-    [[2, 3], [1, 2]].
-
-    For best speed, all sequence elements should be hashable.  Then
-    unique() will usually work in linear time.
-
-    If not possible, the sequence elements should enjoy a total
-    ordering, and if list(s).sort() doesn't raise TypeError it's
-    assumed that they do enjoy a total ordering.  Then unique() will
-    usually work in O(N*log2(N)) time.
-
-    If that's not possible either, the sequence elements must support
-    equality-testing.  Then unique() will usually work in quadratic
-    time.
+def PathGenerator(nodes, sourceDir):
     """
-    n = len(s)
-    if n == 0:
-        return []
-    # Try using a dict first, as that's the fastest and will usually
-    # work.  If it doesn't work, it will usually fail quickly, so it
-    # usually doesn't cost much to *try* it.  It requires that all the
-    # sequence elements be hashable, and support equality comparison.
-    u = {}
-    try:
-        for x in s:
-            u[x] = 1
-    except TypeError:
-        del u  # move on to the next method
-    else:
-        return u.keys()
-    # We can't hash all the elements.  Second fastest is to sort,
-    # which brings the equal elements together; then duplicates are
-    # easy to weed out in a single pass.
-    # NOTE:  Python's list.sort() was designed to be efficient in the
-    # presence of many duplicate elements.  This isn't true of all
-    # sort functions in all languages or libraries, so this approach
-    # is more effective in Python than it may be elsewhere.
-    try:
-        t = list(s)
-        t.sort()
-    except TypeError:
-        del t  # move on to the next method
-    else:
-        assert n > 0
-        last = t[0]
-        lasti = i = 1
-        while i < n:
-            if t[i] != last:
-                t[lasti] = last = t[i]
-                lasti += 1
-            i += 1
-        return t[:lasti]
-    # Brute force is all that's left.
-    u = []
-    for x in s:
-        if x not in u:
-            u.append(x)
-    return u
-## end of http://code.activestate.com/recipes/52560/ }}}
+    This method separate the source that will go to the source directory
+    and the sources that will not go there.
+    """
+    forsrc = []
+    source_path = sourceDir.abspath
+    element = ()
+    for n in nodes:
+        # Add the path if the sourceDir is in the source path.
+        if source_path in n.abspath:
+            element = (n.abspath, n.abspath.replace('%s/' % source_path, ''))
+        else:
+            # Take the path after the abspath.
+            path = source_path.replace(os.getcwd(), '')
+            node_path = ''
+            # Go back one path and check if it is into the abspath.
+            for i in range(1, path.count('/')):
+                # Remove the last directory in the path.
+                path = os.path.dirname(path)
+                # Check if the path was added to relnodes before.
+                if path in n.abspath and not (n.abspath, node_path) == element:
+                    # Take the path after the in common path.
+                    node_path = n.abspath.split("%s/" % path)[1]
+                    element = (n.abspath, node_path)
+        yield element
+
+
+def RemoveDuplicates(seq, idfun=None): 
+    ''''
+    Removes duplicates in seq, preserving it's order.
+    Uses cmp() so it supports unhashable objects.
+    :idfun: is an optional transformation function so we can do this:
+
+        >>> a=list('ABeeE')
+        >>> f5(a)
+        ['A','B','e','E']
+        >>> f5(a, lambda x: x.lower())
+        ['A','B','e'] 
+
+    '''
+    if idfun is None:
+       idfun = lambda x: x
+    seen = {}
+    result = []
+    for item in seq:
+        marker = idfun(item)
+        if marker not in seen:
+            seen[marker] = 1
+            result.append(item)
+    return result
 
 
 def FilesFlatten(env, path, fileFilter):
@@ -165,10 +158,14 @@ def ChainCalls(env, cmds, silent=True):
         cmd = cmds[0]
         with open(os.devnull, "w") as fnull:
             stdout = fnull if silent else None
-            rc = subprocess.call(cmd, stdout=stdout, shell=True) #errors always shows
-        if rc:
+            if silent:
+                print '>>', cmd
+            #errors always shows
+            cmd_proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
+            cmd_proc.stdout.read()
+        if cmd_proc.wait():
             env.cerror('error executing: %s' % cmd)
-            return rc
+            return cmd_proc.wait()
         else:
             return ChainCalls(env, cmds[1:], silent)
     else:
@@ -177,14 +174,14 @@ def ChainCalls(env, cmds, silent=True):
 
 def GetDistro():
     """
-        Description:
-            This function tells in which distribution of linux we are.
-        Arguments:
-            None.
-        Exceptions:
-            DistroError.
-        Return:
-            A string instance with the name of the distribution.
+    Description:
+        This function tells in which distribution of linux we are.
+    Arguments:
+        None.
+    Exceptions:
+        DistroError.
+    Return:
+        A string instance with the name of the distribution.
     """
     try:
         f = open(_DISRTO_FILE, 'r')
@@ -196,7 +193,7 @@ def GetDistro():
         f.close()
         if distro in ['Ubuntu', 'ubuntu', 'UBUNTU']:
             result = DISTRO_UBUNTU
-        elif distro in ['Arch','arch','ARCH']:
+        elif distro in ['Arch', 'arch', 'ARCH']:
             result = DISRTO_ARCH
         else:
             raise fbuild_exceptions.DistroError()
@@ -205,17 +202,62 @@ def GetDistro():
 
 def WasTargetInvoked(target):
     """
-        Description:
-            This function tells if a specific target was invoked or not.
-        Arguments:
-            target  -  A string instance with the name of target to be check.
-        Exceptions:
-            None.
-        Return:
-            True  if the target was called.
-            False otherwise.
+    Description:
+        This function tells if a specific target was invoked or not.
+    Arguments:
+        target  -  A string instance with the name of target to be check.
+    Exceptions:
+        None.
+    Return:
+        True  if the target was called.
+        False otherwise.
     """
     for arg in sys.argv:
         if arg == target:
             return True
     return False
+
+
+def FindSources(dirs, extensions, spacer=' '):
+    out = []
+    
+    for source in dirs:
+        name, ext = os.path.splitext(source.name)
+        if ext in extensions:
+            out.append(source.abspath)
+    
+    return ' '.join(out)
+
+
+def FindHeaders(dirs):
+    out = []
+    for source in dirs:
+        name, ext = os.path.splitext(source.name)
+        if ext in ['.h', '.hh', '.hpp']:
+            dirname = os.path.dirname(source.abspath)
+            if dirname not in out:
+                out.append(dirname)
+    return ''.join('-I%s ' %x for x in out)
+
+
+def CheckPath(path, create=True):
+    if not os.path.exists(path):
+        if create:
+            mkpath(path)
+        return False
+    return True
+
+
+def ProcessExists(pid):
+    """
+    Checks if the process with PID pid exists.
+    """
+    return os.path.exists(_PROC_DIR % pid)
+
+
+def WaitProcessExists(pid):
+    """
+    Waits until exists a process with PID pid.
+    """
+    while not ProcessExists(pid):
+        pass

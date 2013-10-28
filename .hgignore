@@ -2,10 +2,8 @@ build/
 install/
 .sconsign.dblite
 conf/projects.local
-projects/
 bin/local.sh
-buildtests/
-
+projects/*
 .cproject
 .project
 .pydevproject

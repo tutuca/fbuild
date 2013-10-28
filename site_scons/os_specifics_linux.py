@@ -1,6 +1,8 @@
 # fudepan-build: The build system for FuDePAN projects
 #
-# Copyright (C) 2011 Esteban Papp, 2013 Gonzalo Bonigo, FuDePAN
+# Copyright (C) 2011-2012 Esteban Papp, Hugo Arregui,
+#               2013 Gonzalo Bonigo, Gustavo Ojeda, Matias Iturburu,
+#                    Leandro Moreno, FuDePAN
 #
 # This file is part of the fudepan-build build system.
 #
@@ -25,4 +27,4 @@
 
 def init(env):
     for module in ['pthread', 'dl', 'gcov']:
-        env.CreateExternalLibraryComponent(module, [], env.Dir('/usr/lib'), [], True)
+        env.CreateExternalComponent(module, [], env.Dir('/usr/lib'), [], True)
