@@ -250,7 +250,7 @@ class Component(object):
         self._CreateAstyleTarget(self._sources)
         run_cccc_builder = self._CreateCCCCTarget(self._sources)
         self._CreateClocTarget(self._sources)
-        self._CreateStaticAnalysisTarget(self._sources)
+        run_static_builder = self._CreateStaticAnalysisTarget(self._sources)
         run_doc_builder = self._CreateDocTarget()
         run_info_builder = self._CreateInfoTarget(self._sources)
         self._CreateNameCheckTarget(self._sources)
@@ -258,7 +258,9 @@ class Component(object):
         self._env.Alias('all:cccc', run_cccc_builder, 'Run CCCC in all projects')
         # Create the alias for 'all:info'
         self._env.Alias('all:info', run_info_builder, 'Take info about all projects')
-        # Create the alias for 'all:doc'
+		# Create the alias for 'all:static-analysis'
+        self._env.Alias('all:static-analysis', run_static_builder, 'Run Static Analisis in all projects')        
+		# Create the alias for 'all:doc'
         self._env.Alias('all:doc', run_doc_builder, 'Take the docs of all projects')
 
 
