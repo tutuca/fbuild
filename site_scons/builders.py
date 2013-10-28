@@ -626,7 +626,6 @@ def _RunCppCheck(report_dir, files, headers, options):
     else:
         report_file = report_file+'.txt'
         cmd = "cppcheck %s %s %s" % (options, files, headers)
-    env.Cprint "Report at: ", report_file
     with open(report_file, 'w+') as rf:
         pipe = subprocess.Popen(
             cmd, 
