@@ -146,14 +146,22 @@
             target="https://googlemock.googlecode.com/svn/tags/release-1.6.0"
             manager="SVN"/>
         <execute_after>
-            cd {TMP_DIR}/gmock/make; make CFLAGS={CFLAGS} CXXFLAGS={CXXFLAGS} gmock.a; make gmock_main.a
+            cd {TMP_DIR}/gmock/make; make CFLAGS={CFLAGS} CXXFLAGS={CXXFLAGS} gmock.a
             sudo mv {TMP_DIR}/gmock/make/gmock.a /usr/lib/libgmock.a
-            sudo mv {TMP_DIR}/gmock/make/gmock_main.a /usr/lib/libgmock_main.a
             sudo cp -r {TMP_DIR}/gmock/include/gmock /usr/include/gmock
         </execute_after>
     </component>
 
-    <component name="gmock_main" type="LIB" deps="gmock"/>
+    <component name="gmock_main" type="LIB" deps="gmock">
+        <installer
+            distro="*"
+            target="https://googlemock.googlecode.com/svn/tags/release-1.6.0"
+            manager="SVN"/>
+        <execute_after>
+            cd {TMP_DIR}/gmock_main/make; make gmock_main.a
+            sudo mv {TMP_DIR}/gmock_main/make/gmock_main.a /usr/lib/libgmock_main.a
+        </execute_after>
+    </component>
 
     <component name="gomp" type="LIB">
         <installer distro="UBUNTU" target="libgomp" manager="APT-GET"/>
@@ -166,20 +174,23 @@
             target="https://googletest.googlecode.com/svn/tags/release-1.6.0"
             manager="SVN" />
         <execute_after>
-            cd {TMP_DIR}/gtest/make; make gtest.a; make gtest_main.a
+            cd {TMP_DIR}/gtest/make; make gtest.a
             sudo mv {TMP_DIR}/gtest/make/gtest.a /usr/lib/libgtest.a
-            sudo mv {TMP_DIR}/gtest/make/gtest_main.a /usr/lib/libgtest_main.a
             sudo cp -r {TMP_DIR}/gtest/include/gtest /usr/include/gtest
         </execute_after>
     </component>
-
-    <component name="gtest_main" type="LIB" deps="gtest"/>
-
-    <component name="loog-ppl0" type="PRO">
-        <installer distro="UBUNTU" target="libcloog-ppl0" manager="APT-GET"/>
-        <install_checker>dpkg -s libcloog-ppl0</install_checker>
+    
+    <component name="gtest_main" type="LIB" deps="gtest">
+        <installer
+            distro="*"
+            target="https://googletest.googlecode.com/svn/tags/release-1.6.0"
+            manager="SVN" />
+        <execute_after>
+            cd {TMP_DIR}/gtest_main/make; make gtest_main.a
+            sudo mv {TMP_DIR}/gtest_main/make/gtest_main.a /usr/lib/libgtest_main.a
+        </execute_after>
     </component>
-
+ 
     <component  name="maxima"  type="PRO">
         <installer distro="*" target="maxima" manager="*"/>
     </component>
@@ -293,6 +304,22 @@
         </execute_after>
     </component>
 
+    <component name="loog-ppl0" type="PRO">
+        <installer distro="UBUNTU" target="libcloog-ppl0" manager="APT-GET"/>
+        <install_checker>dpkg -s libcloog-ppl0</install_checker>
+    </component>
+
+    <component name="jrtp" type="LIB">
+        <installer
+            distro="*"
+            target="https://200.69.202.173:5555/usvn/svn/UCP-Invap/trunk/libs/jrtplib-3.9.1"
+            manager="SVN"/>
+        <execute_after>
+            cd ./{TMP_DIR}/jrtp; cmake .; make -j4; sudo make install; make clean; sudo ldconfig
+        </execute_after>
+        <install_checker>stat -f /usr/local/lib/libjrtp.a</install_checker>
+    </component>
+
     <component name="xext" type="PRO">
         <installer distro="UBUNTU" target="libxext-dev" manager="APT-GET"/>
         <install_checker>dpkg -s libxext-dev</install_checker>
@@ -303,5 +330,6 @@
     </component>
 
     <component name="rt" type="LIB"/>
+
 
 </external_dependencies>
