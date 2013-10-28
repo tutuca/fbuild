@@ -626,13 +626,14 @@ def _RunCppCheck(report_dir, files, headers, options):
     else:
         report_file = report_file+'.txt'
         cmd = "cppcheck %s %s %s" % (options, files, headers)
-    print "Report at: ", report_file
+    env.Cprint "Report at: ", report_file
     with open(report_file, 'w+') as rf:
         pipe = subprocess.Popen(
             cmd, 
             shell=True, 
             stderr=rf
         )
+    return EXIT_SUCCESS
 
 def _RunSplint(report_dir, files, headers):
     report_file = os.path.join(report_dir.abspath, 'static-analysis-report')
