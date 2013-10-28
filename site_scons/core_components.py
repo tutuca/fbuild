@@ -246,7 +246,7 @@ class Component(object):
     #
     def _SetTargets(self):
         """Create targets for most modules."""
-        self._CreateAstyleCheckTarget(self._sources)
+        run_astyle_builder = self._CreateAstyleCheckTarget(self._sources)
         self._CreateAstyleTarget(self._sources)
         run_cccc_builder = self._CreateCCCCTarget(self._sources)
         self._CreateClocTarget(self._sources)
@@ -262,7 +262,8 @@ class Component(object):
         self._env.Alias('all:static-analysis', run_static_builder, 'Run Static Analisis in all projects')        
 		# Create the alias for 'all:doc'
         self._env.Alias('all:doc', run_doc_builder, 'Take the docs of all projects')
-
+        # Create the alias for 'all:astyle'
+        self._env.Alias('all:astyle', run_astyle_builder, 'Run Astyle in all projects')
 
     def _GetObjectsFiles(self, object_files, stack):
         """
