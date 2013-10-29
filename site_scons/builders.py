@@ -652,7 +652,7 @@ def _CheckAstyle(env, source, output_directory):
     # Copy all sources into the temporary directory.
     for file in source:
         if "tests/ref/" not in file.abspath:  # TODO: Remove this line.
-            os.system('cp %s %s' % (file.abspath, tmp_dir))
+            shutil.copy(file.abspath, tmp_dir)
             f = env.Dir(tmp_dir).File(os.path.split(file.abspath)[1])
             files_list.append(f)
     files_str = SPACE.join([x.abspath for x in files_list])
