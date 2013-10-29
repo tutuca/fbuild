@@ -273,7 +273,10 @@ def AStyle(env, target, source):
     #   instead of the projects/ directory.
     build_dir = env['BUILD_DIR']
     ws_dir = env['WS_DIR']
-    file_list = SPACE.join([f.abspath.replace(build_dir, ws_dir) for f in source if "tests/ref/" not in f.abspath])
+    file_list = SPACE.join(
+        [f.abspath.replace(build_dir, ws_dir)
+            for f in source
+            if "tests/ref/" not in f.abspath])
     # Create the command to be executed.
     cmd = "astyle -k1 --options=none --convert-tabs -bSKpUH %s" % file_list
     # Run astyle.
