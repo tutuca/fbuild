@@ -1,6 +1,7 @@
-= Introducción =
+Introducción
+===============
 
-La idea de fudepan-build es proveer manejo de dependencias y uniformidad en el build (utilizando scons). Ademas, se puede utilizar como un entorno reducido donde mantener una instalación y proveer comandos personalizados.
+`fudepan-build` provee manejo de dependencias y uniformidad en el build (utilizando scons). Ademas, se puede utilizar como un entorno reducido donde mantener una instalación y proveer comandos personalizados.
 
 Estructura de fudepan-build
 
@@ -22,7 +23,8 @@ conf/projects.xml contiene la configuración de cada proyecto, la url de descarg
 env.sh es el script que prepara el ambiente del sistema.
 `start.sh` es el script que intenta actualizar fbuild a la versión más reciente.
 
-= Uso =
+Uso
+===============
 
 Antes que nada, hacer un source del archivo start.sh en la raiz del proyecto.
 
@@ -71,7 +73,8 @@ Para obtener una salida más completa:
 
     $ fbuild --verbose ....
 
-= "Sconscificando" un proyecto =
+*Sconscificando* un proyecto
+===============
 
 Hay 4 tipos basicos de builders:
 
@@ -97,7 +100,8 @@ Ejemplos de cada tipo de proyecto:
     Shared Library: biopp
     Program: backbones-generator
 
-= Variables de entorno =
+Variables de entorno
+===============
 
 Algunas variables de entorno a tener en cuenta:
 
@@ -110,7 +114,8 @@ Prevenir que fbuild se actualice automaticamente (no recomendado):
 
     export FBUILD_NO_UPDATE=1 
 
-=Tips=
+Tips
+===============
 
 Es extremadamente util agregar un alias en el archivo ~/.bashrc que nos ahorre el recordar hacer el source de env.sh, por ejemplo:
 
