@@ -205,7 +205,7 @@ class Dependencies(object):
 class HG(Dependencies):
 
     def __init__(self, name, target, node, env):
-        Dependencies.__init__(self, name, target, node, env)
+        super(HG, self).__init__(name, target, node, env)
         if self.type == 'component':
             self.url = target
             self.target = self.env.Dir(os.path.join(TMP_DIR, name)).abspath
@@ -232,7 +232,7 @@ class HG(Dependencies):
 class SVN(Dependencies):
 
     def __init__(self, name, target, node, env):
-        Dependencies.__init__(self, name, target, node, env)
+        super(SVN, self).__init__(name, target, node, env)
         if self.type == 'component':
             self.url = target
             self.target = self.env.Dir(os.path.join(TMP_DIR, name)).abspath
@@ -268,7 +268,7 @@ class SVN(Dependencies):
 class WGET(Dependencies):
 
     def __init__(self, name, target, node, env):
-        Dependencies.__init__(self, name, target, node, env)
+        super(WGET, self).__init__(name, target, node, env)
         if self.type == 'component':
             self.url = target
             self.target = self.env.Dir(os.path.join(TMP_DIR, name)).abspath
