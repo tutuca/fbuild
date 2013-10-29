@@ -246,14 +246,26 @@ class Component(object):
     #
     def _SetTargets(self):
         """Create targets for most modules."""
-        self._CreateAstyleCheckTarget(self._sources)
-        self._CreateAstyleTarget(self._sources)
-        self._CreateCCCCTarget(self._sources)
+        run_astyle_check_builder = self._CreateAstyleCheckTarget(self._sources)
+        run_astyle_builder = self._CreateAstyleCheckTarget(self._sources)		
+        run_cccc_builder = self._CreateCCCCTarget(self._sources)
         self._CreateClocTarget(self._sources)
-        self._CreateStaticAnalysisTarget(self._sources)
-        self._CreateDocTarget()
-        self._CreateInfoTarget(self._sources)
+        run_static_builder = self._CreateStaticAnalysisTarget(self._sources)
+        run_doc_builder = self._CreateDocTarget()
+        run_info_builder = self._CreateInfoTarget(self._sources)
         self._CreateNameCheckTarget(self._sources)
+        # Create the alias for 'all:cccc'
+        self._env.Alias('all:cccc', run_cccc_builder, 'Run CCCC in all projects')
+        # Create the alias for 'all:info'
+        self._env.Alias('all:info', run_info_builder, 'Take info about all projects')
+		# Create the alias for 'all:static-analysis'
+        self._env.Alias('all:static-analysis', run_static_builder, 'Run Static Analysis in all projects')        
+		# Create the alias for 'all:doc'
+        self._env.Alias('all:doc', run_doc_builder, 'Take the docs of all projects')
+        # Create the alias for 'all:astyle'
+        self._env.Alias('all:astyle', run_astyle_builder, 'Run Astyle in all projects')
+		# Create the alias for 'all:astyle-check'
+        self._env.Alias('all:astyle-check', run_astyle_check_builder, 'Run Astyle Check in all projects')
 
 
     def _GetObjectsFiles(self, object_files, stack):
@@ -303,15 +315,15 @@ class Component(object):
         if len(stack) == 1:
             # If we're here is because we are looking for the include of this
             # component.
+            # So we add the _includes from this component
+            include_paths |= set(self._includes)
+
             if isinstance(self, UnitTestComponent):
                 # If this is a UnitTestComponent we need the include directories
-                # from its component.
-                component = self._component_graph.get(self._project_name)
+                # from its component too.
+                component = self._component_graph[self._project_name]
                 include_paths |= set(component._includes)
-            else:
-                # For any other component we use the _includes list.
-                for path in self._includes:
-                    include_paths.add(path)
+            
             # We also add the install/include/ and the build/project/ directories.
             include_paths.add(self._env.Dir('$INSTALL_HEADERS_DIR'))
             include_paths.add(self._dir)
@@ -482,8 +494,8 @@ class HeaderOnlyComponent(Component):
     def _sources(self):
         return self.GetIncludeFiles()
 
-    def __init__(self, graph, env, name, dir, deps, inc, als=None):
-        super(HeaderOnlyComponent, self).__init__(graph, env, name, dir, deps, inc, [], als)
+    def __init__(self, graph, env, name, dir, deps, ext_inc, als=None):
+        super(HeaderOnlyComponent, self).__init__(graph, env, name, dir, deps, ext_inc, [], als)
         self._project_dir = self._env.Dir('WS_DIR').Dir(self.name)
         self._builders = {  # Maintain alphabetical order.
             'asan': None,
@@ -754,11 +766,13 @@ class HeaderOnlyComponent(Component):
             name = self.name
         project_component = self._component_graph.get(name)
         # Flags for check the calling targets.
-        jenkins = utils.WasTargetInvoked('%s:jenkins' % name)
+        jenkins = (utils.WasTargetInvoked('%s:jenkins' % name) or 
+                    utils.WasTargetInvoked('all:jenkins'))
         coverage = utils.WasTargetInvoked('%s:coverage' % name)
         rtc = (utils.WasTargetInvoked('%s:rtc' % name) or
               utils.WasTargetInvoked('%s:ready-to-commit' % name))
-        asan = utils.WasTargetInvoked('%s:asan' % name)
+        asan = (utils.WasTargetInvoked('%s:asan' % name) or
+                utils.WasTargetInvoked('all:asan'))
         # Create the dictionary of flags.
         result = {
             'jenkins': jenkins,
@@ -827,10 +841,31 @@ class HeaderOnlyComponent(Component):
         return result
 
     def _ExtendFlagsList(self, to_check, flags_list):
-        result = flags_list.extend([x for x in to_check if not x in flags_list])
-        return result
+        """
+        Description:
+            Extend the flags list with the new flags. Does not add flags that are already added.
+        Arguments:
+            - flags: The flags that you want to add.
+            - flags_list: The list of flags where you want add the flags.
+        Return:
+            The new list of flags
+        """
+        return flags_list.extend([x for x in to_check if not x in flags_list])
 
     def _AppendComponentFlags(self, component, flags, cxx_flags=None, c_flags=None, l_flags=None):
+        """
+        Description:
+            This method add flags to the compiler and/or linker.
+        Arguments:
+            - component: The component where you want add the flags
+            - flags: the flags that you will add.
+        Optional Aruments:
+            - cxx_flags: flags for C++
+            - c_flags: flags for C
+            - l_flags: flags for the linker
+        Return:
+            None.
+        """
         if not cxx_flags:
             cxx_flags = flags
         if not c_flags:
@@ -860,7 +895,12 @@ class HeaderOnlyComponent(Component):
         jenkins = self._env.Alias(
             '%s:jenkins' % name,
             None,
-            "Build the environmnet's project for the Jenkins server."
+            "Build the project's environment for the Jenkins server."
+        )
+        jenkins_all = self._env.Alias(
+            'all:jenkins',
+            None,
+            "Build the jenkins enviroment for all the projects"
         )
         # If the target 'jenkins' was invoked...
         if flags and flags['jenkins']:
@@ -871,51 +911,52 @@ class HeaderOnlyComponent(Component):
             try:
                 astyle_check = project_component._CreateAstyleCheckTarget(source)
                 self._env.Depends(jenkins, astyle_check)
+                self._env.Depends(jenkins_all, astyle_check)
             except AttributeError:
-                self._env.cerror("Not processing Astyle Check")
+                self._env.cerror("Not processing Astyle Check in %s" % name)
             
             try:
                 cppcheck = project_component._CreateStaticAnalysisTarget(source)
                 self._env.Depends(jenkins, cppcheck)
+                self._env.Depends(jenkins_all, cppcheck)
             except AttributeError:
-                self._env.cerror("Not processing CppCheck")
+                self._env.cerror("Not processing CppCheck in %s" % name)
             
             try:
                 cccc = project_component._CreateCCCCTarget(source)
                 self._env.Depends(jenkins, cccc)
+                self._env.Depends(jenkins_all, cccc)
             except AttributeError:
-                self._env.cerror("Not processing CCCC")
-
-            try:
-                cccc = project_component._CreateCCCCTarget(source)
-                self._env.Depends(jenkins, cccc)
-            except AttributeError:
-                self._env.cerror("Not processing CCCC")
+                self._env.cerror("Not processing CCCC in %s" % name)
 
             try:
                 cloc = project_component._CreateClocTarget(source)
                 self._env.Depends(jenkins, cloc)
+                self._env.Depends(jenkins_all, cloc)
             except AttributeError:
-                self._env.cerror("Not processing Cloc")
+                self._env.cerror("Not processing Cloc in %s" % name)
 
             try:
                 doc = project_component._CreateDocTarget()
                 self._env.Depends(jenkins, doc)
+                self._env.Depends(jenkins_all, doc)
             except AttributeError:
-                self._env.cerror("Not processing Doxygen")
+                self._env.cerror("Not processing Doxygen in %s" % name)
 
             try:
                 valgrind = self._CreateValgrindTarget(program_builder)
                 self._env.Depends(jenkins, valgrind)
+                self._env.Depends(jenkins_all, valgrind)
             except AttributeError:
-                self._env.cerror("Not processing Valgrind")
+                self._env.cerror("Not processing Valgrind in %s" % name)
 
             if target:
                 try:
                     coverage = self._CreateCoverageTarget(target, program_builder)
                     self._env.Depends(jenkins, coverage)
+                    self._env.Depends(jenkins_all, coverage)
                 except AttributeError:
-                    self._env.cerror("Not processing Coverage")
+                    self._env.cerror("Not processing Coverage in %s" % name)
 
         self._builders['jenkins'] = jenkins
         return jenkins
@@ -1321,16 +1362,23 @@ class UnitTestComponent(ProgramComponent):
         # Create targets.
         self._CreateNameCheckTarget(sources)
         run_valgrind_builder = self._CreateValgrindTarget(program_builder)
-        self._CreateASanTarget(program_builder)
-        self._CreateCoverageTarget(run_test_target, program_builder)
+        run_asan_builder = self._CreateASanTarget(program_builder)
+        run_coverage_builder = self._CreateCoverageTarget(run_test_target, program_builder)
         self._CreateJenkinsTarget(program_builder, target=run_test_target,)
-        self._CreateReadyToCommitTarget(run_test_target, program_builder)
+        run_rtc_builder = self._CreateReadyToCommitTarget(run_test_target, program_builder)
         run_test_builder = self._CreateTestTarget(run_test_target, program_builder)
         self._builders['install'] = run_test_builder
         # Create alias for 'all:test'.
-        self._env.Alias('all:test', run_test_builder, "Run all tests")
+        self._env.Alias('all:test', run_test_builder, "Run tests in all projects")
         # Create the alias for 'all:valgrind'
-        self._env.Alias('all:valgrind', run_valgrind_builder, 'Run valgrind in all the projects')
+        self._env.Alias('all:valgrind', run_valgrind_builder, 'Run valgrind in all projects')
+		# Create the alias for 'all:asan'
+        self._env.Alias('all:asan', run_asan_builder, 'Run Address Sanitizer in all projects')        
+		# Create the alias for 'all:ready-to-commit'
+        self._env.Alias('all:ready-to-commit', run_rtc_builder, 'Run ready-to-commit in all projects')
+        # Create the alias for 'all:coverage'
+        self._env.Alias('all:coverage', run_coverage_builder, 'Run coverage in all projects')
+
         # Return the builder that execute the test.
         return run_test_builder
 
@@ -1413,8 +1461,8 @@ class UnitTestComponent(ProgramComponent):
         # Coverage can always be built.
         self._env.AlwaysBuild(cov)
         self._env.AlwaysBuild(run_test_builder)
-        self._builders['coverage'] = cov
-        return cov
+        self._builders['coverage'] = run_lcov_builder
+        return run_lcov_builder
 
     def _CreateTestTarget(self, target, program_builder):
         run_test_builder = self._env.RunUnittest(target, program_builder)
@@ -1432,49 +1480,45 @@ class UnitTestComponent(ProgramComponent):
         return run_test_builder
 
     def _CreateReadyToCommitTarget(self, run_test_target, program_builder):
-        flags = self._CheckForFlags()
         if self._builders['ready-to-commit'] is not None:
             return self._builders['ready-to-commit']
         # Get the component of the project.
         project_component = self._component_graph.get(self._project_name)
+        # Create an instance of the RunReadyToCommit() builder.
+        target = self._env.Dir('$INSTALL_REPORTS_DIR')
+        target = target.Dir('ready-to-commit').Dir(self._project_name)
+        target = target.File('ReadyToCommitReportFile.txt')
+        rtc_builder = self._env.RunReadyToCommit(target, None)
+        self._env.AlwaysBuild(rtc_builder)
+        self._env['PROJECT_NAME'] = self._project_name
+        # Get the builders from which the ready-to-commit target will
+        # depend on.
+        sources = project_component.GetSourcesFiles()
+        includes = project_component.GetIncludeFiles()
+        source = sources + includes
+        astyle_check = project_component._CreateAstyleCheckTarget(source)
+        cppcheck = project_component._CreateStaticAnalysisTarget(source)
+        valgrind = self._CreateValgrindTarget(program_builder)
+        run_test = self._env.RunUnittest(run_test_target, program_builder)
+        # Create dependencies.
+        self._env.Depends(rtc_builder, astyle_check)
+        self._env.Depends(rtc_builder, cppcheck)
+        self._env.Depends(rtc_builder, run_test)
+        self._env.Depends(rtc_builder, valgrind)
         # Create the alias.
-        ready_to_commit = self._env.Alias(
+        self._env.Alias(
             '%s:ready-to-commit' % self._project_name,
-            None,
+            rtc_builder,
             "Check if the project is ready to be commited."
         )
         # Create a shorter alias.
         self._env.Alias(
             '%s:rtc' % self._project_name,
-            ready_to_commit,
+            rtc_builder,
             "Alias of the target: ready-to-commit."
         )
-        # If the target 'ready-to-commit' was invoked...
-        if flags['ready-to-commit']:
-            # Create an instance of the RunReadyToCommit() builder.
-            target = self._env.Dir('$INSTALL_REPORTS_DIR')
-            target = target.Dir('ready-to-commit').Dir(self._project_name)
-            target = target.File('ReadyToCommitReportFile.txt')
-            rtc_builder = self._env.RunReadyToCommit(target, None)
-            self._env.AlwaysBuild(rtc_builder)
-            self._env['PROJECT_NAME'] = self._project_name
-            # Get the builders from which the ready-to-commit target will
-            # depend on.
-            sources = project_component.GetSourcesFiles()
-            includes = project_component.GetIncludeFiles()
-            source = sources + includes
-            astyle_check = project_component._CreateAstyleCheckTarget(source)
-            cppcheck = project_component._CreateStaticAnalysisTarget(source)
-            valgrind = self._CreateValgrindTarget(program_builder)
-            run_test = self._env.RunUnittest(run_test_target, program_builder)
-            # Create dependencies.
-            self._env.Depends(rtc_builder, astyle_check)
-            self._env.Depends(rtc_builder, cppcheck)
-            self._env.Depends(rtc_builder, run_test)
-            self._env.Depends(rtc_builder, valgrind)
-            self._env.Depends(ready_to_commit, rtc_builder)
-        self._builders['ready-to-commit'] = ready_to_commit
-        return ready_to_commit
+        self._builders['ready-to-commit'] = rtc_builder
+        return rtc_builder
 
     def _UseMocko(self, sources):
         # Path to the list.mocko file.

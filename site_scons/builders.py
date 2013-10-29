@@ -620,14 +620,21 @@ def RunInfo(env, target, source):
 
 def _RunCppCheck(report_dir, files, headers, options):
     report_file = os.path.join(report_dir.abspath, 'static-analysis-report')
+    success = False
     if 'xml' in options:
-        cmd = "cppcheck --check-config %s %s %s 2> %s.xml" % (options, files, 
-            headers, report_file)
+        report_file = report_file+'.xml'
+        cmd = "cppcheck --check-config %s %s %s 2" % (options, files, headers)
     else:
-        cmd = "cppcheck %s %s %s 2> %s.txt" % (options, files, 
-            headers, report_file)
-    cppcheck_proc = subprocess.Popen(cmd, shell=True)
-    return cppcheck_proc.wait()
+        report_file = report_file+'.txt'
+        cmd = "cppcheck %s %s %s" % (options, files, headers)
+    with open(report_file, 'w+') as rf:
+        pipe = subprocess.Popen(
+            cmd, 
+            shell=True, 
+            stderr=rf
+        )
+        success = pipe.wait()
+    return success
 
 def _RunSplint(report_dir, files, headers):
     report_file = os.path.join(report_dir.abspath, 'static-analysis-report')
