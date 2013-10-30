@@ -83,9 +83,7 @@ def init(env):
     env['CLOC_OUTPUT_FORMAT'] = 'txt'  # txt | sql | xml
     env['CLOC_OPTIONS'] = []
     #-
-    bldCppCheck = Builder(action=Action(RunCppCheck, PrintDummy))
-    env.Append(BUILDERS={'RunCppCheck': bldCppCheck})
-    env['CPPCHECK_OPTIONS'] = ['-f', '--enable=all']
+    env['CPPCHECK_OPTIONS'] = ['-f', '--enable=all', '--check-config']
     #-
     bldMocko = Builder(action=Action(RunMocko, PrintDummy))
     env.Append(BUILDERS={'RunMocko': bldMocko})
@@ -441,26 +439,6 @@ def RunCLOC(env, target, source):
     return EXIT_SUCCESS
 
 
-def RunCppCheck(env, target, source):
-    # Print message on the screen.
-    env.Cprint('\n=== Running CPPCHECK ===\n', 'green')
-    # Get the report file name.
-    report_file = target[0].abspath
-    # Get the output directory.
-    output_directory = os.path.dirname(report_file)
-    # Check if the output directory for the cppcheck report already exists.
-    if not os.path.exists(output_directory):
-        os.makedirs(output_directory)
-    # Create a string with the options for cppcheck.
-    options = SPACE.join([opt for opt in env['CPPCHECK_OPTIONS']])
-    # We create a string with the files for cppcheck.
-    files = SPACE.join([f.abspath for f in source])
-    # Create the command to be pass to subprocess.Popen()
-    result = _RunCppCheck(env, target, files, options)
-    if not result:
-        env.cerror('\n\n[ERROR] Failed running Cpp Check\n\n')
-    return EXIT_SUCCESS
-
 def RunStaticAnalysis(env, target, source):
     # Print message on the screen.
     cppcheck_rc = False
@@ -476,14 +454,14 @@ def RunStaticAnalysis(env, target, source):
     if cpp_files:
         CheckPath(cppcheck_dir.abspath)
         cppcheck_rc = _RunCppCheck(cppcheck_dir, cpp_files, headers, 
-            cppcheck_options)
+            cppcheck_options, env)
     if c_files:
         CheckPath(splint_dir.abspath)
         splint_rc = _RunSplint(splint_dir, c_files, headers)
     if headers and not (cpp_files or c_files):
         CheckPath(cppcheck_dir.abspath)
         cppcheck_rc = _RunCppCheck(cppcheck_dir, FindSources(source, 
-            ['.h', '.hh', '.hpp']), headers, cppcheck_options)
+            ['.h', '.hh', '.hpp']), headers, cppcheck_options, env)
     # Return the output of both builders
     if cppcheck_rc or splint_rc:
         env.cerror('\n\n[ERROR] Failed running Static Analysis\n\n')
@@ -618,7 +596,7 @@ def RunInfo(env, target, source):
     return EXIT_SUCCESS
 
 
-def _RunCppCheck(report_dir, files, headers, options):
+def _RunCppCheck(report_dir, files, headers, options, env):
     report_file = os.path.join(report_dir.abspath, 'static-analysis-report')
     success = False
     if 'xml' in options:
@@ -627,6 +605,9 @@ def _RunCppCheck(report_dir, files, headers, options):
     else:
         report_file = report_file+'.txt'
         cmd = "cppcheck %s %s %s" % (options, files, headers)
+    if env.GetOption('verbose'):
+        env.Cprint('>>> %s' % cmd, 'end')
+    import ipdb; ipdb.set_trace()
     with open(report_file, 'w+') as rf:
         pipe = subprocess.Popen(
             cmd, 

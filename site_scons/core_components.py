@@ -250,7 +250,15 @@ class Component(object):
         run_astyle_builder = self._CreateAstyleCheckTarget(self._sources)		
         run_cccc_builder = self._CreateCCCCTarget(self._sources)
         run_cloc_builder = self._CreateClocTarget(self._sources)
-        run_static_builder = self._CreateStaticAnalysisTarget(self._sources)
+
+        include = [self._component_graph.get(x).GetIncludeFiles() for x in self._dependencies]
+        for_cppcheck = []
+        for x in include:
+            for_cppcheck.extend(x)
+        asdf = self.GetIncludePaths()
+
+
+        run_static_builder = self._CreateStaticAnalysisTarget(asdf)
         run_doc_builder = self._CreateDocTarget()
         run_info_builder = self._CreateInfoTarget(self._sources)
         self._CreateNameCheckTarget(self._sources)
