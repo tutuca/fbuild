@@ -440,7 +440,16 @@ def RunCLOC(env, target, source):
 
 
 def RunStaticAnalysis(env, target, source):
-    # Print message on the screen.
+    '''
+    Decide wether to run cppcheck or splint based on the kind of 
+    source files we have.
+
+    :param env: The excecution environment.
+    :param target: The compilation target.
+    :param source: The list of source files.
+
+    '''
+    import ipdb; ipdb.set_trace()
     cppcheck_rc = False
     splint_rc = False
     target = target.pop()
@@ -452,6 +461,7 @@ def RunStaticAnalysis(env, target, source):
     c_files = FindSources(source, ['.c'])
     headers = FindHeaders(source)
     if cpp_files:
+
         CheckPath(cppcheck_dir.abspath)
         cppcheck_rc = _RunCppCheck(cppcheck_dir, cpp_files, headers, 
             cppcheck_options, env)
@@ -601,7 +611,7 @@ def _RunCppCheck(report_dir, files, headers, options, env):
     success = False
     if 'xml' in options:
         report_file = report_file+'.xml'
-        cmd = "cppcheck --check-config %s %s %s 2" % (options, files, headers)
+        cmd = "cppcheck --check-config %s %s %s" % (options, files, headers)
     else:
         report_file = report_file+'.txt'
         cmd = "cppcheck %s %s %s" % (options, files, headers)

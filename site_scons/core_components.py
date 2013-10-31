@@ -250,15 +250,13 @@ class Component(object):
         run_astyle_builder = self._CreateAstyleCheckTarget(self._sources)		
         run_cccc_builder = self._CreateCCCCTarget(self._sources)
         run_cloc_builder = self._CreateClocTarget(self._sources)
-
         include = [self._component_graph.get(x).GetIncludeFiles() for x in self._dependencies]
         for_cppcheck = []
         for x in include:
             for_cppcheck.extend(x)
         asdf = self.GetIncludePaths()
-
-
-        run_static_builder = self._CreateStaticAnalysisTarget(asdf)
+        if self.name == 'ucp': import ipdb; ipdb.set_trace()
+        run_static_builder = self._CreateStaticAnalysisTarget(self._sources + asdf)
         run_doc_builder = self._CreateDocTarget()
         run_info_builder = self._CreateInfoTarget(self._sources)
         self._CreateNameCheckTarget(self._sources)
@@ -1490,43 +1488,46 @@ class UnitTestComponent(ProgramComponent):
         return run_test_builder
 
     def _CreateReadyToCommitTarget(self, run_test_target, program_builder):
+        flags = self._CheckForFlags()
         if self._builders['ready-to-commit'] is not None:
             return self._builders['ready-to-commit']
         # Get the component of the project.
         project_component = self._component_graph.get(self._project_name)
-        # Create an instance of the RunReadyToCommit() builder.
-        target = self._env.Dir('$INSTALL_REPORTS_DIR')
-        target = target.Dir('ready-to-commit').Dir(self._project_name)
-        target = target.File('ReadyToCommitReportFile.txt')
-        rtc_builder = self._env.RunReadyToCommit(target, None)
-        self._env.AlwaysBuild(rtc_builder)
-        self._env['PROJECT_NAME'] = self._project_name
-        # Get the builders from which the ready-to-commit target will
-        # depend on.
-        sources = project_component.GetSourcesFiles()
-        includes = project_component.GetIncludeFiles()
-        source = sources + includes
-        astyle_check = project_component._CreateAstyleCheckTarget(source)
-        cppcheck = project_component._CreateStaticAnalysisTarget(source)
-        valgrind = self._CreateValgrindTarget(program_builder)
-        run_test = self._env.RunUnittest(run_test_target, program_builder)
-        # Create dependencies.
-        self._env.Depends(rtc_builder, astyle_check)
-        self._env.Depends(rtc_builder, cppcheck)
-        self._env.Depends(rtc_builder, run_test)
-        self._env.Depends(rtc_builder, valgrind)
-        # Create the alias.
-        self._env.Alias(
-            '%s:ready-to-commit' % self._project_name,
-            rtc_builder,
-            "Check if the project is ready to be commited."
-        )
-        # Create a shorter alias.
-        self._env.Alias(
-            '%s:rtc' % self._project_name,
-            rtc_builder,
-            "Alias of the target: ready-to-commit."
-        )
+        rtc_builder = None
+        if flags['ready-to-commit']:
+            # Create an instance of the RunReadyToCommit() builder.
+            target = self._env.Dir('$INSTALL_REPORTS_DIR')
+            target = target.Dir('ready-to-commit').Dir(self._project_name)
+            target = target.File('ReadyToCommitReportFile.txt')
+            rtc_builder = self._env.RunReadyToCommit(target, None)
+            self._env.AlwaysBuild(rtc_builder)
+            self._env['PROJECT_NAME'] = self._project_name
+            # Get the builders from which the ready-to-commit target will
+            # depend on.
+            sources = project_component.GetSourcesFiles()
+            includes = project_component.GetIncludeFiles()
+            source = sources + includes
+            astyle_check = project_component._CreateAstyleCheckTarget(source)
+            cppcheck = project_component._CreateStaticAnalysisTarget(source)
+            valgrind = self._CreateValgrindTarget(program_builder)
+            run_test = self._env.RunUnittest(run_test_target, program_builder)
+            # Create dependencies.
+            self._env.Depends(rtc_builder, astyle_check)
+            self._env.Depends(rtc_builder, cppcheck)
+            self._env.Depends(rtc_builder, run_test)
+            self._env.Depends(rtc_builder, valgrind)
+            # Create the alias.
+            self._env.Alias(
+                '%s:ready-to-commit' % self._project_name,
+                rtc_builder,
+                "Check if the project is ready to be commited."
+            )
+            # Create a shorter alias.
+            self._env.Alias(
+                '%s:rtc' % self._project_name,
+                rtc_builder,
+                "Alias of the target: ready-to-commit."
+            )
         self._builders['ready-to-commit'] = rtc_builder
         return rtc_builder
 
