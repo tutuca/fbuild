@@ -449,7 +449,7 @@ def RunStaticAnalysis(env, target, source):
     :param source: The list of source files.
 
     '''
-    import ipdb; ipdb.set_trace()
+    includes = env['CPPCHECK_INC_PATHS']
     cppcheck_rc = False
     splint_rc = False
     target = target.pop()
@@ -459,9 +459,8 @@ def RunStaticAnalysis(env, target, source):
     cppcheck_dir = target.Dir('cppcheck')
     splint_dir = target.Dir('splint')
     c_files = FindSources(source, ['.c'])
-    headers = FindHeaders(source)
+    headers = SPACE.join(['-I%s' % x.abspath for x in includes])
     if cpp_files:
-
         CheckPath(cppcheck_dir.abspath)
         cppcheck_rc = _RunCppCheck(cppcheck_dir, cpp_files, headers, 
             cppcheck_options, env)
@@ -617,7 +616,6 @@ def _RunCppCheck(report_dir, files, headers, options, env):
         cmd = "cppcheck %s %s %s" % (options, files, headers)
     if env.GetOption('verbose'):
         env.Cprint('>>> %s' % cmd, 'end')
-    import ipdb; ipdb.set_trace()
     with open(report_file, 'w+') as rf:
         pipe = subprocess.Popen(
             cmd, 

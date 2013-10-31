@@ -250,13 +250,7 @@ class Component(object):
         run_astyle_builder = self._CreateAstyleCheckTarget(self._sources)		
         run_cccc_builder = self._CreateCCCCTarget(self._sources)
         run_cloc_builder = self._CreateClocTarget(self._sources)
-        include = [self._component_graph.get(x).GetIncludeFiles() for x in self._dependencies]
-        for_cppcheck = []
-        for x in include:
-            for_cppcheck.extend(x)
-        asdf = self.GetIncludePaths()
-        if self.name == 'ucp': import ipdb; ipdb.set_trace()
-        run_static_builder = self._CreateStaticAnalysisTarget(self._sources + asdf)
+        run_static_builder = self._CreateStaticAnalysisTarget(self._sources)
         run_doc_builder = self._CreateDocTarget()
         run_info_builder = self._CreateInfoTarget(self._sources)
         self._CreateNameCheckTarget(self._sources)
@@ -666,13 +660,14 @@ class HeaderOnlyComponent(Component):
         return cloc_builder
 
     def _CreateStaticAnalysisTarget(self, sources):
+        includes = self.GetIncludePaths() + [self._env.Dir('/usr/include')]
         if self._builders['static-analysis'] is not None:
             return self._builders['static-analysis']
         # The target is the static-analysis report file.
         target = self._env.Dir(self._env['INSTALL_REPORTS_DIR'])
         target = target.Dir('static-analysis').Dir(self.name)
         # Pass information into env.
-        self._env['CPPCHECK_INC_PATHS'] = self._includes  ## Because it only needs the path in 'build/'.
+        self._env['CPPCHECK_INC_PATHS'] = includes  ## Because it only needs the path in 'build/'.
         # Create an instance of the RunStaticAnalysis() builder.
         analysis_builder = self._env.RunStaticAnalysis(target, sources)
         # static-analysis can always be build.
