@@ -660,16 +660,22 @@ class HeaderOnlyComponent(Component):
         return cloc_builder
 
     def _CreateStaticAnalysisTarget(self, sources):
-        includes = self.GetIncludePaths() + [self._env.Dir('/usr/include')]
         if self._builders['static-analysis'] is not None:
             return self._builders['static-analysis']
+        dependencies = self._dependencies
+        # Include the posibles external libraries that can be needed.
+        includes = self.GetIncludePaths() + [self._env.Dir('/usr/include')]
         # The target is the static-analysis report file.
         target = self._env.Dir(self._env['INSTALL_REPORTS_DIR'])
         target = target.Dir('static-analysis').Dir(self.name)
         # Pass information into env.
-        self._env['CPPCHECK_INC_PATHS'] = includes  ## Because it only needs the path in 'build/'.
+        self._env['CPPCHECK_INC_PATHS'] = includes
         # Create an instance of the RunStaticAnalysis() builder.
         analysis_builder = self._env.RunStaticAnalysis(target, sources)
+        # The builder must depend of the project dependencies.
+        for x in dependencies:
+            dep = self._component_graph.get(x).Process()
+            self._env.Depends(analysis_builder, dep)
         # static-analysis can always be build.
         self._env.AlwaysBuild(analysis_builder)
         # Create the alias.

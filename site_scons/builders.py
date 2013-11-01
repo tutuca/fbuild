@@ -83,7 +83,7 @@ def init(env):
     env['CLOC_OUTPUT_FORMAT'] = 'txt'  # txt | sql | xml
     env['CLOC_OPTIONS'] = []
     #-
-    env['CPPCHECK_OPTIONS'] = ['-f', '--enable=all', '--check-config']
+    env['CPPCHECK_OPTIONS'] = ['-f', '--enable=all']
     #-
     bldMocko = Builder(action=Action(RunMocko, PrintDummy))
     env.Append(BUILDERS={'RunMocko': bldMocko})
@@ -449,12 +449,13 @@ def RunStaticAnalysis(env, target, source):
     :param source: The list of source files.
 
     '''
-    includes = env['CPPCHECK_INC_PATHS']
     cppcheck_rc = False
     splint_rc = False
     target = target.pop()
     env.Cprint('\n=== Running Static Code Analysis ===\n', 'green')
     cppcheck_options = SPACE.join([opt for opt in env['CPPCHECK_OPTIONS']])
+    includes = env['CPPCHECK_INC_PATHS']
+    import ipdb; ipdb.set_trace()
     cpp_files = FindSources(source, ['.cpp', '.cc'])
     cppcheck_dir = target.Dir('cppcheck')
     splint_dir = target.Dir('splint')
