@@ -617,6 +617,17 @@ def _RunCppCheck(report_dir, files, headers, options, env):
         cmd = "cppcheck %s %s %s" % (options, files, headers)
     if env.GetOption('verbose'):
         env.Cprint('>>> %s' % cmd, 'end')
+    # Check if the cmd can run.
+    env.Cprint('Checking the files', 'green')
+    check = subprocess.Popen(
+        '%s --check-config' % cmd,
+        shell=True,
+        stderr=subprocess.PIPE
+    )
+    if check.wait():
+        env.cerror('[ERROR] Cannot run Cppcheck. Error: %s' % check.stderr.read())
+        return check.wait()
+    env.Cprint('Running...', 'green')
     with open(report_file, 'w+') as rf:
         pipe = subprocess.Popen(
             cmd, 
