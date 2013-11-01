@@ -611,7 +611,7 @@ def _RunCppCheck(report_dir, files, headers, options, env):
     success = False
     if 'xml' in options:
         report_file = report_file+'.xml'
-        cmd = "cppcheck --check-config %s %s %s" % (options, files, headers)
+        cmd = "cppcheck %s %s %s" % (options, files, headers)
     else:
         report_file = report_file+'.txt'
         cmd = "cppcheck %s %s %s" % (options, files, headers)
