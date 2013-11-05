@@ -29,7 +29,6 @@ hasQt = extension_qt.HasQt(env)
 if hasQt:
     env = Environment(tools=['default', 'qt4'])
     env['QT_PRESENT'] = hasQt
-    env['QT4_DEBUG'] = 1
 
 Export('env')
 
