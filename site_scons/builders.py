@@ -21,7 +21,7 @@
 
 
 """
-    Add description here!
+    This module contains all fudepan-build customized builders.
 """
 
 
@@ -62,8 +62,8 @@ def init(env):
     bldAStyleCheck = Builder(action=Action(AStyleCheck, PrintDummy))
     env.Append(BUILDERS={'RunAStyleCheck': bldAStyleCheck})
     #-
-    bldAStyle = Builder(action=Action(AStyle, PrintDummy))
-    env.Append(BUILDERS={'RunAStyle': bldAStyle})
+    # bldAStyle = Builder(action=Action(AStyle, PrintDummy))
+    # env.Append(BUILDERS={'RunAStyle': bldAStyle})
     #-
     bldPdfLatex = Builder(action=Action(RunPdfLatex, PrintDummy))
     env.Append(BUILDERS={'RunPdfLatex':  bldPdfLatex})
