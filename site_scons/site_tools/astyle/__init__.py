@@ -49,7 +49,6 @@ def _detect(env):
     return None
 
 def _astyle_emitter(target, source, env):
-    import ipdb; ipdb.set_trace()
     return target, [f for f in source if 'test/ref' not in f.abspath]
 
 _astyle_builder = SCons.Builder.Builder(
