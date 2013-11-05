@@ -705,12 +705,10 @@ class HeaderOnlyComponent(Component):
     def _CreateAstyleTarget(self, sources):
         if self._builders['astyle'] is not None:
             return self._builders['astyle']
-        # We use the project directory as the target.
-        target = self._env.Dir(self._env['WS_DIR']).Dir(self.name)
+        # We use a dummy file as astyle runs in-place.
+        target = self._env.Dir(self._env['WS_DIR']).File(self.name+'_astyle')
         # Create an instance of the RunAStyle() builder.
         astyle_builder = self._env.RunAStyle(target, sources)
-        # astyle can always be executed.
-        self._env.AlwaysBuild(astyle_builder)
         # Create the alias.
         name = '%s:astyle' % self.name
         deps = [astyle_builder]
