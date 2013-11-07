@@ -24,16 +24,18 @@ import SCons.Builder
 import SCons.Util
 
 class ToolAstyleWarning(SCons.Warnings.Warning):
+    '''Astyle-specific Warnings'''
     pass
 
 class AstyleCompilerNotFound(ToolAstyleWarning):
+    '''Raise this warning if the astyle excecutable is not found in the system'''
     pass
 
 SCons.Warnings.enableWarningClass(ToolAstyleWarning)
 
 
 def _detect(env):
-    """ Try to detect the ASTYLE """
+    """ Helper function to detect the astyle excecutable."""
     try: 
         return env['ASTYLE']
     except KeyError: 
@@ -49,6 +51,7 @@ def _detect(env):
     return None
 
 def _astyle_emitter(target, source, env):
+    '''Helper function to filter out files for testing purposes.'''
     return target, [f for f in source if 'test/ref' not in f.abspath]
 
 _astyle_builder = SCons.Builder.Builder(
