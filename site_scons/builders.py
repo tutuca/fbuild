@@ -25,6 +25,7 @@
 """
 
 
+import fnmatch
 import subprocess
 import os.path
 import shutil
@@ -455,19 +456,18 @@ def RunStaticAnalysis(env, target, source):
     env.Cprint('\n=== Running Static Code Analysis ===\n', 'green')
     cppcheck_options = SPACE.join([opt for opt in env['CPPCHECK_OPTIONS']])
     includes = env['CPPCHECK_INC_PATHS']
-    import ipdb; ipdb.set_trace()
     cpp_files = FindSources(source, ['.cpp', '.cc'])
     cppcheck_dir = target.Dir('cppcheck')
     splint_dir = target.Dir('splint')
     c_files = FindSources(source, ['.c'])
-    headers = SPACE.join(['-I%s' % x.abspath for x in includes])
+    headers = includes
     if cpp_files:
         CheckPath(cppcheck_dir.abspath)
-        cppcheck_rc = _RunCppCheck(cppcheck_dir, cpp_files, headers, 
+        cppcheck_rc = _RunCppCheck(cppcheck_dir, cpp_files, includes, 
             cppcheck_options, env)
     if c_files:
         CheckPath(splint_dir.abspath)
-        splint_rc = _RunSplint(splint_dir, c_files, headers)
+        splint_rc = _RunSplint(splint_dir, c_files, includes)
     if headers and not (cpp_files or c_files):
         CheckPath(cppcheck_dir.abspath)
         cppcheck_rc = _RunCppCheck(cppcheck_dir, FindSources(source, 
@@ -606,15 +606,17 @@ def RunInfo(env, target, source):
     return EXIT_SUCCESS
 
 
-def _RunCppCheck(report_dir, files, headers, options, env):
+def _RunCppCheck(report_dir, files, includes, options, env):
     report_file = os.path.join(report_dir.abspath, 'static-analysis-report')
     success = False
+    includes.append(env.Dir('/usr/include'))
+    to_include = SPACE.join(['-I%s' % x.abspath for x in includes])
     if 'xml' in options:
         report_file = report_file+'.xml'
-        cmd = "cppcheck %s %s %s" % (options, files, headers)
+        cmd = "cppcheck %s %s %s" % (options, files, to_include)
     else:
         report_file = report_file+'.txt'
-        cmd = "cppcheck %s %s %s" % (options, files, headers)
+        cmd = "cppcheck %s %s %s" % (options, files, to_include)
     if env.GetOption('verbose'):
         env.Cprint('>>> %s' % cmd, 'end')
     # Check if the cmd can run.
@@ -624,18 +626,49 @@ def _RunCppCheck(report_dir, files, headers, options, env):
         shell=True,
         stderr=subprocess.PIPE
     )
-    if check.wait():
-        env.cerror('[ERROR] Cannot run Cppcheck. Error: %s' % check.stderr.read())
-        return check.wait()
+    error = check.stderr.read()
+    if 'error' in error:
+        env.cerror('[ERROR] Cannot run Cppcheck. Error: %s' % error)
+        return 1
+    # Create the suppression list.
+    name = 'suppression_list.txt'
+    include_list = [x.abspath for x in includes if not '/usr/' in x.abspath]
+    headers_list = []
+    for x in include_list:
+        headers_list.extend(FindHeadersPath(x))
+    # Libraries from /usr/include can be needed.
+    headers_list.append('/usr/include')
+    with open(name, 'w+') as f:
+        for x in set(headers_list):
+            f.write('*:%s/*\n' % x)
+    cmd = '%s --suppressions %s' % (cmd, name)
     env.Cprint('Running...', 'green')
     with open(report_file, 'w+') as rf:
         pipe = subprocess.Popen(
-            cmd, 
-            shell=True, 
+            cmd,
+            shell=True,
             stderr=rf
         )
         success = pipe.wait()
     return success
+
+def FindHeadersPath(path):
+    """
+    Description:
+        Find headers into directories and if find one, take the directory.
+    Arguments:
+        The path that will be walked.
+    Return:
+        A list with all the paths found.
+    """
+    filters = ['*.h','*.hpp']
+    paths = []
+    for root, dirnames, names in os.walk(path):
+        for name in names:
+            if any([fnmatch.fnmatch('%s/%s' % (root, name), filter) for filter in filters]):
+                if not root in paths:
+                    paths.append(root)
+    return paths
 
 def _RunSplint(report_dir, files, headers):
     report_file = os.path.join(report_dir.abspath, 'static-analysis-report')

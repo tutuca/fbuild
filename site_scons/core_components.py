@@ -664,7 +664,14 @@ class HeaderOnlyComponent(Component):
             return self._builders['static-analysis']
         dependencies = self._dependencies
         # Include the posibles external libraries that can be needed.
-        includes = self.GetIncludePaths() + [self._env.Dir('/usr/include')]
+        includes = self.GetIncludePaths()
+        # The Builder need the headers to create the suppressions list.
+        include_files = []
+        for x in self._dependencies:
+            component = self._component_graph.get(x, '')
+            include_files.extend(component.GetIncludeFiles())
+        include_files.extend(self.GetIncludeFiles())
+        self._env['CPPCHECK_HEADERS'] = include_files
         # The target is the static-analysis report file.
         target = self._env.Dir(self._env['INSTALL_REPORTS_DIR'])
         target = target.Dir('static-analysis').Dir(self.name)
@@ -1359,7 +1366,7 @@ class UnitTestComponent(ProgramComponent):
         passed_file_name = '%s.passed' % self._project_name
         run_test_target = os.path.join(self._dir.abspath, passed_file_name)
         # Check for the flags we need to set in the environment.
-        flags = self._CheckForFlags()
+        self._CheckForFlags()
         # Check for use 'mocko'.
         sources = []
         if self._env._USE_MOCKO:
@@ -1574,10 +1581,10 @@ class NameCheck():
         try:
             # Take the project and the action from the target.
             name, action = target[1].split(':')
-        except IndexError as e:
+        except IndexError:
             name = None
             action = None
-        except ValueError as e:
+        except ValueError:
             name = target[1]
             action = None
         self._project_name = name
