@@ -639,6 +639,9 @@ def _RunCppCheck(report_dir, files, includes, options, env):
     # Libraries from /usr/include can be needed.
     headers_list.append('/usr/include')
     with open(name, 'w+') as f:
+        # Add suppression for unnecessaries errors.
+        f.write('unmatchedSuppression\n') 
+        f.write('cppcheckError\n')
         for x in set(headers_list):
             f.write('*:%s/*\n' % x)
     cmd = '%s --suppressions %s' % (cmd, name)
