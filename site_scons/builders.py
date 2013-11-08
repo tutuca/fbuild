@@ -33,7 +33,7 @@ import os
 from SCons.Builder import Builder
 from SCons.Action import Action
 
-from utils import ChainCalls, FindHeaders, FindSources, CheckPath, WaitProcessExists, RemoveDuplicates
+from utils import ChainCalls, FindHeaders, FindSources, CheckPath, WaitProcessExists, RemoveDuplicates, DeleteLinesInFile
 
 
 HEADERS = [".h", ".hpp"]
@@ -635,7 +635,7 @@ def _RunCppCheck(report_dir, files, includes, options, env):
     include_list = [x.abspath for x in includes if not '/usr/' in x.abspath]
     headers_list = []
     for x in include_list:
-        headers_list.extend(FindHeadersPath(x))
+        headers_list.extend(_FindHeadersPath(x))
     # Libraries from /usr/include can be needed.
     headers_list.append('/usr/include')
     with open(name, 'w+') as f:
@@ -652,10 +652,14 @@ def _RunCppCheck(report_dir, files, includes, options, env):
             shell=True,
             stderr=rf
         )
-        success = pipe.wait()
+    success = pipe.wait()
+    import ipdb; ipdb.set_trace()
+    re = ur'unmatchedSuppression|cppcheckError|Unmatched suppression'
+    DeleteLinesInFile(re, report_file)
+    import ipdb; ipdb.set_trace()
     return success
 
-def FindHeadersPath(path):
+def _FindHeadersPath(path):
     """
     Description:
         Find headers into directories and if find one, take the directory.

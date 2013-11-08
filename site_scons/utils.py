@@ -29,6 +29,7 @@ import subprocess
 import fnmatch
 import sys
 import os
+import re
 from distutils.dir_util import mkpath
 from SCons.Node.FS import Dir
 import fbuild_exceptions
@@ -41,6 +42,17 @@ DISRTO_ARCH = 'ARCH'
 _DISRTO_FILE = '/etc/issue'
 # Path to the process file system.
 _PROC_DIR = '/proc/%d'
+
+
+
+def DeleteLinesInFile(reg_exp, file_to_check):
+    new_file = ''
+    with open(file_to_check, 'r') as f:
+        for line in f.readline():
+            if not re.match(reg_exp, line):
+                new_file += line
+    with open(file_to_check, 'w+') as f:
+        f.write(new_file)
 
 
 def FindFiles(env, fromDir, filters=None):
