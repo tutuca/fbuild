@@ -54,8 +54,13 @@ def _astyle_emitter(target, source, env):
     '''Helper function to filter out files for testing purposes.'''
     return target, [f for f in source if 'test/ref' not in f.abspath]
 
+def _astyle_action(*args, **kwargs):
+    '''Decorate the Action instantiation to print some helpful message'''
+    env.Cprint('\n=== Running ASTYLE-CHECK ===\n', 'green')
+    return SCons.Action.Action('$ASTYLE_COM','$ASTYLE_COMSTR')
+
 _astyle_builder = SCons.Builder.Builder(
-        action = SCons.Action.Action('$ASTYLE_COM','$ASTYLE_COMSTR'),
+        action = _astyle_action,
         emitter = _astyle_emitter)
 
 def generate(env):
