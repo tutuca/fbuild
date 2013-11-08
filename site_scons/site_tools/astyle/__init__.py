@@ -19,11 +19,11 @@
 # You should have received a copy of the GNU General Public License
 # along with fudepan-build.  If not, see <http://www.gnu.org/licenses/>.
 
-import SCons.Action
-import SCons.Builder
-import SCons.Util
+from SCons.Action import Action
+from SCons.Builder import Builder
+from SCons.Warnings import Warning, enableWarningClass
 
-class ToolAstyleWarning(SCons.Warnings.Warning):
+class ToolAstyleWarning(Warning):
     '''Astyle-specific Warnings'''
     pass
 
@@ -31,7 +31,7 @@ class AstyleCompilerNotFound(ToolAstyleWarning):
     '''Raise this warning if the astyle excecutable is not found in the system'''
     pass
 
-SCons.Warnings.enableWarningClass(ToolAstyleWarning)
+enableWarningClass(ToolAstyleWarning)
 
 
 def _detect(env):
@@ -54,13 +54,8 @@ def _astyle_emitter(target, source, env):
     '''Helper function to filter out files for testing purposes.'''
     return target, [f for f in source if 'test/ref' not in f.abspath]
 
-def _astyle_action(*args, **kwargs):
-    '''Decorate the Action instantiation to print some helpful message'''
-    env.Cprint('\n=== Running ASTYLE-CHECK ===\n', 'green')
-    return SCons.Action.Action('$ASTYLE_COM','$ASTYLE_COMSTR')
-
-_astyle_builder = SCons.Builder.Builder(
-        action = _astyle_action,
+_astyle_builder = Builder(
+        action = Action('$ASTYLE_COM','$ASTYLE_COMSTR'),
         emitter = _astyle_emitter)
 
 def generate(env):

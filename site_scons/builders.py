@@ -260,32 +260,6 @@ def AStyleCheck(env, target, source):
     report.close()
     return EXIT_SUCCESS
 
-
-def AStyle(env, target, source):
-    # Print message on the screen.
-    env.Cprint('\n=== Running ASTYLE ===\n', 'green')
-    # Get the project directory.
-    project_dir = target[0].abspath
-    # Generate the list of files to apply astyle.
-    #   This is because the files in 'source' point to the build/ directory
-    #   instead of the projects/ directory.
-    build_dir = env['BUILD_DIR']
-    ws_dir = env['WS_DIR']
-    file_list = SPACE.join(
-        [f.abspath.replace(build_dir, ws_dir)
-            for f in source
-            if "tests/ref/" not in f.abspath])
-    # Create the command to be executed.
-    cmd = "astyle -k1 --options=none --convert-tabs -bSKpUH %s" % file_list
-    # Run astyle.
-    astyle_proc = subprocess.Popen(cmd, shell=True)
-    if astyle_proc.wait():
-        env.cerror('[astyle] ERROR running astyle on: %s' % project_dir)
-    else:
-        env.Cprint('[astyle] OK on: %s' % project_dir, 'green')
-    return EXIT_SUCCESS
-
-
 def RunPdfLatex(env, target, source):
     #Deberiamos usar las env.{operation} ya que son crossplatform.
     (pathHead, pathTail) = os.path.split(source[0].abspath)
