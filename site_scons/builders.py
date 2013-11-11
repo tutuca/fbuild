@@ -32,6 +32,7 @@ import shutil
 import os
 from SCons.Builder import Builder
 from SCons.Action import Action
+from core_components import HEADERS_FILTER
 
 from utils import ChainCalls, FindHeaders, FindSources, CheckPath, WaitProcessExists, RemoveDuplicates, DeleteLinesInFile
 
@@ -40,6 +41,7 @@ HEADERS = [".h", ".hpp"]
 SOURCES = [".c", ".cpp"]
 # Return status of a builder.
 EXIT_SUCCESS = 0
+EXIT_ERROR = 1
 # Constat to repsent spaces between options.
 SPACE = ' '
 # The first element of an iterable object.
@@ -620,6 +622,35 @@ def _RunCppCheck(report_dir, files, includes, options, env):
     if env.GetOption('verbose'):
         env.Cprint('>>> %s' % cmd, 'end')
     # Check if the cmd can run.
+    result = _CheckCppCheckConfig(env, cmd)
+    # Create the suppression list.
+    name = 'suppression_list.txt'
+    _CreateSuppressionList(name, includes)
+    cmd = '%s --suppressions %s' % (cmd, name)
+    env.Cprint('Running...', 'green')
+    with open(report_file, 'w+') as rf:
+        pipe = subprocess.Popen(
+            cmd,
+            shell=True,
+            stderr=rf
+        )
+    success = pipe.wait()
+    if result == EXIT_SUCCESS: result = success
+    re = ur'unmatchedSuppression|cppcheckError|Unmatched suppression'
+    DeleteLinesInFile(re, report_file)
+    return result
+
+
+def _CheckCppCheckConfig(env, cmd):
+    """
+    Description: CppCheck has the --check-config flag to check if 
+    everything is OK to run CppCheck in the files.
+    Arguments:
+        - env: the current environment
+        - cmd: the command to append the flag.
+    Return: EXIT_SUCCESS or EXIT_ERROR.
+    """
+    result = EXIT_SUCCESS
     env.Cprint('Checking the files', 'green')
     check = subprocess.Popen(
         '%s --check-config' % cmd,
@@ -627,11 +658,14 @@ def _RunCppCheck(report_dir, files, includes, options, env):
         stderr=subprocess.PIPE
     )
     error = check.stderr.read()
+    check.wait()
     if 'error' in error:
         env.cerror('[ERROR] Cannot run Cppcheck. Error: %s' % error)
-        return 1
-    # Create the suppression list.
-    name = 'suppression_list.txt'
+        result = EXIT_ERROR
+    return result
+
+
+def _CreateSuppressionList(name, includes):
     include_list = [x.abspath for x in includes if not '/usr/' in x.abspath]
     headers_list = []
     for x in include_list:
@@ -644,31 +678,17 @@ def _RunCppCheck(report_dir, files, includes, options, env):
         f.write('cppcheckError\n')
         for x in set(headers_list):
             f.write('*:%s/*\n' % x)
-    cmd = '%s --suppressions %s' % (cmd, name)
-    env.Cprint('Running...', 'green')
-    with open(report_file, 'w+') as rf:
-        pipe = subprocess.Popen(
-            cmd,
-            shell=True,
-            stderr=rf
-        )
-    success = pipe.wait()
-    import ipdb; ipdb.set_trace()
-    re = ur'unmatchedSuppression|cppcheckError|Unmatched suppression'
-    DeleteLinesInFile(re, report_file)
-    import ipdb; ipdb.set_trace()
-    return success
 
 def _FindHeadersPath(path):
     """
     Description:
         Find headers into directories and if find one, take the directory.
     Arguments:
-        The path that will be walked.
+        - path: The path that will be walked.
     Return:
         A list with all the paths found.
     """
-    filters = ['*.h','*.hpp']
+    filters = HEADERS_FILTER
     paths = []
     for root, dirnames, names in os.walk(path):
         for name in names:

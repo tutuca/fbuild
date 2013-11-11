@@ -48,8 +48,8 @@ _PROC_DIR = '/proc/%d'
 def DeleteLinesInFile(reg_exp, file_to_check):
     new_file = ''
     with open(file_to_check, 'r') as f:
-        for line in f.readline():
-            if not re.match(reg_exp, line):
+        for line in f.readlines():
+            if not re.search(reg_exp, line):
                 new_file += line
     with open(file_to_check, 'w+') as f:
         f.write(new_file)
