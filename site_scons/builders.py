@@ -639,7 +639,10 @@ def _RunCppCheck(report_dir, files, includes, options, env):
     re = ur'unmatchedSuppression|cppcheckError|Unmatched suppression'
     DeleteLinesInFile(re, report_file)
     # Delete the suppression list created
-    os.remove(name)
+    try:
+        os.remove(name)
+    except OSError:
+        pass
     return result
 
 
