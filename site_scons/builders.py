@@ -638,6 +638,8 @@ def _RunCppCheck(report_dir, files, includes, options, env):
     if result == EXIT_SUCCESS: result = success
     re = ur'unmatchedSuppression|cppcheckError|Unmatched suppression'
     DeleteLinesInFile(re, report_file)
+    # Delete the suppression list created
+    os.remove(name)
     return result
 
 
@@ -666,6 +668,7 @@ def _CheckCppCheckConfig(env, cmd):
 
 
 def _CreateSuppressionList(name, includes):
+
     include_list = [x.abspath for x in includes if not '/usr/' in x.abspath]
     headers_list = []
     for x in include_list:
