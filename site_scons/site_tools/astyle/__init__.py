@@ -26,7 +26,7 @@ from SCons.Errors import StopError
 import os
 import shutil
 import subprocess
-
+from termcolor import Cprint
 
 EXIT_SUCCESS = 0
 
@@ -116,16 +116,16 @@ def _astyle_check_action(target, source, env):
     # If some file needs astyle we print info.
     if check_astyle_result['need_astyle']:
         # Print a warning message.
-        print '[WARNING] The following files need astyle:'
+        Cprint('[WARNING] The following files need astyle:', 'yellow')
         # Print what need to be astyled.
         for f, info in check_astyle_result['need_astyle_list']:
             # Write into hte report file.
             report.write(info + '\n\n')
             # Print on the screen.
-            print '====> %s' % f
-            print info
+            Cprint('====> %s' % f, 'yellow')
+            Cprint(info, 'yellow')
     else:
-        print '[OK] No file needs astyle.'
+        Cprint('[OK] No file needs astyle.', 'green')
     # Close the report file.
     report.close()
     return EXIT_SUCCESS
