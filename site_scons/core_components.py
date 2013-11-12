@@ -669,7 +669,8 @@ class HeaderOnlyComponent(Component):
         include_files = []
         for x in self._dependencies:
             component = self._component_graph.get(x, '')
-            include_files.extend(component.GetIncludeFiles())
+            if component:
+                include_files.extend(component.GetIncludeFiles())
         include_files.extend(self.GetIncludeFiles())
         self._env['CPPCHECK_HEADERS'] = include_files
         # The target is the static-analysis report file.
