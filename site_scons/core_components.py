@@ -682,8 +682,10 @@ class HeaderOnlyComponent(Component):
         analysis_builder = self._env.RunStaticAnalysis(target, sources)
         # The builder must depend of the project dependencies.
         for x in dependencies:
-            dep = self._component_graph.get(x).Process()
-            self._env.Depends(analysis_builder, dep)
+            dep = self._component_graph.get(x)
+            if dep:
+                dep = dep.Process()
+                self._env.Depends(analysis_builder, dep)
         # static-analysis can always be build.
         self._env.AlwaysBuild(analysis_builder)
         # Create the alias.
