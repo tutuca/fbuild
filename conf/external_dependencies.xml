@@ -325,6 +325,11 @@
         <install_checker>dpkg -s libxext-dev</install_checker>
     </component>
 
+    <component name="proj" type="LIB">
+        <installer distro="UBUNTU" target="libproj-dev" manager="APT-GET"/>
+        <install_checker>dpkg -s libproj-dev</install_checker>
+    </component>
+
     <component name="zip" type="PRO">
         <installer distro="*" target="zip" manager="*"/>
     </component>
