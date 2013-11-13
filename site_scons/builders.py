@@ -709,6 +709,8 @@ def _RunSplint(report_dir, files, includes):
     includes.append(env.Dir('/usr/include'))
     headers = ['-I%s ' % x for x in includes]
     cmd = "splint %s %s > %s.txt" % (files, headers, report_file)
+    if env.GetOption('verbose'):
+        Cprint(cmd, 'end')
     splint_proc = subprocess.Popen(cmd, shell=True)
     return splint_proc.wait()
 
