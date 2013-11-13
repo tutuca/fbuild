@@ -84,6 +84,8 @@ check_install cppcheck false
 if [ "$?" -ne "0" ]; then return $?; fi
 check_install lcov false
 if [ "$?" -ne "0" ]; then return $?; fi
+check_install splint false
+if [ "$?" -ne "0" ]; then return $?; fi
 check_install clang false
 if [ "$?" -ne "0" ]; then return $?; fi
 
