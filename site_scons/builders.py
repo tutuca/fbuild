@@ -165,8 +165,6 @@ def RunLcov(env, target, source):
     commands_list = [
         'rm -f %(coverage_file)s' % data,
         'lcov --no-checksum --directory %(project_dir)s -b . --capture --ignore-error source --output-file %(coverage_file)s' % data,
-        'lcov --no-checksum --directory %(project_dir)s -b . --capture --ignore-error source --output-file %(coverage_file)s' % data,
-        'lcov --no-checksum --directory %(project_dir)s -b . --capture --ignore-error source --output-file %(coverage_file)s' % data,
         'lcov --remove %(coverage_file)s "*usr/include*" -o %(coverage_file)s' % data,
         'lcov --remove %(coverage_file)s "*/tests/*" -o %(coverage_file)s' % data,
         'lcov --remove %(coverage_file)s "*/install/*" -o %(coverage_file)s' % data
@@ -274,7 +272,10 @@ def AStyle(env, target, source):
     #   instead of the projects/ directory.
     build_dir = env['BUILD_DIR']
     ws_dir = env['WS_DIR']
-    file_list = SPACE.join([f.abspath.replace(build_dir, ws_dir) for f in source if "tests/ref/" not in f.abspath])
+    file_list = SPACE.join(
+        [f.abspath.replace(build_dir, ws_dir)
+            for f in source
+            if "tests/ref/" not in f.abspath])
     # Create the command to be executed.
     cmd = "astyle -k1 --options=none --convert-tabs -bSKpUH %s" % file_list
     # Run astyle.
@@ -719,7 +720,7 @@ def _CheckAstyle(env, source, output_directory):
     # Copy all sources into the temporary directory.
     for file in source:
         if "tests/ref/" not in file.abspath:  # TODO: Remove this line.
-            os.system('cp %s %s' % (file.abspath, tmp_dir))
+            shutil.copy(file.abspath, tmp_dir)
             f = env.Dir(tmp_dir).File(os.path.split(file.abspath)[1])
             files_list.append(f)
     files_str = SPACE.join([x.abspath for x in files_list])

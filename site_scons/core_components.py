@@ -247,7 +247,7 @@ class Component(object):
     def _SetTargets(self):
         """Create targets for most modules."""
         run_astyle_check_builder = self._CreateAstyleCheckTarget(self._sources)
-        run_astyle_builder = self._CreateAstyleCheckTarget(self._sources)		
+        run_astyle_builder = self._CreateAstyleTarget(self._sources)
         run_cccc_builder = self._CreateCCCCTarget(self._sources)
         run_cloc_builder = self._CreateClocTarget(self._sources)
         run_static_builder = self._CreateStaticAnalysisTarget(self._sources)
@@ -722,12 +722,10 @@ class HeaderOnlyComponent(Component):
     def _CreateAstyleTarget(self, sources):
         if self._builders['astyle'] is not None:
             return self._builders['astyle']
-        # We use the project directory as the target.
-        target = self._env.Dir(self._env['WS_DIR']).Dir(self.name)
+        # We use a dummy file as astyle runs in-place.
+        target = self._env.Dir(self._env['WS_DIR']).File(self.name+'_astyle')
         # Create an instance of the RunAStyle() builder.
         astyle_builder = self._env.RunAStyle(target, sources)
-        # astyle can always be executed.
-        self._env.AlwaysBuild(astyle_builder)
         # Create the alias.
         name = '%s:astyle' % self.name
         deps = [astyle_builder]
@@ -1478,7 +1476,7 @@ class UnitTestComponent(ProgramComponent):
             'Checks the tests coverage on the project.'
         )
         # Coverage can always be built.
-        self._env.AlwaysBuild(cov)
+        #self._env.AlwaysBuild(cov)
         self._env.AlwaysBuild(run_test_builder)
         self._builders['coverage'] = run_lcov_builder
         return run_lcov_builder

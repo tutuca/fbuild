@@ -26,11 +26,10 @@ env = Environment()
 
 hasQt = extension_qt.HasQt(env)
 
-
-
 if hasQt:
     env = Environment(tools=['default', 'qt4'])
     env['QT_PRESENT'] = hasQt
+
 Export('env')
 
 vars = Variables('SConfig')
