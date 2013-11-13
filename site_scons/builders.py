@@ -34,7 +34,7 @@ from SCons.Builder import Builder
 from SCons.Action import Action
 from core_components import HEADERS_FILTER
 
-from utils import ChainCalls, FindHeaders, FindSources, CheckPath, WaitProcessExists, RemoveDuplicates, DeleteLinesInFile
+from utils import ChainCalls, FindSources, CheckPath, WaitProcessExists, RemoveDuplicates, DeleteLinesInFile
 
 
 HEADERS = [".h", ".hpp"]
@@ -470,7 +470,7 @@ def RunStaticAnalysis(env, target, source):
             cppcheck_options, env)
     if c_files:
         CheckPath(splint_dir.abspath)
-        splint_rc = _RunSplint(splint_dir, c_files, includes)
+        splint_rc = _RunSplint(splint_dir, c_files, includes, env)
     if headers and not (cpp_files or c_files):
         CheckPath(cppcheck_dir.abspath)
         cppcheck_rc = _RunCppCheck(cppcheck_dir, FindSources(source, 
@@ -488,7 +488,6 @@ def RunMocko(env, target, source):
     # Constants to access the sources list
     MOCKO_LIST = 0; MOCKO_EXEC = 1
     # Constants to access the targets list.
-    MOCKO_BIND_VGDB = 0; MOCKO_BIND_GDB = 1
     # Get the file list.mocko.
     mocko_list = source[MOCKO_LIST].abspath
     # Get the tests directory, which is the same as the list.mocko directory.
@@ -704,9 +703,13 @@ def _FindHeadersPath(path):
                     paths.append(root)
     return paths
 
-def _RunSplint(report_dir, files, headers):
+def _RunSplint(report_dir, files, includes, env):
     report_file = os.path.join(report_dir.abspath, 'static-analysis-report')
+    includes += [env.Dir('/usr/include')]
+    headers = SPACE.join(['-I%s ' % x for x in includes])
     cmd = "splint %s %s > %s.txt" % (files, headers, report_file)
+    if env.GetOption('verbose'):
+        env.Cprint(cmd, 'end')
     splint_proc = subprocess.Popen(cmd, shell=True)
     return splint_proc.wait()
 
