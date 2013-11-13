@@ -26,7 +26,7 @@ from SCons.Errors import StopError
 import os
 import shutil
 import subprocess
-from termcolor import Cprint
+from termcolor import Cprint, Cformat
 
 EXIT_SUCCESS = 0
 
@@ -166,7 +166,7 @@ def generate(env):
     env.SetDefault(
         # ASTYLE command
         ASTYLE_COM = '$ASTYLE -k1 --options=none --convert-tabs -bSKpUH $SOURCES',
-        ASTYLE_COMSTR = ''
+        ASTYLE_COMSTR = Cformat('\n=== Running Astyle ===\n', 'green')
         )
 
     env['BUILDERS']['RunAStyle'] = _astyle_builder
