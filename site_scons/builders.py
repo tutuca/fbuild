@@ -704,8 +704,10 @@ def _FindHeadersPath(path):
                     paths.append(root)
     return paths
 
-def _RunSplint(report_dir, files, headers):
+def _RunSplint(report_dir, files, includes):
     report_file = os.path.join(report_dir.abspath, 'static-analysis-report')
+    includes.append(env.Dir('/usr/include'))
+    headers = ['-I%s ' % x for x in includes]
     cmd = "splint %s %s > %s.txt" % (files, headers, report_file)
     splint_proc = subprocess.Popen(cmd, shell=True)
     return splint_proc.wait()
