@@ -148,7 +148,7 @@ def _detect(env):
 
 def _astyle_emitter(target, source, env):
     '''Helper function to filter out files for testing purposes.'''
-    return target, [f for f in source if 'test/ref' not in f.abspath]
+    return target, [f.abspath.replace(env['BUILD_DIR'], env['WS_DIR']) for f in source if 'test/ref' not in f.abspath]
 
 _astyle_builder = Builder(
         action = Action('$ASTYLE_COM','$ASTYLE_COMSTR'),
