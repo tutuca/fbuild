@@ -1,8 +1,8 @@
-# Introduction #
+# Introduction
 
 Fudepan-build's concept is to provide dependency handling and build uniformity using scons. It can be used as a minimalistic build environment to provide personalized build commands. 
 
-# Fudepan-build's structure #
+# Fudepan-build's structure
 
 
   fudepan-build/
@@ -13,13 +13,13 @@ Fudepan-build's concept is to provide dependency handling and build uniformity u
         start.sh
 
 
-* projects/ is the directory where the code of each project will be stored. 
-* conf/ configuration files.
-* conf/projects.xml contains each project's configuration, download url and other necessary information.
-* install/ the default installation directory.
-* start.sh Must be run before using Fbuild. This script set the work environment.
+* `projects/` is the directory where the code of each project will be stored. 
+* `conf/` configuration files.
+* `conf/projects.xml` contains each project's configuration, download url and other necessary information.
+* `install/` the default installation directory.
+* `start.sh` Must be run before using Fbuild. This script set the work environment.
 
-# Usage #
+# Usage
 
 The first step must always be to run start.sh at Fbuild's root folder. 
 
@@ -67,7 +67,7 @@ To see how the target is built:
 
     $ fbuild --verbose <target>
 
-# "Sconscifying" a project #
+# "Sconscifying" a project
 
 There are 5 basic types of builders:
 
@@ -93,7 +93,7 @@ Examples of every project's type:
 * Shared Library: [biopp](http://code.google.com/p/biopp/)
 * Program: [backbones-generator](http://code.google.com/p/backbones-generator/)
 
-# Environment variables #
+# Environment variables
 
 Some environment variables to consider:
 
@@ -102,7 +102,7 @@ Qt (Arch example, for Ubuntu this is not necessary):
     export QT_INCLUDE_ROOT=/usr/include
     export QT_INCLUDE=/usr/include/Qt
 
-# Tips #
+# Tips
 
 Edit your .bashrc file (located in /home/YOUR_USERNAME) with an alias such as this:
 
