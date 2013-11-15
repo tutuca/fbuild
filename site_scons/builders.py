@@ -679,6 +679,7 @@ def _CreateSuppressionList(name, includes, env):
         headers_list.extend(_FindHeadersPath(x))
     # Libraries from /usr/include can be needed.
     headers_list.append('/usr/include')
+    headers_list.append('/usr/local/include')
     # Check if the user defined a suppression-list.
     user_sup = env.get('CPPCHECK_SUPPRESSION')
     if user_sup:
