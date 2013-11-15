@@ -474,7 +474,7 @@ def RunStaticAnalysis(env, target, source):
     if headers and not (cpp_files or c_files):
         CheckPath(cppcheck_dir.abspath)
         cppcheck_rc = _RunCppCheck(cppcheck_dir, FindSources(source, 
-            ['.h', '.hh', '.hpp']), headers, cppcheck_options)
+            ['.h', '.hh', '.hpp']), headers, cppcheck_options, env)
     # Return the output of both builders
     if cppcheck_rc or splint_rc:
         env.cerror('\n\n[ERROR] Failed running Static Analysis\n\n')
