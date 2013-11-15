@@ -409,6 +409,8 @@ class Component(object):
         installers = bin_installer + inc_installer
         # Create the alias for install the component.
         self._env.Alias(self.name, installers, 'Install %s.' % self.name)
+        # Create the target to install all the projects.
+        self._env.Alias('all', installers, 'Install all the projects.')
         return installers
 
     def _CreateGroupAliases(self):
