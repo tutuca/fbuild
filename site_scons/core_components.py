@@ -664,13 +664,30 @@ class HeaderOnlyComponent(Component):
     def _CreateStaticAnalysisTarget(self, sources):
         if self._builders['static-analysis'] is not None:
             return self._builders['static-analysis']
+        dependencies = self._dependencies
+        # Include the posibles external libraries that can be needed.
+        includes = self.GetIncludePaths()
+        # The Builder need the headers to create the suppressions list.
+        include_files = []
+        for x in self._dependencies:
+            component = self._component_graph.get(x, '')
+            if component:
+                include_files.extend(component.GetIncludeFiles())
+        include_files.extend(self.GetIncludeFiles())
+        self._env['CPPCHECK_HEADERS'] = include_files
         # The target is the static-analysis report file.
         target = self._env.Dir(self._env['INSTALL_REPORTS_DIR'])
         target = target.Dir('static-analysis').Dir(self.name)
         # Pass information into env.
-        self._env['CPPCHECK_INC_PATHS'] = self._includes  ## Because it only needs the path in 'build/'.
+        self._env['CPPCHECK_INC_PATHS'] = includes
         # Create an instance of the RunStaticAnalysis() builder.
         analysis_builder = self._env.RunStaticAnalysis(target, sources)
+        # The builder must depend of the project dependencies.
+        for x in dependencies:
+            dep = self._component_graph.get(x)
+            if dep:
+                dep = dep.Process()
+                self._env.Depends(analysis_builder, dep)
         # static-analysis can always be build.
         self._env.AlwaysBuild(analysis_builder)
         # Create the alias.
@@ -1352,7 +1369,7 @@ class UnitTestComponent(ProgramComponent):
         passed_file_name = '%s.passed' % self._project_name
         run_test_target = os.path.join(self._dir.abspath, passed_file_name)
         # Check for the flags we need to set in the environment.
-        flags = self._CheckForFlags()
+        self._CheckForFlags()
         # Check for use 'mocko'.
         sources = []
         if self._env._USE_MOCKO:
@@ -1482,43 +1499,46 @@ class UnitTestComponent(ProgramComponent):
         return run_test_builder
 
     def _CreateReadyToCommitTarget(self, run_test_target, program_builder):
+        flags = self._CheckForFlags()
         if self._builders['ready-to-commit'] is not None:
             return self._builders['ready-to-commit']
         # Get the component of the project.
         project_component = self._component_graph.get(self._project_name)
-        # Create an instance of the RunReadyToCommit() builder.
-        target = self._env.Dir('$INSTALL_REPORTS_DIR')
-        target = target.Dir('ready-to-commit').Dir(self._project_name)
-        target = target.File('ReadyToCommitReportFile.txt')
-        rtc_builder = self._env.RunReadyToCommit(target, None)
-        self._env.AlwaysBuild(rtc_builder)
-        self._env['PROJECT_NAME'] = self._project_name
-        # Get the builders from which the ready-to-commit target will
-        # depend on.
-        sources = project_component.GetSourcesFiles()
-        includes = project_component.GetIncludeFiles()
-        source = sources + includes
-        astyle_check = project_component._CreateAstyleCheckTarget(source)
-        cppcheck = project_component._CreateStaticAnalysisTarget(source)
-        valgrind = self._CreateValgrindTarget(program_builder)
-        run_test = self._env.RunUnittest(run_test_target, program_builder)
-        # Create dependencies.
-        self._env.Depends(rtc_builder, astyle_check)
-        self._env.Depends(rtc_builder, cppcheck)
-        self._env.Depends(rtc_builder, run_test)
-        self._env.Depends(rtc_builder, valgrind)
-        # Create the alias.
-        self._env.Alias(
-            '%s:ready-to-commit' % self._project_name,
-            rtc_builder,
-            "Check if the project is ready to be commited."
-        )
-        # Create a shorter alias.
-        self._env.Alias(
-            '%s:rtc' % self._project_name,
-            rtc_builder,
-            "Alias of the target: ready-to-commit."
-        )
+        rtc_builder = None
+        if flags['ready-to-commit']:
+            # Create an instance of the RunReadyToCommit() builder.
+            target = self._env.Dir('$INSTALL_REPORTS_DIR')
+            target = target.Dir('ready-to-commit').Dir(self._project_name)
+            target = target.File('ReadyToCommitReportFile.txt')
+            rtc_builder = self._env.RunReadyToCommit(target, None)
+            self._env.AlwaysBuild(rtc_builder)
+            self._env['PROJECT_NAME'] = self._project_name
+            # Get the builders from which the ready-to-commit target will
+            # depend on.
+            sources = project_component.GetSourcesFiles()
+            includes = project_component.GetIncludeFiles()
+            source = sources + includes
+            astyle_check = project_component._CreateAstyleCheckTarget(source)
+            cppcheck = project_component._CreateStaticAnalysisTarget(source)
+            valgrind = self._CreateValgrindTarget(program_builder)
+            run_test = self._env.RunUnittest(run_test_target, program_builder)
+            # Create dependencies.
+            self._env.Depends(rtc_builder, astyle_check)
+            self._env.Depends(rtc_builder, cppcheck)
+            self._env.Depends(rtc_builder, run_test)
+            self._env.Depends(rtc_builder, valgrind)
+            # Create the alias.
+            self._env.Alias(
+                '%s:ready-to-commit' % self._project_name,
+                rtc_builder,
+                "Check if the project is ready to be commited."
+            )
+            # Create a shorter alias.
+            self._env.Alias(
+                '%s:rtc' % self._project_name,
+                rtc_builder,
+                "Alias of the target: ready-to-commit."
+            )
         self._builders['ready-to-commit'] = rtc_builder
         return rtc_builder
 
@@ -1564,10 +1584,10 @@ class NameCheck():
         try:
             # Take the project and the action from the target.
             name, action = target[1].split(':')
-        except IndexError as e:
+        except IndexError:
             name = None
             action = None
-        except ValueError as e:
+        except ValueError:
             name = target[1]
             action = None
         self._project_name = name
