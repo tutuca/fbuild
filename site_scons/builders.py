@@ -479,7 +479,8 @@ def RunStaticAnalysis(env, target, source):
             cppcheck_options)
     if c_files:
         CheckPath(splint_dir.abspath)
-        splint_rc = _RunSplint(splint_dir, c_files, headers)
+        splint_rc = _RunSplint(splint_dir, c_files, headers, 
+            flags=env['SPLINT_FLAGS'])
     if headers and not (cpp_files or c_files):
         CheckPath(cppcheck_dir.abspath)
         cppcheck_rc = _RunCppCheck(cppcheck_dir, FindSources(source, 
@@ -629,9 +630,11 @@ def _RunCppCheck(report_dir, files, headers, options):
     cppcheck_proc = subprocess.Popen(cmd, shell=True)
     return cppcheck_proc.wait()
 
-def _RunSplint(report_dir, files, headers):
+def _RunSplint(report_dir, files, headers, flags=None):
     report_file = os.path.join(report_dir.abspath, 'static-analysis-report')
-    cmd = "splint %s %s > %s.txt" % (files, headers, report_file)
+    flags = flags if flags is not None else []
+    cmd = "splint %s %s %s > %s.txt" % (files, headers, 
+        SPACE.join(flags), report_file)
     splint_proc = subprocess.Popen(cmd, shell=True)
     return splint_proc.wait()
 
