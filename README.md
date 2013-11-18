@@ -1,124 +1,109 @@
-Introducción
-===============
+# Introduction
 
-`fudepan-build` provee manejo de dependencias y uniformidad en el build (utilizando scons). Ademas, se puede utilizar como un entorno reducido donde mantener una instalación y proveer comandos personalizados.
+Fudepan-build's concept is to provide dependency handling and build uniformity using scons. It can be used as a minimalistic build environment to provide personalized build commands. 
 
-Estructura de fudepan-build
+# Fudepan-build's structure
 
 
-    fudepan-build/
-         projects/
-         conf/
-            projects.xml
-         install/
-         env.sh
-         start.sh
+  fudepan-build/
+        projects/
+        conf/
+          projects.xml
+        install/
+        start.sh
 
- 
 
-`projects/` es el directorio donde se almacenara el código de los distintos proyectos.
-conf/ archivos de configuración
-conf/projects.xml contiene la configuración de cada proyecto, la url de descarga, etc
-`install/` es el directorio de instalación por defecto.
-env.sh es el script que prepara el ambiente del sistema.
-`start.sh` es el script que intenta actualizar fbuild a la versión más reciente.
+* `projects/` is the directory where the code of each project will be stored. 
+* `conf/` configuration files.
+* `conf/projects.xml` contains each project's configuration, download url and other necessary information.
+* `install/` the default installation directory.
+* `start.sh` Must be run before using Fbuild. This script set the work environment.
 
-Uso
-===============
+# Usage
 
-Antes que nada, hacer un source del archivo start.sh en la raiz del proyecto.
-
+The first step must always be to run start.sh at Fbuild's root folder. 
 
     $ source start.sh
 
-Para descargar un proyecto (listado en projects.xml):
+To download a project (listed in projects.xml):
 
     $ fbuild <nombre-proyecto>:checkout
 
-Esto lo descargará en el directorio projects y lo dejará listo para trabajar.
+This will download all project folders and files into projects.
 
-Para ejecutar el build:
+To build the project:
 
     $ fbuild <nombre-proyecto> 
 
-Para ejecutar los tests de un proyecto:
+To run a project's tests:
 
     $ fbuild <nombre-proyecto>:test 
 
-Por defecto, fudepan-build utiliza `install/` como entorno reducido, por lo que todas las libs, binarios, includes, etc, se instalaran ahí, dejando limpio el sistema:
+By default, fudepan-build uses install as its reduced environment, so all libs, binaries, includes and any other generated files should be installed there, avoiding the pollution of the projects directory.
 
     $ fbuild install <nombre-proyecto> 
 
-Tambien es posible pisar los directorios de instalación, por ejemplo:
+You may redefine the installation directories, for instance:
 
     $ fbuild INSTALL_HEADERS_DIR=/usr/local/include/ INSTALL_BIN_DIR=/usr/local/bin/ INSTALL_LIB_DIR=/usr/local/lib/ 
 
-Para limpiar los archivos generados al ejecutar un target:
+To clean all files generated during a target's build:
 
     $ fbuild -c <target>
 
-Para obtener una lista de los 'targets' disponibles:
+To see all available targets:
 
     $ fbuild targets
 
-Para obtener el reporte de coverage via lcov
+To get a test coverage report:
 
     $ fbuild <proyecto>:coverage
 
-Para ver la ayuda de scons:
+To see scons help:
 
     $ fbuild --help
 
-Para obtener una salida más completa:
+To see how the target is built:
 
-    $ fbuild --verbose ....
+    $ fbuild --verbose <target>
 
-*Sconscificando* un proyecto
-===============
+# "Sconscifying" a project
 
-Hay 4 tipos basicos de builders:
+There are 5 basic types of builders:
 
 * Header only
-* Program
 * Static Library
 * Shared Library
+* Program
 * Test
 
-En general un proyecto contendra la siguiente estructura:
+In general, and to be structured, a project will has the following structure:
 
-    biopp/
-       biopp/         <--- contendrá los headers
-       src/
-       tests/
+    project-name/
+      project-name/         <--- will has the project headers.
+      src/
+      tests/
           SConscript
-       SConscript
+      SConscript
 
-Ejemplos de cada tipo de proyecto:
+Examples of every project's type:
 
-    Header Only: mili
-    Static Library: getoptpp
-    Shared Library: biopp
-    Program: backbones-generator
+* Header Only: [mili](http://code.google.com/p/mili/)
+* Static Library: [getoptpp](http://code.google.com/p/getoptpp/)
+* Shared Library: [biopp](http://code.google.com/p/biopp/)
+* Program: [backbones-generator](http://code.google.com/p/backbones-generator/)
 
-Variables de entorno
-===============
+# Environment variables
 
-Algunas variables de entorno a tener en cuenta:
+Some environment variables to consider:
 
-Qt (ejemplo para Arch, para Ubuntu no es necesario agregar esto):
+Qt (Arch example, for Ubuntu this is not necessary):
 
     export QT_INCLUDE_ROOT=/usr/include
     export QT_INCLUDE=/usr/include/Qt
 
-Prevenir que fbuild se actualice automaticamente (no recomendado):
+# Tips
 
-    export FBUILD_NO_UPDATE=1 
+Edit your .bashrc file (located in /home/YOUR_USERNAME) with an alias such as this:
 
-Tips
-===============
-
-Es extremadamente util agregar un alias en el archivo ~/.bashrc que nos ahorre el recordar hacer el source de env.sh, por ejemplo:
-
-    alias go-fudepan='cd /home/usuario/fudepan-build && source start.sh'
-
-Otra ventaja colateral es que se puede utilizar el archivo `start.sh` para definir alias y comandos extras que seran solamente visibles cuando se haga el source del mismo.
+    alias go-fbuild='cd /home/YOUR_USERNAME/PATH_TO_FBUILD/; source start.sh; export LDFLAGS="-L/usr/local/$(uname -m)-linux-gnu" '
