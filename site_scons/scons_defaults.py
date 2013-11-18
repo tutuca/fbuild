@@ -111,6 +111,13 @@ def init(env, vars):
             os.path.join(REPORT_DIR, "metrics"),
             PathVariable.PathIsDirCreate)
         )
+    vars.AddVariables(
+        PathVariable(
+            'CPPCHECK_SUPPRESSION',
+            'suppression-list file for Cppcheck',
+            '',
+            PathVariable.PathIsDirCreate)
+        )
     vars.Update(env)
     if env.GetOption('verbose'):
         env.cdebug('Install information:')
