@@ -111,12 +111,8 @@ def init(env, vars):
             os.path.join(REPORT_DIR, "metrics"),
             PathVariable.PathIsDirCreate)
         )
-    vars.AddVariables(
-        PathVariable(
-            'CPPCHECK_SUPPRESSION',
-            'suppression-list file for Cppcheck',
-            '',
-            PathVariable.PathIsDirCreate)
+    env.SetDefault(
+        CPPCHECK_SUPPRESSION = ''
         )
     vars.Update(env)
     if env.GetOption('verbose'):
