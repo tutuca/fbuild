@@ -112,6 +112,9 @@ def init(env, vars):
             PathVariable.PathIsDirCreate)
         )
     env.SetDefault(
+        CPPCHECK_SUPPRESSION = ''
+        )
+	env.SetDefault(
         SPLINT_FLAGS = ''
     )
     vars.Update(env)

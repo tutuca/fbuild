@@ -612,6 +612,7 @@ def _RunCppCheck(report_dir, files, includes, options, env):
     report_file = os.path.join(report_dir.abspath, 'static-analysis-report')
     success = False
     includes.append(env.Dir('/usr/include'))
+    includes.append(env.Dir('/usr/local/include'))
     to_include = SPACE.join(['-I%s' % x.abspath for x in includes])
     if 'xml' in options:
         report_file = report_file+'.xml'
@@ -624,8 +625,8 @@ def _RunCppCheck(report_dir, files, includes, options, env):
     # Check if the cmd can run.
     result = _CheckCppCheckConfig(env, cmd)
     # Create the suppression list.
-    name = 'suppression_list.txt'
-    _CreateSuppressionList(name, includes)
+    name = '.suppression_list.txt'
+    _CreateSuppressionList(name, includes, env)
     cmd = '%s --suppressions %s' % (cmd, name)
     env.Cprint('Running...', 'green')
     with open(report_file, 'w+') as rf:
@@ -669,7 +670,7 @@ def _CheckCppCheckConfig(env, cmd):
     return result
 
 
-def _CreateSuppressionList(name, includes):
+def _CreateSuppressionList(name, includes, env):
 
     include_list = [x.abspath for x in includes if not '/usr/' in x.abspath]
     headers_list = []
@@ -677,12 +678,21 @@ def _CreateSuppressionList(name, includes):
         headers_list.extend(_FindHeadersPath(x))
     # Libraries from /usr/include can be needed.
     headers_list.append('/usr/include')
+    headers_list.append('/usr/local/include')
+    # Check if the user defined a suppression-list.
+    user_sup = env.get('CPPCHECK_SUPPRESSION')
+    if user_sup:
+        with open(user_sup, 'r') as sup:
+            sup_to_append = sup.read()
     with open(name, 'w+') as f:
         # Add suppression for unnecessaries errors.
         f.write('unmatchedSuppression\n') 
         f.write('cppcheckError\n')
         for x in set(headers_list):
             f.write('*:%s/*\n' % x)
+        if user_sup:
+            f.write(sup_to_append)
+
 
 def _FindHeadersPath(path):
     """
