@@ -65,11 +65,15 @@ function check_install {
                 # Ubuntu 13.04 has clang with Address Sanitizer.
                 if [ "$VER" == "13.04" ]; then
                     sudo apt-get install $pkg
-                else
-                    echo -e "\e[0;93mYou should install Clang manually. Please, check the documentation to do it.\e[0m"
-                    echo -e "\e[0;93mhttp://tracker.fudepan.org.ar/youtrack/issue/fbuild-147\e[0m"
-                    return 1
+                elif [ "$VER" == "12.04" ]; then
+                    echo -e "Installing clang version 3.4"
+                    if [ -z `grep llvm -R /etc/apt/sources.list*` ]; then
+                        sudo echo 'deb http://llvm.org/apt/precise/ llvm-toolchain-precise main' >> /etc/apt/sources.list.d/llvm.list
+                    fi
+                    wget -O - http://llvm.org/apt/llvm-snapshot.gpg.key|sudo apt-key add -
+                    sudo apt-get update && sudo apt-get -y install clang-3.4
                 fi
+                return 1
             else
                 sudo apt-get install $pkg
                 if [ "$?" -ne "0" ]; then
