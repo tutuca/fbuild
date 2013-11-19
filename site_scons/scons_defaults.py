@@ -114,7 +114,7 @@ def init(env, vars):
     env.SetDefault(
         CPPCHECK_SUPPRESSION = ''
         )
-	env.SetDefault(
+    env.SetDefault(
         SPLINT_FLAGS = ''
     )
     vars.Update(env)
