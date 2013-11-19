@@ -86,7 +86,7 @@ def init(env):
     env['CLOC_OUTPUT_FORMAT'] = 'txt'  # txt | sql | xml
     env['CLOC_OPTIONS'] = []
     #-
-    env['CPPCHECK_OPTIONS'] = ['-f']
+    env['CPPCHECK_OPTIONS'] = ['-f', '--enable=all']
     #-
     bldMocko = Builder(action=Action(RunMocko, PrintDummy))
     env.Append(BUILDERS={'RunMocko': bldMocko})
