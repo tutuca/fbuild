@@ -625,7 +625,7 @@ def _RunCppCheck(report_dir, files, includes, options, env):
     # Check if the cmd can run.
     result = _CheckCppCheckConfig(env, cmd)
     # Create the suppression list.
-    name = 'suppression_list.txt'
+    name = '.suppression_list.txt'
     _CreateSuppressionList(name, includes, env)
     cmd = '%s --suppressions %s' % (cmd, name)
     env.Cprint('Running...', 'green')
