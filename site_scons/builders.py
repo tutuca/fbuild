@@ -646,7 +646,6 @@ def _RunCppCheck(report_dir, files, includes, options, env):
         pass
     return result
 
-
 def _CheckCppCheckConfig(env, cmd):
     """
     Description: CppCheck has the --check-config flag to check if 
@@ -717,7 +716,9 @@ def _RunSplint(report_dir, files, includes, env):
     report_file = os.path.join(report_dir.abspath, 'static-analysis-report')
     includes += [env.Dir('/usr/include')]
     headers = SPACE.join(['-I%s ' % x for x in includes])
-    cmd = "splint %s %s > %s.txt" % (files, headers, report_file)
+    flags = env.get('SPLINT_FLAGS', [])
+    cmd = "splint %s %s %s > %s.txt" % (files, headers, 
+        SPACE.join(flags), report_file)
     if env.GetOption('verbose'):
         env.Cprint(cmd, 'end')
     splint_proc = subprocess.Popen(cmd, shell=True)
