@@ -68,12 +68,11 @@ function check_install {
                 elif [ "$VER" == "12.04" ]; then
                     echo -e "Installing clang version 3.4"
                     if [ -z `grep llvm -R /etc/apt/sources.list*` ]; then
-                        sudo echo 'deb http://llvm.org/apt/precise/ llvm-toolchain-precise main' >> /etc/apt/sources.list.d/llvm.list
+                        echo 'deb http://llvm.org/apt/precise/ llvm-toolchain-precise main' | sudo tee -a /etc/apt/sources.list.d/llvm.list
                     fi
                     wget -O - http://llvm.org/apt/llvm-snapshot.gpg.key|sudo apt-key add -
                     sudo apt-get update && sudo apt-get -y install clang-3.4
                 fi
-                return 1
             else
                 sudo apt-get install $pkg
                 if [ "$?" -ne "0" ]; then
