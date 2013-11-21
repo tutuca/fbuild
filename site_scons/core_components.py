@@ -679,7 +679,7 @@ class HeaderOnlyComponent(Component):
         target = self._env.Dir(self._env['INSTALL_REPORTS_DIR'])
         target = target.Dir('static-analysis').Dir(self.name)
         # Pass information into env.
-        self._env['CPPCHECK_INC_PATHS'] = includes
+        self._env['INC_PATHS'] = includes
         # Create an instance of the RunStaticAnalysis() builder.
         analysis_builder = self._env.RunStaticAnalysis(target, sources)
         # The builder must depend of the project dependencies.
@@ -759,20 +759,25 @@ class HeaderOnlyComponent(Component):
     def _CreateNameCheckTarget(self, sources, program_builder):
         flags = self._CheckForFlags()
         if flags['namecheck']:
-            # Set paths to the plug-in and the configuration file.
-            namecheck = os.path.join(os.getcwd(), "install", "libs", "libnamecheck.so")
-            namecheck_conf = os.path.join(os.getcwd(), "conf", "namecheck-conf.csv")
-            if os.path.exists(namecheck) and os.path.exists(namecheck_conf):
-                # Add the flags to the compiler if the plug-in is present.
-                plugin = '-fplugin=%s' % namecheck
-                conf = '-fplugin-arg-libnamecheck-path=%s' % namecheck_conf
-                self._env.Append(
-                    CXXFLAGS=[plugin, conf], CFLAGS=[plugin, conf])
-            else:
-                self._env.cerror(
-                    'Please check if you have isntalled Namecheck and the configuration file.')
-            if self.name == 'biopp': import ipdb; ipdb.set_trace()
-            self._env.Alias('%s:namecheck' % self.name, program_builder, "Check the name's convention.")
+            target_invoqued = sys.argv
+            try:
+                # Take the project and the action from the target.
+                name, action = target_invoqued[1].split(':')
+            except ValueError:
+                name = target[1]
+            self._env['PROJECT_NAME'] = name
+            target = self._env.Dir('%s-namecheck' % self.name)
+            includes = self.GetIncludePaths()
+            self._env['INC_PATHS'] = includes
+            name_builder = self._env.RunNamecheck(target, sources)
+            # The builder must depend of the project dependencies.
+            dependencies = self._dependencies
+            for x in dependencies:
+                dep = self._component_graph.get(x)
+                if dep:
+                    dep = dep.Process()
+                    self._env.Depends(name_builder, dep)
+            self._env.Alias('%s:namecheck' % self.name, name_builder, "Check the name's convention.")
         return 0
 
 

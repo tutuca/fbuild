@@ -30,6 +30,7 @@ import subprocess
 import os.path
 import shutil
 import os
+import re
 from SCons.Builder import Builder
 from SCons.Action import Action
 from core_components import HEADERS_FILTER
@@ -103,10 +104,35 @@ def init(env):
     #-
     bldAddressSanitizer = Builder(action=Action(RunASan, PrintDummy))
     env.Append(BUILDERS={'RunASan': bldAddressSanitizer})
+    #-
+    bldNamecheck = Builder(action=Action(RunNamecheck, PrintDummy))
+    env.Append(BUILDERS={'RunNamecheck': bldNamecheck})
 
 
 def PrintDummy(env, target, source):
     return ""
+
+
+def RunNamecheck(env, target, source):
+    env.Cprint('\n==== Running NameCheck ====\n', 'green')
+    includes = env['INC_PATHS']
+    includes = SPACE.join(['-I%s' % x.abspath for x in includes])
+    cpp_files = FindSources(source, ['.cpp', '.cc'])
+    c_files = FindSources(source, ['.c'])
+    namecheck = os.path.join(os.getcwd(), "install", "libs", "libnamecheck.so")
+    namecheck_conf = os.path.join(os.getcwd(), "conf", "namecheck-conf.csv")
+    if os.path.exists(namecheck) and os.path.exists(namecheck_conf):
+        # Add the flags to the compiler if the plug-in is present.
+        plugin = '-fplugin=%s' % namecheck
+        conf = '-fplugin-arg-libnamecheck-path=%s' % namecheck_conf
+    else:
+        env.cerror(
+            'Please check if you have isntalled Namecheck and the configuration file.')
+    if cpp_files:
+        _ExecuteNamecheck(env, cpp_files, plugin, conf, includes)
+    if c_files:
+        _ExecuteNamecheck(env, c_files, plugin, conf, includes)
+    return EXIT_SUCCESS
 
 
 def RunUnittest(env, target, source):
@@ -458,7 +484,7 @@ def RunStaticAnalysis(env, target, source):
     target = target.pop()
     env.Cprint('\n=== Running Static Code Analysis ===\n', 'green')
     cppcheck_options = SPACE.join([opt for opt in env['CPPCHECK_OPTIONS']])
-    includes = env['CPPCHECK_INC_PATHS']
+    includes = env['INC_PATHS']
     cpp_files = FindSources(source, ['.cpp', '.cc'])
     cppcheck_dir = target.Dir('cppcheck')
     splint_dir = target.Dir('splint')
@@ -841,3 +867,36 @@ def _RTCCheckValgrind(env):
     # Wait until process terminates and return the status.
     # grep returns 1 if the line is not found
     return valgrind_proc.wait()
+
+
+def _ExecuteNamecheck(env, files, plugin, conf, includes):
+    reg = './%s/.' % env['PROJECT_NAME']
+    for x in files.split(SPACE):
+        if x.endswith('cpp') or x.endswith('cc'):
+            cmd = 'g++'
+        elif x.endswith('c'):
+            cmd = 'gcc'
+        env.Cprint('\nAnalyzing %s...\n' % os.path.basename(x), 'yellow')
+        cmd += ' %s %s -c %s %s' % (plugin, conf, x, includes)
+        pipe = subprocess.Popen(cmd, stderr=subprocess.PIPE, shell=True)
+        for line in pipe.stderr:
+            # Check if the project name is into the path of the warning.
+            is_there = re.search(reg, line)
+            if is_there:
+                env.Cprint('%s' % line.strip(), 'end')
+        pipe.wait()
+        if x.endswith('cpp'):
+            try:
+                os.remove(x.replace('cpp', 'o'))
+            except:
+                pass
+        elif x.endswith('.cc'):
+            try:
+                os.remove(x.replace('cc', 'o'))
+            except:
+                pass
+        elif x.endswith('.c'):
+            try:
+                os.remove(x.replace('c', 'o'))
+            except:
+                pass
