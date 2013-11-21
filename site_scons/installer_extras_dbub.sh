@@ -52,7 +52,23 @@ function check_build_essential {
     fi
     return 0
 }
-
+function install_namecheck {
+    NAMECHECK=`locate namecheck.so | head -1`
+    OLDPWD=`pwd` 
+    TEMPDIR='/tmp/namecheck'
+    if [ -z "$NAMECHECK" ]; then
+        echo -e "Installing Namecheck GCC Plugin"
+        if [ ! -d "$TEMPDIR" ]; then
+            mkdir $TEMPDIR
+        fi
+        cd $TEMPDIR
+        wget http://web20.tallertechnologies.com/sites/all/modules/pubdlcnt/pubdlcnt.php?file=/sites/default/files/namecheck-1.2.tar.gz -O namecheck.tar.gz
+        tar xf namecheck.tar.gz
+        make
+        sudo mv libnamecheck.so /usr/lib/
+        cd $OLDPWD
+    fi
+}
 function check_astyle_2_03 {
     ASTYLE_URL="http://downloads.sourceforge.net/project/astyle/astyle/astyle%202.03/astyle_2.03_linux.tar.gz?r=&ts=1373513007&use_mirror=ufpr"
     ASTYLE_TAR="astyle_2_03.tar.gz"

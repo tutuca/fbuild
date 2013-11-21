@@ -50,6 +50,7 @@ else
 fi
 # We need to check if build essential is installed
 check_build_essential
+install_namecheck
 if [ "$?" -ne "0" ]; then return $?; fi
 # three parameters: 
 # 1) binary to check for existance
