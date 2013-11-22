@@ -129,6 +129,7 @@ def RunNamecheck(env, target, source):
     else:
         env.cerror(
             'Please check if you have isntalled Namecheck and the configuration file.')
+        return EXIT_SUCCESS
     if cpp_files:
         _ExecuteNamecheck(env, cpp_files, plugin, conf, includes)
     if c_files:
