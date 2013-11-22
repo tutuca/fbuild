@@ -31,6 +31,7 @@ import os.path
 import shutil
 import os
 import re
+from SCons.Defaults import Delete
 from SCons.Builder import Builder
 from SCons.Action import Action
 from core_components import HEADERS_FILTER
@@ -887,7 +888,7 @@ def _ExecuteNamecheck(env, files, plugin, conf, includes):
         pipe.wait()
         if x.endswith('cpp'):
             try:
-                os.remove(x.replace('cpp', 'o'))
+                Delete(x.replace('cpp', 'o'))
             except:
                 pass
         elif x.endswith('.cc'):
