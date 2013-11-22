@@ -57,7 +57,7 @@ function install_namecheck {
     OLDPWD=`pwd` 
     TEMPDIR='/tmp/namecheck'
     if [ -z "$NAMECHECK" ]; then
-        echo -e "Installing Namecheck GCC Plugin"
+        echo -e "\e[0;33mInstalling Namecheck GCC Plugin\e[0m"
         if [ ! -d "$TEMPDIR" ]; then
             mkdir $TEMPDIR
         fi
