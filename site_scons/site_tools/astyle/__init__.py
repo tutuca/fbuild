@@ -19,29 +19,37 @@
 # You should have received a copy of the GNU General Public License
 # along with fudepan-build.  If not, see <http://www.gnu.org/licenses/>.
 
+import os
+import shutil
+
+import subprocess
+
+from termcolor import Cprint, Cformat
 from SCons.Action import Action
 from SCons.Builder import Builder
 from SCons.Warnings import Warning, enableWarningClass
 from SCons.Errors import StopError
-import os
-import shutil
-import subprocess
-from termcolor import Cprint, Cformat
 
-EXIT_SUCCESS = 0
 
 class ToolAstyleWarning(Warning):
     '''Astyle-specific Warnings'''
     pass
 
+
 class AstyleCompilerNotFound(ToolAstyleWarning):
-    '''Raise this warning if the astyle excecutable is not found in the system'''
+    '''
+    Raise this warning if the astyle excecutable is not found in the system
+    '''
     pass
 
 enableWarningClass(ToolAstyleWarning)
 
+
 def _get_astyle_diff(env, source, output_directory):
-    '''This runs astyle on a temporary file and prints the diff out to standard output'''
+    '''
+    This runs astyle on a temporary file and prints the diff out to 
+    standard output
+    '''
 
     # Create a temporary directory.
     tmp_dir = os.path.join(output_directory, 'tmp')
@@ -78,12 +86,14 @@ def _get_astyle_diff(env, source, output_directory):
             diff = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
             diff_stdout = diff.stdout.read()
             diff.wait()
-            need_astyle_list.append((os.path.split(file.abspath)[1], diff_stdout))
+            need_astyle_list.append(
+                (os.path.split(file.abspath)[1], diff_stdout))
             need_astyle = True
     # Remove the temporary directory.
     os.system('rm -rf %s' % tmp_dir)
     # Return a dictionary.
     return {'need_astyle': need_astyle, 'need_astyle_list': need_astyle_list}
+
 
 def _astyle_check_action(target, source, env):
     '''This prepares the environment for _astyle_check_diff to run'''
@@ -128,36 +138,36 @@ def _astyle_check_action(target, source, env):
         Cprint('[OK] No file needs astyle.', 'green')
     # Close the report file.
     report.close()
-    return EXIT_SUCCESS
+    return os.EX_OK
+
 
 def _detect(env):
     """ Helper function to detect the astyle excecutable."""
-    try: 
-        return env['ASTYLE']
-    except KeyError: 
-        pass
 
-    astyle = env.WhereIs('astyle')
+
+    astyle = env.get('ASTYLE', env.WhereIs('astyle'))
     if astyle:
         return astyle
+    else:
+        raise StopError(
+            AstyleCompilerNotFound,
+            "Could not detect ASTYLE")  # surely we could detect the platform 
+                                        # and install the package here...
 
-    raise StopError(
-        AstyleCompilerNotFound,
-        "Could not detect ASTYLE") ## surely we could detect the platform and install the package here...
-    return None
 
 def _astyle_emitter(target, source, env):
     '''Helper function to filter out files for testing purposes.'''
-    return target, [f.abspath.replace(env['BUILD_DIR'], env['WS_DIR']) for f in source if 'test/ref' not in f.abspath]
+    return target, [f.abspath.replace(env['BUILD_DIR'], env['WS_DIR']) 
+                        for f in source 
+                        if 'test/ref' not in f.abspath]
 
 _astyle_builder = Builder(
-        action = Action('$ASTYLE_COM','$ASTYLE_COMSTR'),
-        emitter = _astyle_emitter)
+    action=Action('$ASTYLE_COM', '$ASTYLE_COMSTR'),
+    emitter=_astyle_emitter)
 
 _astyle_check_builder = Builder(
-        action = _astyle_check_action,
-        emitter = _astyle_emitter)
-
+    action=_astyle_check_action,
+    emitter=_astyle_emitter)
 
 
 def generate(env):
@@ -165,12 +175,13 @@ def generate(env):
     env['ASTYLE'] = _detect(env)
     env.SetDefault(
         # ASTYLE command
-        ASTYLE_COM = '$ASTYLE -k1 --options=none --convert-tabs -bSKpUH $SOURCES',
-        ASTYLE_COMSTR = Cformat('\n=== Running Astyle ===\n', 'green')
-        )
+        ASTYLE_COM='$ASTYLE -k1 --options=none --convert-tabs -bSKpUH $SOURCES',
+        ASTYLE_COMSTR=Cformat('\n=== Running Astyle ===\n', 'green')
+    )
 
     env['BUILDERS']['RunAStyle'] = _astyle_builder
     env.AddMethod(_astyle_check_builder, 'RunAStyleCheck')
+
 
 def exists(env):
     return _detect(env)
