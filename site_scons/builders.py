@@ -25,20 +25,23 @@
 """
 
 
+import fnmatch
 import subprocess
 import os.path
 import shutil
 import os
 from SCons.Builder import Builder
 from SCons.Action import Action
+from core_components import HEADERS_FILTER
 
-from utils import ChainCalls, FindHeaders, FindSources, CheckPath, WaitProcessExists, RemoveDuplicates
+from utils import ChainCalls, FindSources, CheckPath, WaitProcessExists, RemoveDuplicates, DeleteLinesInFile
 
 
 HEADERS = [".h", ".hpp"]
 SOURCES = [".c", ".cpp"]
 # Return status of a builder.
 EXIT_SUCCESS = 0
+EXIT_ERROR = 1
 # Constat to repsent spaces between options.
 SPACE = ' '
 # The first element of an iterable object.
@@ -83,8 +86,6 @@ def init(env):
     env['CLOC_OUTPUT_FORMAT'] = 'txt'  # txt | sql | xml
     env['CLOC_OPTIONS'] = []
     #-
-    bldCppCheck = Builder(action=Action(RunCppCheck, PrintDummy))
-    env.Append(BUILDERS={'RunCppCheck': bldCppCheck})
     env['CPPCHECK_OPTIONS'] = ['-f', '--enable=all']
     #-
     bldMocko = Builder(action=Action(RunMocko, PrintDummy))
@@ -374,49 +375,38 @@ def RunCLOC(env, target, source):
     return EXIT_SUCCESS
 
 
-def RunCppCheck(env, target, source):
-    # Print message on the screen.
-    env.Cprint('\n=== Running CPPCHECK ===\n', 'green')
-    # Get the report file name.
-    report_file = target[0].abspath
-    # Get the output directory.
-    output_directory = os.path.dirname(report_file)
-    # Check if the output directory for the cppcheck report already exists.
-    if not os.path.exists(output_directory):
-        os.makedirs(output_directory)
-    # Create a string with the options for cppcheck.
-    options = SPACE.join([opt for opt in env['CPPCHECK_OPTIONS']])
-    # We create a string with the files for cppcheck.
-    files = SPACE.join([f.abspath for f in source])
-    # Create the command to be pass to subprocess.Popen()
-    result = _RunCppCheck(env, target, files, options)
-    if not result:
-        env.cerror('\n\n[ERROR] Failed running Cpp Check\n\n')
-    return EXIT_SUCCESS
-
 def RunStaticAnalysis(env, target, source):
-    # Print message on the screen.
+    '''
+    Decide wether to run cppcheck or splint based on the kind of 
+    source files we have.
+
+    :param env: The excecution environment.
+    :param target: The compilation target.
+    :param source: The list of source files.
+
+    '''
     cppcheck_rc = False
     splint_rc = False
     target = target.pop()
     env.Cprint('\n=== Running Static Code Analysis ===\n', 'green')
     cppcheck_options = SPACE.join([opt for opt in env['CPPCHECK_OPTIONS']])
+    includes = env['CPPCHECK_INC_PATHS']
     cpp_files = FindSources(source, ['.cpp', '.cc'])
     cppcheck_dir = target.Dir('cppcheck')
     splint_dir = target.Dir('splint')
     c_files = FindSources(source, ['.c'])
-    headers = FindHeaders(source)
+    headers = includes
     if cpp_files:
         CheckPath(cppcheck_dir.abspath)
-        cppcheck_rc = _RunCppCheck(cppcheck_dir, cpp_files, headers, 
-            cppcheck_options)
+        cppcheck_rc = _RunCppCheck(cppcheck_dir, cpp_files, includes, 
+            cppcheck_options, env)
     if c_files:
         CheckPath(splint_dir.abspath)
-        splint_rc = _RunSplint(splint_dir, c_files, headers)
+        splint_rc = _RunSplint(splint_dir, c_files, includes, env)
     if headers and not (cpp_files or c_files):
         CheckPath(cppcheck_dir.abspath)
         cppcheck_rc = _RunCppCheck(cppcheck_dir, FindSources(source, 
-            ['.h', '.hh', '.hpp']), headers, cppcheck_options)
+            ['.h', '.hh', '.hpp']), headers, cppcheck_options, env)
     # Return the output of both builders
     if cppcheck_rc or splint_rc:
         env.cerror('\n\n[ERROR] Failed running Static Analysis\n\n')
@@ -430,7 +420,6 @@ def RunMocko(env, target, source):
     # Constants to access the sources list
     MOCKO_LIST = 0; MOCKO_EXEC = 1
     # Constants to access the targets list.
-    MOCKO_BIND_VGDB = 0; MOCKO_BIND_GDB = 1
     # Get the file list.mocko.
     mocko_list = source[MOCKO_LIST].abspath
     # Get the tests directory, which is the same as the list.mocko directory.
@@ -551,27 +540,119 @@ def RunInfo(env, target, source):
     return EXIT_SUCCESS
 
 
-def _RunCppCheck(report_dir, files, headers, options):
+def _RunCppCheck(report_dir, files, includes, options, env):
     report_file = os.path.join(report_dir.abspath, 'static-analysis-report')
     success = False
+    includes.append(env.Dir('/usr/include'))
+    includes.append(env.Dir('/usr/local/include'))
+    to_include = SPACE.join(['-I%s' % x.abspath for x in includes])
     if 'xml' in options:
         report_file = report_file+'.xml'
-        cmd = "cppcheck --check-config %s %s %s 2" % (options, files, headers)
+        cmd = "cppcheck %s %s %s" % (options, files, to_include)
     else:
         report_file = report_file+'.txt'
-        cmd = "cppcheck %s %s %s" % (options, files, headers)
+        cmd = "cppcheck %s %s %s" % (options, files, to_include)
+    if env.GetOption('verbose'):
+        env.Cprint('>>> %s' % cmd, 'end')
+    # Check if the cmd can run.
+    result = _CheckCppCheckConfig(env, cmd)
+    # Create the suppression list.
+    name = '.suppression_list.txt'
+    _CreateSuppressionList(name, includes, env)
+    cmd = '%s --suppressions %s' % (cmd, name)
+    env.Cprint('Running...', 'green')
     with open(report_file, 'w+') as rf:
         pipe = subprocess.Popen(
-            cmd, 
-            shell=True, 
+            cmd,
+            shell=True,
             stderr=rf
         )
-        success = pipe.wait()
-    return success
+    success = pipe.wait()
+    if result == EXIT_SUCCESS: result = success
+    re = ur'unmatchedSuppression|cppcheckError|Unmatched suppression'
+    DeleteLinesInFile(re, report_file)
+    # Delete the suppression list created
+    try:
+        os.remove(name)
+    except OSError:
+        pass
+    return result
 
-def _RunSplint(report_dir, files, headers):
+def _CheckCppCheckConfig(env, cmd):
+    """
+    Description: CppCheck has the --check-config flag to check if 
+    everything is OK to run CppCheck in the files.
+    Arguments:
+        - env: the current environment
+        - cmd: the command to append the flag.
+    Return: EXIT_SUCCESS or EXIT_ERROR.
+    """
+    result = EXIT_SUCCESS
+    env.Cprint('Checking the files', 'green')
+    check = subprocess.Popen(
+        '%s --check-config' % cmd,
+        shell=True,
+        stderr=subprocess.PIPE
+    )
+    error = check.stderr.read()
+    check.wait()
+    if 'error' in error:
+        env.cerror('[ERROR] Cannot run Cppcheck. Error: %s' % error)
+        result = EXIT_ERROR
+    return result
+
+
+def _CreateSuppressionList(name, includes, env):
+
+    include_list = [x.abspath for x in includes if not '/usr/' in x.abspath]
+    headers_list = []
+    for x in include_list:
+        headers_list.extend(_FindHeadersPath(x))
+    # Libraries from /usr/include can be needed.
+    headers_list.append('/usr/include')
+    headers_list.append('/usr/local/include')
+    # Check if the user defined a suppression-list.
+    user_sup = env.get('CPPCHECK_SUPPRESSION')
+    if user_sup:
+        with open(user_sup, 'r') as sup:
+            sup_to_append = sup.read()
+    with open(name, 'w+') as f:
+        # Add suppression for unnecessaries errors.
+        f.write('unmatchedSuppression\n') 
+        f.write('cppcheckError\n')
+        for x in set(headers_list):
+            f.write('*:%s/*\n' % x)
+        if user_sup:
+            f.write(sup_to_append)
+
+
+def _FindHeadersPath(path):
+    """
+    Description:
+        Find headers into directories and if find one, take the directory.
+    Arguments:
+        - path: The path that will be walked.
+    Return:
+        A list with all the paths found.
+    """
+    filters = HEADERS_FILTER
+    paths = []
+    for root, dirnames, names in os.walk(path):
+        for name in names:
+            if any([fnmatch.fnmatch('%s/%s' % (root, name), filter) for filter in filters]):
+                if not root in paths:
+                    paths.append(root)
+    return paths
+
+def _RunSplint(report_dir, files, includes, env):
     report_file = os.path.join(report_dir.abspath, 'static-analysis-report')
-    cmd = "splint %s %s > %s.txt" % (files, headers, report_file)
+    includes += [env.Dir('/usr/include')]
+    headers = SPACE.join(['-I%s ' % x for x in includes])
+    flags = env.get('SPLINT_FLAGS', [])
+    cmd = "splint %s %s %s > %s.txt" % (files, headers, 
+        SPACE.join(flags), report_file)
+    if env.GetOption('verbose'):
+        env.Cprint(cmd, 'end')
     splint_proc = subprocess.Popen(cmd, shell=True)
     return splint_proc.wait()
 

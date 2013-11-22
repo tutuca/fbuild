@@ -111,6 +111,12 @@ def init(env, vars):
             os.path.join(REPORT_DIR, "metrics"),
             PathVariable.PathIsDirCreate)
         )
+    env.SetDefault(
+        CPPCHECK_SUPPRESSION = ''
+        )
+    env.SetDefault(
+        SPLINT_FLAGS = ''
+    )
     vars.Update(env)
     if env.GetOption('verbose'):
         env.cdebug('Install information:')
