@@ -50,8 +50,7 @@ function check_install {
         else
             echo -e "\e[0;33m[warn] $1 (part of $pkg) not found, suggest to install it to continue\e[0m"
         fi
-        echo "info: 'sudo apt-get install $pkg' should do the job, do you want"
-        echo "      me to do it? (your password could be required)"
+        echo "info: 'I can try installing $pkg for you shall I proceed? (your password could be required)"
         REPLY="extremelyLongStringUnlikelyToBeUsed"
         while [[ "$REPLY" != "y" && "$REPLY" != "n" && "$REPLY" != "" ]]; do
             read -p "Install ([y]/n)?" REPLY
@@ -65,10 +64,13 @@ function check_install {
                 # Ubuntu 13.04 has clang with Address Sanitizer.
                 if [ "$VER" == "13.04" ]; then
                     sudo apt-get install $pkg
-                else
-                    echo -e "\e[0;93mYou should install Clang manually. Please, check the documentation to do it.\e[0m"
-                    echo -e "\e[0;93mhttp://tracker.fudepan.org.ar/youtrack/issue/fbuild-147\e[0m"
-                    return 1
+                elif [ "$VER" == "12.04" ]; then
+                    echo -e "Installing clang version 3.4"
+                    if [ -z `grep llvm -R /etc/apt/sources.list*` ]; then
+                        echo 'deb http://llvm.org/apt/precise/ llvm-toolchain-precise main' | sudo tee -a /etc/apt/sources.list.d/llvm.list
+                    fi
+                    wget -O - http://llvm.org/apt/llvm-snapshot.gpg.key|sudo apt-key add -
+                    sudo apt-get update && sudo apt-get -y install clang-3.4
                 fi
             else
                 sudo apt-get install $pkg
