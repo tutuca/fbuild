@@ -95,8 +95,6 @@ def _get_astyle_diff(env, source, output_directory):
 
 def _astyle_check_action(target, source, env):
     '''This prepares the environment for _astyle_check_diff to run'''
-    # Print message on the screen.
-    env.Cprint('\n=== Running ASTYLE-CHECK ===\n', 'green')
     # Get the report file.
     report_file = target[0].abspath
     # Get the output directory.
@@ -162,7 +160,7 @@ _astyle_builder = Builder(
     emitter=_astyle_emitter)
 
 _astyle_check_builder = Builder(
-    action=_astyle_check_action,
+    action=Action(_astyle_check_action, '$ASTYLE_CHECK_COMSTR'),
     emitter=_astyle_emitter)
 
 
@@ -172,7 +170,8 @@ def generate(env):
     env.SetDefault(
         # ASTYLE command
         ASTYLE_COM='$ASTYLE -k1 --options=none --convert-tabs -bSKpUH $SOURCES',
-        ASTYLE_COMSTR=Cformat('\n=== Running Astyle ===\n', 'green')
+        ASTYLE_COMSTR=Cformat('\n=== Running Astyle ===\n', 'green'),
+        ASTYLE_CHECK_COMSTR=Cformat('\n=== Running Astyle Check ===\n', 'green')
     )
 
     env['BUILDERS']['RunAStyle'] = _astyle_builder
