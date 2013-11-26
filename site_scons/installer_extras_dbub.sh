@@ -53,10 +53,10 @@ function check_build_essential {
     return 0
 }
 function install_namecheck {
-    NAMECHECK=`locate namecheck.so | head -1`
+    NAMECHECK='/usr/lib/libnamecheck.so'
     OLDPWD=`pwd` 
     TEMPDIR='/tmp/namecheck'
-    if [ -z "$NAMECHECK" ]; then
+    if [ ! -f "$NAMECHECK" ]; then
         echo -e "\e[0;33mInstalling Namecheck GCC Plugin\e[0m"
         if [ ! -d "$TEMPDIR" ]; then
             mkdir $TEMPDIR
