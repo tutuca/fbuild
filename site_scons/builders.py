@@ -27,6 +27,7 @@
 
 import fnmatch
 import subprocess
+from glob import glob
 import os.path
 import shutil
 import os
@@ -131,9 +132,9 @@ def RunNamecheck(env, target, source):
             'Please check if you have isntalled Namecheck and the configuration file.')
         return EXIT_SUCCESS
     if cpp_files:
-        _ExecuteNamecheck(env, cpp_files, plugin, conf, includes)
+        _ExecuteNamecheck(env, cpp_files.split(SPACE), plugin, conf, includes)
     if c_files:
-        _ExecuteNamecheck(env, c_files, plugin, conf, includes)
+        _ExecuteNamecheck(env, c_files.split(SPACE), plugin, conf, includes)
     return EXIT_SUCCESS
 
 
@@ -872,33 +873,36 @@ def _RTCCheckValgrind(env):
 
 
 def _ExecuteNamecheck(env, files, plugin, conf, includes):
+    """
+        Description: This private function execute GCC with the flags
+        to run Namecheck in the files.
+        Arguments:
+            -env: The current environment.
+            -files: A list with all the files to be compiled.
+            -plugin: The path to the NameCheck plug-in.
+            -conf: The path to the NameCheck configuration.
+            -includes: List of paths to the includes headers.
+        Return: None
+    """
     reg = './%s/.' % env['PROJECT_NAME']
-    for x in files.split(SPACE):
+    for x in files:
         if x.endswith('cpp') or x.endswith('cc'):
             cmd = 'g++'
         elif x.endswith('c'):
             cmd = 'gcc'
         env.Cprint('\nAnalyzing %s...\n' % os.path.basename(x), 'yellow')
+        # Create the command.
         cmd += ' %s %s -c %s %s' % (plugin, conf, x, includes)
+        # Execute NameCheck.
         pipe = subprocess.Popen(cmd, stderr=subprocess.PIPE, shell=True)
+        # Filter only project's warnings.
         for line in pipe.stderr:
             # Check if the project name is into the path of the warning.
             is_there = re.search(reg, line)
             if is_there:
                 env.Cprint('%s' % line.strip(), 'end')
         pipe.wait()
-        if x.endswith('cpp'):
-            try:
-                Delete(x.replace('cpp', 'o'))
-            except:
-                pass
-        elif x.endswith('.cc'):
-            try:
-                os.remove(x.replace('cc', 'o'))
-            except:
-                pass
-        elif x.endswith('.c'):
-            try:
-                os.remove(x.replace('c', 'o'))
-            except:
-                pass
+        # Delete the object files generated.
+        obj = glob('%s/*.o*' % os.path.dirname(x))
+        for y in obj:
+            os.remove(y)
