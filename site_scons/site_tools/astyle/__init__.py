@@ -52,11 +52,14 @@ def _get_astyle_diff(env, source, output_directory):
     '''
 
     # Create a temporary directory.
+    # This variable holds if some file needs astyle.
+    need_astyle_list = []
+    # The list of copied files.
+    files_list = []
     tmp_dir = os.path.join(output_directory, 'tmp')
     if not os.path.exists(tmp_dir):
         os.makedirs(tmp_dir)
-    # The list of copied files.
-    files_list = []
+
     # Copy all sources into the temporary directory.
     for file in source:
         if "tests/ref/" not in file.abspath:  # TODO: Remove this line.
@@ -64,10 +67,6 @@ def _get_astyle_diff(env, source, output_directory):
             f = env.Dir(tmp_dir).File(os.path.split(file.abspath)[1])
             files_list.append(f)
     files_str = ' '.join([x.abspath for x in files_list])
-    # This variable holds if some file needs astyle.
-    need_astyle = False
-    # A list for the files that needs astyle.
-    need_astyle_list = []
     # Create the command to be executed.
     cmd = 'astyle -k1 --options=none --convert-tabs -bSKpUH %s' % files_str
     # To see if a file needs astyle we first apply astyle to the file and
@@ -88,11 +87,10 @@ def _get_astyle_diff(env, source, output_directory):
             diff.wait()
             need_astyle_list.append(
                 (os.path.split(file.abspath)[1], diff_stdout))
-            need_astyle = True
     # Remove the temporary directory.
     os.system('rm -rf %s' % tmp_dir)
     # Return a dictionary.
-    return {'need_astyle': need_astyle, 'need_astyle_list': need_astyle_list}
+    return need_astyle_list
 
 
 def _astyle_check_action(target, source, env):
@@ -110,25 +108,21 @@ def _astyle_check_action(target, source, env):
     check_astyle_result = _get_astyle_diff(env, source, output_directory)
     # Check if _get_astyle_diff() fails.
     if check_astyle_result is None:
-        raise StopError(
-            ToolAstyleWarning,
-            '[ERROR] Failed running Check Astyle.')
+        raise StopError('[ERROR] Failed running Astyle Check.')
     # Open the report file.
     try:
         report = open(report_file, 'w')
     except IOError:
-        raise StopError(
-            ToolAstyleWarning,
-            '[ERROR] No such file or directory.')
+        raise StopError('[ERROR] No such file or directory.')
     else:
         # If we can open it we truncate it.
         report.truncate(0)
     # If some file needs astyle we print info.
-    if check_astyle_result['need_astyle']:
+    if check_astyle_result:
         # Print a warning message.
         Cprint('[WARNING] The following files need astyle:', 'yellow')
         # Print what need to be astyled.
-        for f, info in check_astyle_result['need_astyle_list']:
+        for f, info in check_astyle_result:
             # Write into hte report file.
             report.write(info + '\n\n')
             # Print on the screen.
