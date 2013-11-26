@@ -50,7 +50,7 @@ function check_install {
         else
             echo -e "\e[0;33m[warn] $1 (part of $pkg) not found, suggest to install it to continue\e[0m"
         fi
-        echo "info: 'I can try installing $pkg for you shall I proceed? me to do it? (your password could be required)"
+        echo "info: 'I can try installing $pkg for you shall I proceed? (your password could be required)"
         REPLY="extremelyLongStringUnlikelyToBeUsed"
         while [[ "$REPLY" != "y" && "$REPLY" != "n" && "$REPLY" != "" ]]; do
             read -p "Install ([y]/n)?" REPLY
