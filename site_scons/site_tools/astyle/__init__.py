@@ -102,6 +102,8 @@ def _astyle_check_action(target, source, env):
     # Get the output directory.
     output_directory = os.path.split(report_file)[0]
     # Check if the directory exists.
+    if not source:
+        raise StopError('[ERROR] No source files to check')
     if not os.path.exists(output_directory):
         os.makedirs(output_directory)
     # Check if some file need astyle.
