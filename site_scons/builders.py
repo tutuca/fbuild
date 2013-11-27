@@ -886,7 +886,8 @@ def _ExecuteNamecheck(env, files, plugin, conf, includes):
         for line in pipe.stderr:
             # Check if the project name is into the path of the warning.
             is_there = re.search(reg, line)
-            if is_there:
+            is_namecheck = re.search(r'.\[namecheck\].', line)
+            if is_there and is_namecheck:
                 env.Cprint('%s' % line.strip(), 'end')
         pipe.wait()
         if x.endswith('cpp'):
