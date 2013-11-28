@@ -872,7 +872,7 @@ def _RTCCheckValgrind(env):
 
 
 def _ExecuteNamecheck(env, files, plugin, conf, includes):
-    reg = './%s/.' % env['PROJECT_NAME']
+    reg = '(/%s/).*(\[namecheck\])' % env['PROJECT_NAME']
     for x in files.split(SPACE):
         if x.endswith('cpp') or x.endswith('cc'):
             cmd = 'g++'
@@ -886,8 +886,7 @@ def _ExecuteNamecheck(env, files, plugin, conf, includes):
         for line in pipe.stderr:
             # Check if the project name is into the path of the warning.
             is_there = re.search(reg, line)
-            is_namecheck = re.search(r'.\[namecheck\].', line)
-            if is_there and is_namecheck:
+            if is_there:
                 env.Cprint('%s' % line.strip(), 'end')
         pipe.wait()
         if x.endswith('cpp'):
