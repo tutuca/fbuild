@@ -468,7 +468,7 @@ def RunStaticAnalysis(env, target, source):
         CheckPath(cppcheck_dir.abspath)
         cppcheck_rc = _RunCppCheck(cppcheck_dir, cpp_files, includes, 
             cppcheck_options, env, 
-            include_headers=env.GetOption("exclude_headers"))
+            exclude_headers=env.get("exclude_headers"))
     if c_files:
         CheckPath(splint_dir.abspath)
         splint_rc = _RunSplint(splint_dir, c_files, includes, env)
@@ -476,7 +476,7 @@ def RunStaticAnalysis(env, target, source):
         CheckPath(cppcheck_dir.abspath)
         cppcheck_rc = _RunCppCheck(cppcheck_dir, FindSources(source, 
             ['.h', '.hh', '.hpp']), headers, cppcheck_options, env,
-            include_headers=env.GetOption("include_headers"))
+            exclude_headers=env.get("exclude_headers"))
     # Return the output of both builders
     if cppcheck_rc or splint_rc:
         env.cerror('\n\n[ERROR] Failed running Static Analysis\n\n')
@@ -610,13 +610,14 @@ def RunInfo(env, target, source):
     return EXIT_SUCCESS
 
 
-def _RunCppCheck(report_dir, files, includes, options, env, include_headers=True):
+def _RunCppCheck(report_dir, files, includes, options, env, exclude_headers=False):
     report_file = os.path.join(report_dir.abspath, 'static-analysis-report')
     success = False
     to_include = None
     includes.append(env.Dir('/usr/include'))
     includes.append(env.Dir('/usr/local/include'))
-    if include_headers:
+    import ipdb; ipdb.set_trace()
+    if not exclude_headers:
         to_include = SPACE.join(['-I%s' % x.abspath for x in includes])
 
     if 'xml' in options:

@@ -72,7 +72,7 @@ def init(env):
     AddOption(
         '--exclude-headers',
         dest='exclude_headers',
-        action='store_false',
+        action='store_true',
         help='Exclude header files in :static-analysis check.',
-        default=True
+        default=False
     )
