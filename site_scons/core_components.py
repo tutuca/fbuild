@@ -1317,12 +1317,24 @@ class ProgramComponent(ObjectComponent):
 
     def _CreateProgramBuilder(self, target, sources=None):
         sources = sources if sources is not None else []
+        try :
+            name = self._project_name
+        except AttributeError:
+            name = self.name
         # Get include paths.
         includes = self.GetIncludePaths()
         # Get the libraries to link and their directories.
         (libs, libpaths) = self.GetLibs()
         # Get the objects files.
         sources.extend(self.GetObjectsFiles())
+        # Add the objects from the program to the tests.
+        if name in self._dependencies:
+            self_comp = self._component_graph.get(name)
+            # Only do this if the project that the tests depend is a Program.
+            if isinstance(self_comp, ProgramComponent):
+                # Suppress the main from the Program to use the main from the tests.
+                self_comp._env.Append(CXXFLAGS='-Dmain=principalmain')
+                sources.extend(self_comp.GetObjectsFiles())
         # Create an instance of the Program() builder.
         program_builder = self._env.Program(
             target,
