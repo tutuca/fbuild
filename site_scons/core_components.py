@@ -792,12 +792,15 @@ class HeaderOnlyComponent(Component):
               utils.WasTargetInvoked('%s:ready-to-commit' % name))
         asan = (utils.WasTargetInvoked('%s:asan' % name) or
                 utils.WasTargetInvoked('all:asan'))
+        test = (utils.WasTargetInvoked('%s:test' % name) or
+                utils.WasTargetInvoked('all:test'))
         # Create the dictionary of flags.
         result = {
             'jenkins': jenkins,
             'coverage': coverage,
             'ready-to-commit': rtc,
-            'asan': asan
+            'asan': asan,
+            'test': test
         }
         # Check for needed reports.
         self._env.NEED_COVERAGE = jenkins or coverage
@@ -1316,6 +1319,7 @@ class ProgramComponent(ObjectComponent):
     #
 
     def _CreateProgramBuilder(self, target, sources=None):
+        flags = self._CheckForFlags()
         sources = sources if sources is not None else []
         try :
             name = self._project_name
@@ -1333,8 +1337,10 @@ class ProgramComponent(ObjectComponent):
             # Only do this if the project that the tests depend is a Program.
             if isinstance(self_comp, ProgramComponent):
                 # Suppress the main from the Program to use the main from the tests.
-                self_comp._env.Append(CXXFLAGS='-Dmain=principalmain')
-                sources.extend(self_comp.GetObjectsFiles())
+                # Set the flag only if the target :test was invoked.
+                if flags['test']:
+                    self_comp._env.Append(CXXFLAGS='-Dmain=principalmain')
+                    sources.extend(self_comp.GetObjectsFiles())
         # Create an instance of the Program() builder.
         program_builder = self._env.Program(
             target,
