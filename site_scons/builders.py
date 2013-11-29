@@ -467,14 +467,16 @@ def RunStaticAnalysis(env, target, source):
     if cpp_files:
         CheckPath(cppcheck_dir.abspath)
         cppcheck_rc = _RunCppCheck(cppcheck_dir, cpp_files, includes, 
-            cppcheck_options, env)
+            cppcheck_options, env, 
+            include_headers=env.GetOption("exclude_headers"))
     if c_files:
         CheckPath(splint_dir.abspath)
         splint_rc = _RunSplint(splint_dir, c_files, includes, env)
     if headers and not (cpp_files or c_files):
         CheckPath(cppcheck_dir.abspath)
         cppcheck_rc = _RunCppCheck(cppcheck_dir, FindSources(source, 
-            ['.h', '.hh', '.hpp']), headers, cppcheck_options, env)
+            ['.h', '.hh', '.hpp']), headers, cppcheck_options, env,
+            include_headers=env.GetOption("include_headers"))
     # Return the output of both builders
     if cppcheck_rc or splint_rc:
         env.cerror('\n\n[ERROR] Failed running Static Analysis\n\n')
@@ -608,18 +610,21 @@ def RunInfo(env, target, source):
     return EXIT_SUCCESS
 
 
-def _RunCppCheck(report_dir, files, includes, options, env):
+def _RunCppCheck(report_dir, files, includes, options, env, include_headers=True):
     report_file = os.path.join(report_dir.abspath, 'static-analysis-report')
     success = False
+    to_include = None
     includes.append(env.Dir('/usr/include'))
     includes.append(env.Dir('/usr/local/include'))
-    to_include = SPACE.join(['-I%s' % x.abspath for x in includes])
+    if include_headers:
+        to_include = SPACE.join(['-I%s' % x.abspath for x in includes])
+
     if 'xml' in options:
         report_file = report_file+'.xml'
-        cmd = "cppcheck %s %s %s" % (options, files, to_include)
     else:
         report_file = report_file+'.txt'
-        cmd = "cppcheck %s %s %s" % (options, files, to_include)
+
+    cmd = "cppcheck %s %s %s" % (options, files, to_include)
     if env.GetOption('verbose'):
         env.Cprint('>>> %s' % cmd, 'end')
     # Check if the cmd can run.
@@ -636,15 +641,14 @@ def _RunCppCheck(report_dir, files, includes, options, env):
             stderr=rf
         )
     success = pipe.wait()
-    if result == EXIT_SUCCESS: result = success
-    re = ur'unmatchedSuppression|cppcheckError|Unmatched suppression'
+    re = r'unmatchedSuppression|cppcheckError|Unmatched suppression'
     DeleteLinesInFile(re, report_file)
     # Delete the suppression list created
     try:
         os.remove(name)
     except OSError:
         pass
-    return result
+    return not (result == success)
 
 def _CheckCppCheckConfig(env, cmd):
     """
