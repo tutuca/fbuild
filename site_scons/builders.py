@@ -548,7 +548,6 @@ def _RunCppCheck(report_dir, files, includes, options, env, exclude_headers=Fals
     to_include = None
     includes.append(env.Dir('/usr/include'))
     includes.append(env.Dir('/usr/local/include'))
-    import ipdb; ipdb.set_trace()
     if not exclude_headers:
         to_include = SPACE.join(['-I%s' % x.abspath for x in includes])
 
