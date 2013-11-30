@@ -22,12 +22,12 @@
 import extension_qt
 import SCons
 
-env = Environment()
+env = Environment(tools=['default', 'astyle'])
 
 hasQt = extension_qt.HasQt(env)
 
 if hasQt:
-    env = Environment(tools=['default', 'qt4'])
+    env = Environment(tools=['default', 'qt4', 'astyle'])
     env['QT_PRESENT'] = hasQt
 
 Export('env')

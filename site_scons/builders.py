@@ -21,7 +21,7 @@
 
 
 """
-    Add description here!
+    This module contains all fudepan-build customized builders.
 """
 
 
@@ -62,11 +62,11 @@ def init(env):
     env.Append(BUILDERS={'RunDoxygen': bldDoxygen})
     env['DEFAULT_DOXYFILE'] = env.File('#/conf/doxygenTemplate').abspath
     #-
-    bldAStyleCheck = Builder(action=Action(AStyleCheck, PrintDummy))
-    env.Append(BUILDERS={'RunAStyleCheck': bldAStyleCheck})
+    # bldAStyleCheck = Builder(action=Action(AStyleCheck, PrintDummy))
+    # env.Append(BUILDERS={'RunAStyleCheck': bldAStyleCheck})
     #-
-    bldAStyle = Builder(action=Action(AStyle, PrintDummy))
-    env.Append(BUILDERS={'RunAStyle': bldAStyle})
+    # bldAStyle = Builder(action=Action(AStyle, PrintDummy))
+    # env.Append(BUILDERS={'RunAStyle': bldAStyle})
     #-
     bldPdfLatex = Builder(action=Action(RunPdfLatex, PrintDummy))
     env.Append(BUILDERS={'RunPdfLatex':  bldPdfLatex})
@@ -216,74 +216,6 @@ def RunDoxygen(env, target, source):
         doxygen_results_proc = subprocess.Popen("cat %s" % output_file, shell=True)
         doxygen_results_proc.wait()
     os.remove(projectDoxyFile)
-    return EXIT_SUCCESS
-
-
-def AStyleCheck(env, target, source):
-    # Print message on the screen.
-    env.Cprint('\n=== Running ASTYLE-CHECK ===\n', 'green')
-    # Get the report file.
-    report_file = target[0].abspath
-    # Get the output directory.
-    output_directory = os.path.split(report_file)[0]
-    # Check if the directory exists.
-    if not os.path.exists(output_directory):
-        os.makedirs(output_directory)
-    # Check if some file need astyle.
-    check_astyle_result = _CheckAstyle(env, source, output_directory)
-    # Check if _CheckAstyle() fails.
-    if check_astyle_result is None:
-        env.cerror('\n\n[ERROR] Failed running Check Astyle\n\n')
-        return EXIT_SUCCESS
-    # Open the report file.
-    try:
-        report = open(report_file, 'w')
-    except IOError:
-        env.Cprint('No such file or directory:', report_file)
-        return EXIT_SUCCESS
-    else:
-        # If we can open it we truncate it.
-        report.truncate(0)
-    # If some file needs astyle we print info.
-    if check_astyle_result['need_astyle']:
-        # Print a warning message.
-        env.Cprint('[WARNING] The following files need astyle:', 'red')
-        # Print what need to be astyled.
-        for f, info in check_astyle_result['need_astyle_list']:
-            # Write into hte report file.
-            report.write(info + '\n\n')
-            # Print on the screen.
-            env.Cprint('====> %s' % f, 'red')
-            env.Cprint(info, 'yellow')
-    else:
-        env.Cprint('[OK] No file needs astyle.', 'green')
-    # Close the report file.
-    report.close()
-    return EXIT_SUCCESS
-
-
-def AStyle(env, target, source):
-    # Print message on the screen.
-    env.Cprint('\n=== Running ASTYLE ===\n', 'green')
-    # Get the project directory.
-    project_dir = target[0].abspath
-    # Generate the list of files to apply astyle.
-    #   This is because the files in 'source' point to the build/ directory
-    #   instead of the projects/ directory.
-    build_dir = env['BUILD_DIR']
-    ws_dir = env['WS_DIR']
-    file_list = SPACE.join(
-        [f.abspath.replace(build_dir, ws_dir)
-            for f in source
-            if "tests/ref/" not in f.abspath])
-    # Create the command to be executed.
-    cmd = "astyle -k1 --options=none --convert-tabs -bSKpUH %s" % file_list
-    # Run astyle.
-    astyle_proc = subprocess.Popen(cmd, shell=True)
-    if astyle_proc.wait():
-        env.cerror('[astyle] ERROR running astyle on: %s' % project_dir)
-    else:
-        env.Cprint('[astyle] OK on: %s' % project_dir, 'green')
     return EXIT_SUCCESS
 
 
@@ -723,49 +655,6 @@ def _RunSplint(report_dir, files, includes, env):
         env.Cprint(cmd, 'end')
     splint_proc = subprocess.Popen(cmd, shell=True)
     return splint_proc.wait()
-
-def _CheckAstyle(env, source, output_directory):
-    # Create a temporary directory.
-    tmp_dir = os.path.join(output_directory, 'tmp')
-    if not os.path.exists(tmp_dir):
-        os.makedirs(tmp_dir)
-    # The list of copied files.
-    files_list = []
-    # Copy all sources into the temporary directory.
-    for file in source:
-        if "tests/ref/" not in file.abspath:  # TODO: Remove this line.
-            shutil.copy(file.abspath, tmp_dir)
-            f = env.Dir(tmp_dir).File(os.path.split(file.abspath)[1])
-            files_list.append(f)
-    files_str = SPACE.join([x.abspath for x in files_list])
-    # This variable holds if some file needs astyle.
-    need_astyle = False
-    # A list for the files that needs astyle.
-    need_astyle_list = []
-    # Create the command to be executed.
-    cmd = 'astyle -k1 --options=none --convert-tabs -bSKpUH %s' % files_str
-    # To see if a file needs astyle we first apply astyle to the file and
-    # check if it suffer some change.
-    astyle_proc = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE)
-    astyle_proc.stdout.read()
-    if astyle_proc.wait():
-        # If astyle fails, we fail.
-        return None
-    # Check if astyle did some modifications.
-    for file in files_list:
-        # If the '.orig' file exists for the file then it was modify by astyle.
-        if os.path.exists('%s.orig' % file.abspath):
-            # Print the differences between files.
-            cmd = 'diff -Nau %s.orig %s' % (file.abspath, file.abspath)
-            diff = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
-            diff_stdout = diff.stdout.read()
-            diff.wait()
-            need_astyle_list.append((os.path.split(file.abspath)[1], diff_stdout))
-            need_astyle = True
-    # Remove the temporary directory.
-    os.system('rm -rf %s' % tmp_dir)
-    # Return a dictionary.
-    return {'need_astyle': need_astyle, 'need_astyle_list': need_astyle_list}
 
 
 def _RTCCheckAstyle(env):
