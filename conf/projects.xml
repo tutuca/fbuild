@@ -21,6 +21,9 @@
     <project name="colo"
              repository_type="HG" 
              repository_url="https://colo.googlecode.com/hg" />
+    <project name="combeng"
+             repository_type="HG" 
+             repository_url="https://combeng.googlecode.com/hg" />
     <project name="etilico"
              repository_type="HG" 
              repository_url="https://etilico.googlecode.com/hg" />
@@ -30,6 +33,9 @@
     <project name="fideo"
              repository_type="HG" 
              repository_url="https://fideo.googlecode.com/hg" />
+    <project name="fud"
+             repository_type="HG" 
+             repository_url="https://fud.googlecode.com/hg" />
     <project name="fudepan-sandbox"
              repository_type="HG" 
              repository_url="https://fudepan-sandbox.googlecode.com/hg" />
@@ -63,6 +69,9 @@
     <project name="prot-filer"
              repository_type="HG" 
              repository_url="https://prot-filer.googlecode.com/hg" />
+    <project name="recabs"
+             repository_type="HG" 
+             repository_url="https://recabs.googlecode.com/hg" />
     <project name="remo"
              repository_type="HG" 
              repository_url="https://r-emo.googlecode.com/hg" />
