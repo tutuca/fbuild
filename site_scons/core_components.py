@@ -1321,9 +1321,9 @@ class ProgramComponent(ObjectComponent):
     def _CreateProgramBuilder(self, target, sources=None):
         flags = self._CheckForFlags()
         sources = sources if sources is not None else []
-        try :
+        if hasattr(self, '_project_name'):
             name = self._project_name
-        except AttributeError:
+        else:
             name = self.name
         # Get include paths.
         includes = self.GetIncludePaths()
