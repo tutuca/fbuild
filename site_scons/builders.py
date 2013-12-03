@@ -46,6 +46,8 @@ EXIT_ERROR = 1
 SPACE = ' '
 # The first element of an iterable object.
 FIRST_ELEMENT = 0
+# This is for RTC target
+CPPCHECK_CONFIG_RESULT = 0
 
 
 def init(env):
@@ -97,7 +99,7 @@ def init(env):
     #-
     bldInfo = Builder(action=Action(RunInfo, PrintDummy))
     env.Append(BUILDERS={'RunInfo': bldInfo})
-	#-
+    #-
     bldStaticAnalysis = Builder(action=Action(RunStaticAnalysis, PrintDummy))
     env.Append(BUILDERS={'RunStaticAnalysis': bldStaticAnalysis})
     #-
@@ -557,14 +559,14 @@ def _RunCppCheck(report_dir, files, includes, options, env, exclude_headers=Fals
         report_file = report_file+'.txt'
 
     cmd = "cppcheck %s %s %s" % (options, files, to_include)
-    if env.GetOption('verbose'):
-        env.Cprint('>>> %s' % cmd, 'end')
     # Check if the cmd can run.
-    result = _CheckCppCheckConfig(env, cmd)
+    CPPCHECK_CONFIG_RESULT = _CheckCppCheckConfig(env, cmd)
     # Create the suppression list.
     name = '.suppression_list.txt'
     _CreateSuppressionList(name, includes, env)
     cmd = '%s --suppressions %s' % (cmd, name)
+    if env.GetOption('verbose'):
+        env.Cprint('>>> %s' % cmd, 'end')
     env.Cprint('Running...', 'green')
     with open(report_file, 'w+') as rf:
         pipe = subprocess.Popen(
@@ -580,7 +582,7 @@ def _RunCppCheck(report_dir, files, includes, options, env, exclude_headers=Fals
         os.remove(name)
     except OSError:
         pass
-    return not (result == success)
+    return not (CPPCHECK_CONFIG_RESULT == success)
 
 def _CheckCppCheckConfig(env, cmd):
     """
@@ -696,7 +698,7 @@ def _RTCCheckCppcheck(env):
     errors = errors_proc.wait()
     warnings = warnings_proc.wait()
     # grep returns 1 if the line is not found
-    return errors and warnings
+    return errors and warnings and CPPCHECK_CONFIG_RESULT
 
 
 def _RTCCheckTests(env):
