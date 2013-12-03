@@ -336,16 +336,20 @@
 
     <component name="rt" type="LIB"/>
 
-    <component name="glog" type="LIB">
-       <installer
-           distro="*"
-           target="https://200.69.202.173:5555/usvn/svn/UCP-Invap/trunk/libs/glog-0.3.3"
-           manager="SVN"/>
-       <execute_after>
-           cd ./{TMP_DIR}/glog; ./configure; make -j4; sudo make install; sudo ldconfig
-       </execute_after>
-       <install_checker>stat -f /usr/local/lib/libglog.so</install_checker>
-   </component>
+    <component name="ana" type="LIB" deps="cmake,boost_system,boost_thread">
+        <installer
+            distro="*"
+            target="http://ana-net.googlecode.com/svn/trunk/"
+            manager="SVN"/>
+        <execute_after>
+            cd {TMP_DIR}/ana; cmake src; make; sudo make install
+        </execute_after>
+        <install_checker>stat -f /usr/local/lib/libana.so</install_checker>
+    </component>   
 
+    <component name="cmake" type="PRO">
+        <installer distro="UBUNTU" target="cmake" manager="APT-GET"/>
+        <installer distro="ARCH" target="cmake" manager="PACKER"/>
+    </component>
 
 </external_dependencies>
