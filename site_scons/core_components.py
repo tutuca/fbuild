@@ -258,13 +258,13 @@ class Component(object):
         self._env.Alias('all:cccc', run_cccc_builder, 'Run CCCC in all projects')
         # Create the alias for 'all:info'
         self._env.Alias('all:info', run_info_builder, 'Take info about all projects')
-		# Create the alias for 'all:static-analysis'
+        # Create the alias for 'all:static-analysis'
         self._env.Alias('all:static-analysis', run_static_builder, 'Run Static Analysis in all projects')        
-		# Create the alias for 'all:doc'
+        # Create the alias for 'all:doc'
         self._env.Alias('all:doc', run_doc_builder, 'Take the docs of all projects')
         # Create the alias for 'all:astyle'
         self._env.Alias('all:astyle', run_astyle_builder, 'Run Astyle in all projects')
-		# Create the alias for 'all:astyle-check'
+        # Create the alias for 'all:astyle-check'
         self._env.Alias('all:astyle-check', run_astyle_check_builder, 'Run Astyle Check in all projects')
         # Create the alias for 'all:cloc'
         self._env.Alias('all:cloc', run_cloc_builder, 'Run Cloc in all projects')
@@ -1149,7 +1149,11 @@ class ObjectComponent(SourcedComponent):
             instance of the SCons Object() builder class.
         """
         # Get the list of include paths.
+        # if self.name == 'golem-minion-logger-obj': import ipdb; ipdb.set_trace()
         include_paths = self.GetIncludePaths()
+        for x in self._dependencies:
+            inc = self._component_graph.get(x).GetIncludePaths()
+            include_paths.extend(inc)
         # Get the list of libraries to link, and its directories.
         (libs, libpaths) = self.GetLibs()
         # Create the target for each file.
@@ -1391,9 +1395,9 @@ class UnitTestComponent(ProgramComponent):
         self._env.Alias('all:test', run_test_builder, "Run tests in all projects")
         # Create the alias for 'all:valgrind'
         self._env.Alias('all:valgrind', run_valgrind_builder, 'Run valgrind in all projects')
-		# Create the alias for 'all:asan'
+        # Create the alias for 'all:asan'
         self._env.Alias('all:asan', run_asan_builder, 'Run Address Sanitizer in all projects')        
-		# Create the alias for 'all:ready-to-commit'
+        # Create the alias for 'all:ready-to-commit'
         self._env.Alias('all:ready-to-commit', run_rtc_builder, 'Run ready-to-commit in all projects')
         # Create the alias for 'all:coverage'
         self._env.Alias('all:coverage', run_coverage_builder, 'Run coverage in all projects')
