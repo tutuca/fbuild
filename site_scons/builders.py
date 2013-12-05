@@ -33,6 +33,7 @@ import os
 from SCons.Builder import Builder
 from SCons.Action import Action
 from core_components import HEADERS_FILTER
+from xml.dom import minidom
 
 from utils import ChainCalls, FindSources, CheckPath, WaitProcessExists, RemoveDuplicates, DeleteLinesInFile
 
@@ -725,12 +726,12 @@ def _RTCCheckValgrind(env):
     report_file = os.path.join(env['INSTALL_REPORTS_DIR'], 'valgrind')
     report_file = os.path.join(report_file, env['PROJECT_NAME'])
     report_file = os.path.join(report_file, 'valgrind-report.xml')
-    # Command to be executed.
-    cmd = "grep '<error>' %s " % report_file
-    # Execute the command.
-    valgrind_proc = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE)
-    # Read the output of the process.
-    valgrind_proc.stdout.read()
-    # Wait until process terminates and return the status.
-    # grep returns 1 if the line is not found
-    return valgrind_proc.wait()
+    # Open the report
+    xml_report = minidom.parse(report_file)
+    # Take the tag <errorcounts>.
+    element = xml_report.getElementsByTagName('errorcounts')[FIRST_ELEMENT]
+    # Take the unicode element.
+    element = element.childNodes[FIRST_ELEMENT]
+    element = element.nodeValue
+    # If the element is empty, there aren't valgrind errors.
+    return not element.strip()
