@@ -346,15 +346,15 @@ class Component(object):
         include_paths |= set(self._external_includes)
         # Look for the includes of its dependencies.
         for dependency in self._dependencies:
-            try:
-                component = self._component_graph[dependency]
-            except KeyError:
+            component = self._component_graph.get(dependency)
+            if component:
+                include_paths |= set(component._includes)
+                component._GetIncludePaths(include_paths, stack)
+            else:
                 self._env.cerror(
                     '[error] %s depends on %s which could not be found' %
                     (self.name, dependency)
                 )
-            else:
-                component._GetIncludePaths(include_paths, stack)
         # We remove the component name from the stack.
         if self.name in stack:
             stack.pop()
@@ -1150,10 +1150,6 @@ class ObjectComponent(SourcedComponent):
         """
         # Get the list of include paths.
         include_paths = self.GetIncludePaths()
-        # Add the Include Paths from the dependencies.
-        for x in self._dependencies:
-            inc = self._component_graph.get(x).GetIncludePaths()
-            include_paths.extend(inc)
         # Get the list of libraries to link, and its directories.
         (libs, libpaths) = self.GetLibs()
         # Create the target for each file.
@@ -1323,10 +1319,6 @@ class ProgramComponent(ObjectComponent):
         sources = sources if sources is not None else []
         # Get include paths.
         includes = self.GetIncludePaths()
-        # Add the Include Paths from the dependencies.
-        for x in self._dependencies:
-            inc = self._component_graph.get(x).GetIncludePaths()
-            includes.extend(inc)
         # Get the libraries to link and their directories.
         (libs, libpaths) = self.GetLibs()
         # Get the objects files.
