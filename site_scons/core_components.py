@@ -1149,8 +1149,8 @@ class ObjectComponent(SourcedComponent):
             instance of the SCons Object() builder class.
         """
         # Get the list of include paths.
-        # if self.name == 'golem-minion-logger-obj': import ipdb; ipdb.set_trace()
         include_paths = self.GetIncludePaths()
+        # Add the Include Paths from the dependencies.
         for x in self._dependencies:
             inc = self._component_graph.get(x).GetIncludePaths()
             include_paths.extend(inc)
@@ -1323,6 +1323,10 @@ class ProgramComponent(ObjectComponent):
         sources = sources if sources is not None else []
         # Get include paths.
         includes = self.GetIncludePaths()
+        # Add the Include Paths from the dependencies.
+        for x in self._dependencies:
+            inc = self._component_graph.get(x).GetIncludePaths()
+            includes.extend(inc)
         # Get the libraries to link and their directories.
         (libs, libpaths) = self.GetLibs()
         # Get the objects files.
