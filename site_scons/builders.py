@@ -556,11 +556,11 @@ def _RunCppCheck(report_dir, files, includes, options, env, exclude_headers=Fals
         report_file = report_file+'.xml'
     else:
         report_file = report_file+'.txt'
-
-    cmd = "cppcheck %s %s %s" % (options, files, to_include)
+    cmd = "cppcheck %s %s" % (options, files)
     # Check if the cmd can run.
     if not exclude_headers:
         to_include = SPACE.join(['-I%s' % x.abspath for x in includes])
+        cmd = "cppcheck %s %s %s" % (options, files, to_include)
         # XXX: This must be removed when RTC run cppcheck correctly 
         # without take off the includes paths.
         CPPCHECK_CONFIG_RESULT = _CheckCppCheckConfig(env, cmd)
