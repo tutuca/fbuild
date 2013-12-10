@@ -550,8 +550,6 @@ def _RunCppCheck(report_dir, files, includes, options, env, exclude_headers=Fals
     report_file = os.path.join(report_dir.abspath, 'static-analysis-report')
     success = False
     to_include = None
-    includes.append(env.Dir('/usr/include'))
-    includes.append(env.Dir('/usr/local/include'))
     if 'xml' in options:
         report_file = report_file+'.xml'
     else:
