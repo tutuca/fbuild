@@ -509,7 +509,7 @@ def RunReadyToCommit(env, target, source):
     if _RTCCheckTests(env):
         env.Cprint('TESTS    : [OK]', 'green')
     else:
-        env.Cprint('TESTE    : [ERROR]', 'red')
+        env.Cprint('TESTS    : [ERROR]', 'red')
     # Check for valgrind.
     if _RTCCheckValgrind(env):
         env.Cprint('VALGRIND : [OK]', 'green')
@@ -707,20 +707,23 @@ def _RTCCheckTests(env):
     report_file = os.path.join(env['INSTALL_REPORTS_DIR'], 'test')
     report_file = os.path.join(report_file, env['PROJECT_NAME'])
     report_file = os.path.join(report_file, 'test-report.xml')
+    result = os.path.exists(report_file)
     # Commands to be executed.
     cmd_failures = 'grep "<testsuites" %s | grep -v "failures=\\"0\\""' % report_file
     cmd_errors = 'grep "<testsuites" %s | grep -v "errors=\\"0\\""' % report_file
     # Execute the commands.
-    failures_proc = subprocess.Popen(cmd_failures, shell=True, stdout=subprocess.PIPE)
-    errors_proc = subprocess.Popen(cmd_errors, shell=True, stdout=subprocess.PIPE)
-    # Read the output of the processes.
-    failures_proc.stdout.read()
-    errors_proc.stdout.read()
-    # Wait until the processes terminate.
-    failures = failures_proc.wait()
-    errors = errors_proc.wait()
-    # grep returns 1 if the line is not found
-    return failures and errors
+    if result:
+        failures_proc = subprocess.Popen(cmd_failures, shell=True, stdout=subprocess.PIPE)
+        errors_proc = subprocess.Popen(cmd_errors, shell=True, stdout=subprocess.PIPE)
+        # Read the output of the processes.
+        failures_proc.stdout.read()
+        errors_proc.stdout.read()
+        # Wait until the processes terminate.
+        failures = failures_proc.wait()
+        errors = errors_proc.wait()
+        # grep returns 1 if the line is not found
+        result = bool(failures and errors)
+    return result
 
 
 def _RTCCheckValgrind(env):
