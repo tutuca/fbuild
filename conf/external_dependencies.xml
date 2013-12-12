@@ -208,6 +208,7 @@
             manager="WGET"/>
         <execute_after>
             cd ./{TMP_DIR}/odeint; tar zxvf master; mv *odeint*/* .
+            sudo mkdir /usr/include/boost/numeric/
             sudo cp -r ./{TMP_DIR}/odeint/boost/numeric/* /usr/include/boost/numeric/
         </execute_after>
         <install_checker>stat -f /usr/include/boost/numeric/odeint.hpp</install_checker>

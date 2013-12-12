@@ -57,6 +57,27 @@ function install_namecheck {
     OLDPWD=`pwd` 
     TEMPDIR='/tmp/namecheck'
     if [ ! -f "$NAMECHECK" ]; then
+        if [ -n `dpkg -l | grep libboost-regex-dev -c` ]; then 
+            echo "Installing boost-regex headers for gcc version 4.6"
+            sudo apt-get install libboost-regex-dev
+        fi
+        if [ -n `q ` ]; then
+            #determine the gcc version:
+            if [ -n `gcc --version | head -n 1| grep 4.6 -c` ]; then
+                echo "Installing gcc plugins headers for gcc version 4.6"
+                sudo apt-get install gcc-4.6-plugin-dev
+            elif [ `gcc --version | head -n 1| grep 4.7 -c` ]; then
+                echo "Installing gcc plugins headers for gcc version 4.7"
+                sudo apt-get install gcc-4.7-plugin-dev
+            else
+                echo -e "\e[0;31m[error] gcc version not supported.\e[0m"
+                echo -e "\e[0;31m[error] Install gcc-plugin-dev package manually.\e[0m"
+                exit 1
+            fi
+        fi
+        if !(dpkg -l | grep gettext -c >>/dev/null); then 
+            sudo apt-get install gettext
+        fi
         echo -e "\e[0;33mInstalling Namecheck GCC Plugin\e[0m"
         if [ ! -d "$TEMPDIR" ]; then
             mkdir $TEMPDIR

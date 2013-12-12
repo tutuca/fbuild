@@ -244,7 +244,7 @@ class Component(object):
 
     # Private methods.
     #
-    def _SetTargets(self):
+    def _SetTargets(self, program_builder=None):
         """Create targets for most modules."""
         run_astyle_check_builder = self._CreateAstyleCheckTarget(self._sources)
         run_astyle_builder = self._CreateAstyleTarget(self._sources)
@@ -253,7 +253,7 @@ class Component(object):
         run_static_builder = self._CreateStaticAnalysisTarget(self._sources)
         run_doc_builder = self._CreateDocTarget()
         run_info_builder = self._CreateInfoTarget(self._sources)
-        self._CreateNameCheckTarget(self._sources)
+        self._CreateNameCheckTarget(self._sources, program_builder)
         # Create the alias for 'all:cccc'
         self._env.Alias('all:cccc', run_cccc_builder, 'Run CCCC in all projects')
         # Create the alias for 'all:info'
@@ -540,10 +540,10 @@ class HeaderOnlyComponent(Component):
         # Check if the component was already processed.
         if self._builders['install'] is not None:
             return self._builders['install']
-        # Create targets.
-        self._SetTargets()
         # Create the installer.
         installer = self._CreateInstallerBuilder([])
+        # Create targets.
+        self._SetTargets(installer)
         # Create jenkins output
         self._CreateJenkinsTarget(installer)
         # Create the alias group.
@@ -679,7 +679,7 @@ class HeaderOnlyComponent(Component):
         target = self._env.Dir(self._env['INSTALL_REPORTS_DIR'])
         target = target.Dir('static-analysis').Dir(self.name)
         # Pass information into env.
-        self._env['CPPCHECK_INC_PATHS'] = includes
+        self._env['INC_PATHS'] = includes
         # Create an instance of the RunStaticAnalysis() builder.
         analysis_builder = self._env.RunStaticAnalysis(target, sources)
         # The builder must depend of the project dependencies.
@@ -756,24 +756,28 @@ class HeaderOnlyComponent(Component):
         # Return the builder instance.
         return info_builder
 
-    def _CreateNameCheckTarget(self, sources):
-        if self._env.GetOption('namecheck'):
-            # Set paths to the plug-in and the configuration file.
-            namecheck = os.path.join(os.getcwd(), "install", "libs", "libnamecheck.so")
-            namecheck_conf = os.path.join(os.getcwd(), "conf", "namecheck-conf.csv")
-            if os.path.exists(namecheck) and os.path.exists(namecheck_conf):
-                # Add the flags to the compiler if the plug-in is present.
-                plugin = '-fplugin=%s' % namecheck
-                conf = '-fplugin-arg-libnamecheck-path=%s' % namecheck_conf
-                self._env.Append(
-                    CXXFLAGS=[plugin, conf], CFLAGS=[plugin, conf])
-            else:
-                self._env.cerror(
-                    'Please check if you have isntalled Namecheck and the configuration file.')
-            # Change the SPAWN of SCons
-            name_check = NameCheck(self._env)
-            self._env['SPAWN'] = name_check.namecheck_spawn
-
+    def _CreateNameCheckTarget(self, sources, program_builder):
+        flags = self._CheckForFlags()
+        if flags['namecheck']:
+            target_invoqued = sys.argv
+            try:
+                # Take the project and the action from the target.
+                name, action = target_invoqued[1].split(':')
+            except ValueError:
+                name = target[1]
+            self._env['PROJECT_NAME'] = name
+            target = self._env.Dir('%s-namecheck' % self.name)
+            includes = self.GetIncludePaths()
+            self._env['INC_PATHS'] = includes
+            name_builder = self._env.RunNamecheck(target, sources)
+            # The builder must depend of the project dependencies.
+            dependencies = self._dependencies
+            for x in dependencies:
+                dep = self._component_graph.get(x)
+                if dep:
+                    dep = dep.Process()
+                    self._env.Depends(name_builder, dep)
+            self._env.Alias('%s:namecheck' % self.name, name_builder, "Check the name's convention.")
         return 0
 
 
@@ -792,12 +796,14 @@ class HeaderOnlyComponent(Component):
               utils.WasTargetInvoked('%s:ready-to-commit' % name))
         asan = (utils.WasTargetInvoked('%s:asan' % name) or
                 utils.WasTargetInvoked('all:asan'))
+        namecheck = utils.WasTargetInvoked('%s:namecheck' % name)
         # Create the dictionary of flags.
         result = {
             'jenkins': jenkins,
             'coverage': coverage,
             'ready-to-commit': rtc,
-            'asan': asan
+            'asan': asan,
+            'namecheck': namecheck
         }
         # Check for needed reports.
         self._env.NEED_COVERAGE = jenkins or coverage
@@ -1118,12 +1124,12 @@ class ObjectComponent(SourcedComponent):
         # Check if the component was already processed.
         if self._builders['install'] is not None:
             return self._builders['install']
-        # Create the list of the 'sources' files.
-        self._SetTargets()
         # Initialize the object file list.
         self._CreateObjectFiles()
         # Create the installer.
         installer = self._CreateInstallerBuilder(self._objects)
+        # Create the list of the 'sources' files.
+        self._SetTargets(installer)
         # Create jenkins output
         self._CreateJenkinsTarget(installer)
         # Create the group aliases.
@@ -1189,11 +1195,11 @@ class StaticLibraryComponent(ObjectComponent):
             return self._builders['install']
         # The target is the name of library to be created.
         target = os.path.join(self._dir.abspath, self.name)
-        self._SetTargets()
         # Create a static library builder.
         slib_builder = self._CreateStaticLibraryBuilder(target)
         # Create an installer builders.
         installer = self._CreateInstallerBuilder([slib_builder])
+        self._SetTargets(installer)
         # Create jenkins output
         self._CreateJenkinsTarget(installer)
         # Create the group aliases.
@@ -1243,11 +1249,11 @@ class DynamicLibraryComponent(ObjectComponent):
             return self._builders['install']
         # The target is the name of library to be created.
         target = os.path.join(self._dir.abspath, self.name)
-        self._SetTargets()
         # Create the shared library builder.
         dlib_builder = self._CreateSharedLibraryBuilder(target)
         # Create the installer builder.
         installer = self._CreateInstallerBuilder([dlib_builder])
+        self._SetTargets(installer)
         # Create jenkins output
         self._CreateJenkinsTarget(installer)
         self._builders['install'] = installer
@@ -1299,11 +1305,11 @@ class ProgramComponent(ObjectComponent):
         target = os.path.join(self._env['BUILD_DIR'], self.name)
         target = os.path.join(target, 'bin')
         target = os.path.join(target, self.name)
-        self._SetTargets()
         # Create the program builder.
         program_builder = self._CreateProgramBuilder(target)
         # Create an instance of the Install() builder.
         installer = self._CreateInstallerBuilder([program_builder])
+        self._SetTargets(installer)
         # Create jenkins output
         self._CreateJenkinsTarget(program_builder)
         # Create the group aliases.
@@ -1379,7 +1385,7 @@ class UnitTestComponent(ProgramComponent):
         # Create alias for aliasGroups.
         self._CreateGroupAliases()
         # Create targets.
-        self._CreateNameCheckTarget(sources)
+        self._CreateNameCheckTarget(sources, program_builder)
         run_valgrind_builder = self._CreateValgrindTarget(program_builder)
         run_asan_builder = self._CreateASanTarget(program_builder)
         run_coverage_builder = self._CreateCoverageTarget(run_test_target, program_builder)
@@ -1512,8 +1518,6 @@ class UnitTestComponent(ProgramComponent):
             target = target.File('ReadyToCommitReportFile.txt')
             rtc_builder = self._env.RunReadyToCommit(target, None)
             self._env.AlwaysBuild(rtc_builder)
-            self._env['exclude_headers'] = True
-            project_component._env['exclude_headers'] = True
             self._env['PROJECT_NAME'] = self._project_name
             # Get the builders from which the ready-to-commit target will
             # depend on.
@@ -1529,18 +1533,18 @@ class UnitTestComponent(ProgramComponent):
             self._env.Depends(rtc_builder, cppcheck)
             self._env.Depends(rtc_builder, run_test)
             self._env.Depends(rtc_builder, valgrind)
-            # Create the alias.
-            self._env.Alias(
-                '%s:ready-to-commit' % self._project_name,
-                rtc_builder,
-                "Check if the project is ready to be commited."
-            )
-            # Create a shorter alias.
-            self._env.Alias(
-                '%s:rtc' % self._project_name,
-                rtc_builder,
-                "Alias of the target: ready-to-commit."
-            )
+        # Create the alias.
+        self._env.Alias(
+            '%s:ready-to-commit' % self._project_name,
+            rtc_builder,
+            "Check if the project is ready to be commited."
+        )
+        # Create a shorter alias.
+        self._env.Alias(
+            '%s:rtc' % self._project_name,
+            rtc_builder,
+            "Alias of the target: ready-to-commit."
+        )
         self._builders['ready-to-commit'] = rtc_builder
         return rtc_builder
 

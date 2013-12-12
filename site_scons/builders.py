@@ -30,10 +30,13 @@ import subprocess
 import os.path
 import shutil
 import os
+import utils
+import re
+from SCons.Defaults import Delete
 from SCons.Builder import Builder
 from SCons.Action import Action
 from core_components import HEADERS_FILTER
-
+from xml.dom import minidom
 from utils import ChainCalls, FindSources, CheckPath, WaitProcessExists, RemoveDuplicates, DeleteLinesInFile
 
 
@@ -46,6 +49,8 @@ EXIT_ERROR = 1
 SPACE = ' '
 # The first element of an iterable object.
 FIRST_ELEMENT = 0
+# This is for RTC target
+CPPCHECK_CONFIG_RESULT = 0
 
 
 def init(env):
@@ -97,16 +102,42 @@ def init(env):
     #-
     bldInfo = Builder(action=Action(RunInfo, PrintDummy))
     env.Append(BUILDERS={'RunInfo': bldInfo})
-	#-
+    #-
     bldStaticAnalysis = Builder(action=Action(RunStaticAnalysis, PrintDummy))
     env.Append(BUILDERS={'RunStaticAnalysis': bldStaticAnalysis})
     #-
     bldAddressSanitizer = Builder(action=Action(RunASan, PrintDummy))
     env.Append(BUILDERS={'RunASan': bldAddressSanitizer})
+    #-
+    bldNamecheck = Builder(action=Action(RunNamecheck, PrintDummy))
+    env.Append(BUILDERS={'RunNamecheck': bldNamecheck})
 
 
 def PrintDummy(env, target, source):
     return ""
+
+
+def RunNamecheck(env, target, source):
+    env.Cprint('\n==== Running NameCheck ====\n', 'green')
+    includes = env['INC_PATHS']
+    includes = SPACE.join(['-I%s' % x.abspath for x in includes])
+    cpp_files = FindSources(source, ['.cpp', '.cc'])
+    c_files = FindSources(source, ['.c'])
+    namecheck = '/usr/lib/libnamecheck.so'
+    namecheck_conf = os.path.join(os.getcwd(), "conf", "namecheck-conf.csv")
+    if os.path.exists(namecheck) and os.path.exists(namecheck_conf):
+        # Add the flags to the compiler if the plug-in is present.
+        plugin = '-fplugin=%s' % namecheck
+        conf = '-fplugin-arg-libnamecheck-path=%s' % namecheck_conf
+    else:
+        env.cerror(
+            'Please check if you have isntalled Namecheck and the configuration file.')
+        return EXIT_SUCCESS
+    if cpp_files:
+        _ExecuteNamecheck(env, cpp_files, plugin, conf, includes)
+    if c_files:
+        _ExecuteNamecheck(env, c_files, plugin, conf, includes)
+    return EXIT_SUCCESS
 
 
 def RunUnittest(env, target, source):
@@ -143,7 +174,7 @@ def InitLcov(env, target, source):
         'output_dir': env.Dir('INSTALL_METRICS_DIR'),
         'project_dir': env['PROJECT_DIR']
     }
-    result = ChainCalls(env, [
+    result = utils.ChainCalls(env, [
         'lcov --zerocounters --directory %(project_dir)s -b .' % data,
         'lcov --capture --initial --directory %(project_dir)s -b . --output-file %(coverage_file)s' % data,
     ], silent)
@@ -174,7 +205,7 @@ def RunLcov(env, target, source):
         cmd = 'lcov --remove %(coverage_file)s "*%(project_dep)s*" -o %(coverage_file)s' % data
         commands_list.append(cmd)
     commands_list.append('genhtml --highlight --legend --output-directory %(output_dir)s %(coverage_file)s' % data)
-    result = ChainCalls(env, commands_list, env.GetOption('verbose'))
+    result = utils.ChainCalls(env, commands_list, env.GetOption('verbose'))
     if result:
         env.cerror('\n\n[ERROR] Failed running Lcov, error: %s\n\n' % result)
     else:
@@ -278,7 +309,7 @@ def _RunValgrindWithMocko(env, test_file, valgrind_proc):
     if env.GetOption('verbose'):
         env.Cprint('>> %s' % gdb_cmd, 'end')
     # Wait until valgrind start.
-    WaitProcessExists(valgrind_proc.pid)
+    utils.WaitProcessExists(valgrind_proc.pid)
     # Execute the test with gdb.
     gdb_proc = subprocess.Popen(gdb_cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     # Read standard output and error, and wait until the test terminate.
@@ -390,25 +421,23 @@ def RunStaticAnalysis(env, target, source):
     target = target.pop()
     env.Cprint('\n=== Running Static Code Analysis ===\n', 'green')
     cppcheck_options = SPACE.join([opt for opt in env['CPPCHECK_OPTIONS']])
-    includes = env['CPPCHECK_INC_PATHS']
-    cpp_files = FindSources(source, ['.cpp', '.cc'])
+    includes = env['INC_PATHS']
+    cpp_files = utils.FindSources(source, ['.cpp', '.cc'])
     cppcheck_dir = target.Dir('cppcheck')
     splint_dir = target.Dir('splint')
-    c_files = FindSources(source, ['.c'])
+    c_files = utils.FindSources(source, ['.c'])
     headers = includes
     if cpp_files:
-        CheckPath(cppcheck_dir.abspath)
+        utils.CheckPath(cppcheck_dir.abspath)
         cppcheck_rc = _RunCppCheck(cppcheck_dir, cpp_files, includes, 
-            cppcheck_options, env, 
-            exclude_headers=env.get("exclude_headers"))
+            cppcheck_options, env)
     if c_files:
-        CheckPath(splint_dir.abspath)
+        utils.CheckPath(splint_dir.abspath)
         splint_rc = _RunSplint(splint_dir, c_files, includes, env)
     if headers and not (cpp_files or c_files):
-        CheckPath(cppcheck_dir.abspath)
-        cppcheck_rc = _RunCppCheck(cppcheck_dir, FindSources(source, 
-            ['.h', '.hh', '.hpp']), headers, cppcheck_options, env,
-            exclude_headers=env.get("exclude_headers"))
+        utils.CheckPath(cppcheck_dir.abspath)
+        cppcheck_rc = _RunCppCheck(cppcheck_dir, utils.FindSources(source, 
+            ['.h', '.hh', '.hpp']), headers, cppcheck_options, env)
     # Return the output of both builders
     if cppcheck_rc or splint_rc:
         env.cerror('\n\n[ERROR] Failed running Static Analysis\n\n')
@@ -506,7 +535,7 @@ def RunReadyToCommit(env, target, source):
     if _RTCCheckTests(env):
         env.Cprint('TESTS    : [OK]', 'green')
     else:
-        env.Cprint('TESTE    : [ERROR]', 'red')
+        env.Cprint('TESTS    : [ERROR]', 'red')
     # Check for valgrind.
     if _RTCCheckValgrind(env):
         env.Cprint('VALGRIND : [OK]', 'green')
@@ -524,8 +553,16 @@ def RunInfo(env, target, source):
     env.Cprint("\n----------- %s -----------\n" % name, "blue")
     env.CprintSameLine([("The Project type is: ", "end"), ("%s \n" % project_type, "green")])
     # Separate sources and headers
-    headers_list = sorted(RemoveDuplicates([x for x in source for y in HEADERS if x.name.endswith(y)]))
-    sources_list = sorted(RemoveDuplicates([x for x in source for y in SOURCES if x.name.endswith(y)]))
+
+    headers_list, sources_list = map(
+        lambda FILTER: sorted(
+            utils.RemoveDuplicates(x 
+                for x in source for y in FILTER 
+                if x.name.endswith(y))
+            ), 
+        [SOURCES, HEADERS]
+    )
+
     # Print headers and sources
     if headers_list:
         env.Cprint("List of headers:", "end")
@@ -542,29 +579,23 @@ def RunInfo(env, target, source):
     return EXIT_SUCCESS
 
 
-def _RunCppCheck(report_dir, files, includes, options, env, exclude_headers=False):
+def _RunCppCheck(report_dir, files, includes, options, env):
     report_file = os.path.join(report_dir.abspath, 'static-analysis-report')
     success = False
     to_include = None
-    includes.append(env.Dir('/usr/include'))
-    includes.append(env.Dir('/usr/local/include'))
-    if not exclude_headers:
-        to_include = SPACE.join(['-I%s' % x.abspath for x in includes])
-
     if 'xml' in options:
         report_file = report_file+'.xml'
     else:
         report_file = report_file+'.txt'
-
+    to_include = SPACE.join(['-I%s' % x.abspath for x in includes])
     cmd = "cppcheck %s %s %s" % (options, files, to_include)
-    if env.GetOption('verbose'):
-        env.Cprint('>>> %s' % cmd, 'end')
-    # Check if the cmd can run.
-    result = _CheckCppCheckConfig(env, cmd)
+    CPPCHECK_CONFIG_RESULT = _CheckCppCheckConfig(env, cmd)
     # Create the suppression list.
     name = '.suppression_list.txt'
     _CreateSuppressionList(name, includes, env)
     cmd = '%s --suppressions %s' % (cmd, name)
+    if env.GetOption('verbose'):
+        env.Cprint('>>> %s' % cmd, 'end')
     env.Cprint('Running...', 'green')
     with open(report_file, 'w+') as rf:
         pipe = subprocess.Popen(
@@ -574,13 +605,13 @@ def _RunCppCheck(report_dir, files, includes, options, env, exclude_headers=Fals
         )
     success = pipe.wait()
     re = r'unmatchedSuppression|cppcheckError|Unmatched suppression'
-    DeleteLinesInFile(re, report_file)
+    utils.DeleteLinesInFile(re, report_file)
     # Delete the suppression list created
     try:
         os.remove(name)
     except OSError:
         pass
-    return not (result == success)
+    return CPPCHECK_CONFIG_RESULT == success
 
 def _CheckCppCheckConfig(env, cmd):
     """
@@ -660,7 +691,6 @@ def _RunSplint(report_dir, files, includes, env):
     splint_proc = subprocess.Popen(cmd, shell=True)
     return splint_proc.wait()
 
-
 def _RTCCheckAstyle(env):
     # Path to the report file.
     report_file = os.path.join(env['INSTALL_REPORTS_DIR'], 'astyle-check')
@@ -696,7 +726,7 @@ def _RTCCheckCppcheck(env):
     errors = errors_proc.wait()
     warnings = warnings_proc.wait()
     # grep returns 1 if the line is not found
-    return errors and warnings
+    return not (errors and warnings and CPPCHECK_CONFIG_RESULT)
 
 
 def _RTCCheckTests(env):
@@ -704,20 +734,23 @@ def _RTCCheckTests(env):
     report_file = os.path.join(env['INSTALL_REPORTS_DIR'], 'test')
     report_file = os.path.join(report_file, env['PROJECT_NAME'])
     report_file = os.path.join(report_file, 'test-report.xml')
+    result = os.path.exists(report_file)
     # Commands to be executed.
     cmd_failures = 'grep "<testsuites" %s | grep -v "failures=\\"0\\""' % report_file
     cmd_errors = 'grep "<testsuites" %s | grep -v "errors=\\"0\\""' % report_file
     # Execute the commands.
-    failures_proc = subprocess.Popen(cmd_failures, shell=True, stdout=subprocess.PIPE)
-    errors_proc = subprocess.Popen(cmd_errors, shell=True, stdout=subprocess.PIPE)
-    # Read the output of the processes.
-    failures_proc.stdout.read()
-    errors_proc.stdout.read()
-    # Wait until the processes terminate.
-    failures = failures_proc.wait()
-    errors = errors_proc.wait()
-    # grep returns 1 if the line is not found
-    return failures and errors
+    if result:
+        failures_proc = subprocess.Popen(cmd_failures, shell=True, stdout=subprocess.PIPE)
+        errors_proc = subprocess.Popen(cmd_errors, shell=True, stdout=subprocess.PIPE)
+        # Read the output of the processes.
+        failures_proc.stdout.read()
+        errors_proc.stdout.read()
+        # Wait until the processes terminate.
+        failures = failures_proc.wait()
+        errors = errors_proc.wait()
+        # grep returns 1 if the line is not found
+        result = bool(failures and errors)
+    return result
 
 
 def _RTCCheckValgrind(env):
@@ -725,12 +758,47 @@ def _RTCCheckValgrind(env):
     report_file = os.path.join(env['INSTALL_REPORTS_DIR'], 'valgrind')
     report_file = os.path.join(report_file, env['PROJECT_NAME'])
     report_file = os.path.join(report_file, 'valgrind-report.xml')
-    # Command to be executed.
-    cmd = "grep '<error>' %s " % report_file
-    # Execute the command.
-    valgrind_proc = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE)
-    # Read the output of the process.
-    valgrind_proc.stdout.read()
-    # Wait until process terminates and return the status.
-    # grep returns 1 if the line is not found
-    return valgrind_proc.wait()
+    # Open the report
+    xml_report = minidom.parse(report_file)
+    # Take the tag <errorcounts>.
+    element = xml_report.getElementsByTagName('errorcounts')[FIRST_ELEMENT]
+    # Take the unicode element.
+    element = element.childNodes[FIRST_ELEMENT]
+    element = element.nodeValue
+    # If the element is empty, there aren't valgrind errors.
+    return not element.strip()
+
+
+def _ExecuteNamecheck(env, files, plugin, conf, includes):
+    reg = '(/%s/).*(\[namecheck\])' % env['PROJECT_NAME']
+    for x in files.split(SPACE):
+        if x.endswith('cpp') or x.endswith('cc'):
+            cmd = 'g++'
+        elif x.endswith('c'):
+            cmd = 'gcc'
+        env.Cprint('\nAnalyzing %s...\n' % os.path.basename(x), 'yellow')
+        cmd += ' %s %s -c %s %s' % (plugin, conf, x, includes)
+        if env.GetOption('verbose'):
+            env.Cprint('>>>%s' % cmd, 'end')
+        pipe = subprocess.Popen(cmd, stderr=subprocess.PIPE, shell=True)
+        for line in pipe.stderr:
+            # Check if the project name is into the path of the warning.
+            is_there = re.search(reg, line)
+            if is_there:
+                env.Cprint('%s' % line.strip(), 'end')
+        pipe.wait()
+        if x.endswith('cpp'):
+            try:
+                Delete(x.replace('cpp', 'o'))
+            except:
+                pass
+        elif x.endswith('.cc'):
+            try:
+                os.remove(x.replace('cc', 'o'))
+            except:
+                pass
+        elif x.endswith('.c'):
+            try:
+                os.remove(x.replace('c', 'o'))
+            except:
+                pass
