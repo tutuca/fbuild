@@ -94,7 +94,7 @@ if [ "$?" -ne "0" ]; then return $?; fi
 # Backward compatibility
 alias fbuild=scons
 
-echo -e "FuDePAN-build 2.0"
+echo -e "FuDePAN-build 2.1"
 echo -e "Copyright (C) 2011-2012 Esteban Papp, Hugo Arregui,"
 echo -e "              2013 Gonzalo Bonigo, Gustavo Ojeda, Matias Iturburu, Leandro Moreno, FuDePAN"
 echo -e "This program comes with ABSOLUTELY NO WARRANTY; for details see http://www.gnu.org/licenses/gpl-3.0.html"

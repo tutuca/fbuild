@@ -69,3 +69,10 @@ def init(env):
         help='Check names conventions.',
         default=False
     )
+    AddOption(
+        '--exclude-headers',
+        dest='exclude_headers',
+        action='store_true',
+        help='Exclude header files in :static-analysis check.',
+        default=False
+    )
