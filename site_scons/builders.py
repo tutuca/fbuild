@@ -30,12 +30,11 @@ import subprocess
 import os.path
 import shutil
 import os
+import utils
 from SCons.Builder import Builder
 from SCons.Action import Action
 from core_components import HEADERS_FILTER
 from xml.dom import minidom
-
-from utils import ChainCalls, FindSources, CheckPath, WaitProcessExists, RemoveDuplicates, DeleteLinesInFile
 
 
 HEADERS = [".h", ".hpp"]
@@ -146,7 +145,7 @@ def InitLcov(env, target, source):
         'output_dir': env.Dir('INSTALL_METRICS_DIR'),
         'project_dir': env['PROJECT_DIR']
     }
-    result = ChainCalls(env, [
+    result = utils.ChainCalls(env, [
         'lcov --zerocounters --directory %(project_dir)s -b .' % data,
         'lcov --capture --initial --directory %(project_dir)s -b . --output-file %(coverage_file)s' % data,
     ], silent)
@@ -177,7 +176,7 @@ def RunLcov(env, target, source):
         cmd = 'lcov --remove %(coverage_file)s "*%(project_dep)s*" -o %(coverage_file)s' % data
         commands_list.append(cmd)
     commands_list.append('genhtml --highlight --legend --output-directory %(output_dir)s %(coverage_file)s' % data)
-    result = ChainCalls(env, commands_list, env.GetOption('verbose'))
+    result = utils.ChainCalls(env, commands_list, env.GetOption('verbose'))
     if result:
         env.cerror('\n\n[ERROR] Failed running Lcov, error: %s\n\n' % result)
     else:
@@ -281,7 +280,7 @@ def _RunValgrindWithMocko(env, test_file, valgrind_proc):
     if env.GetOption('verbose'):
         env.Cprint('>> %s' % gdb_cmd, 'end')
     # Wait until valgrind start.
-    WaitProcessExists(valgrind_proc.pid)
+    utils.WaitProcessExists(valgrind_proc.pid)
     # Execute the test with gdb.
     gdb_proc = subprocess.Popen(gdb_cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     # Read standard output and error, and wait until the test terminate.
@@ -394,24 +393,22 @@ def RunStaticAnalysis(env, target, source):
     env.Cprint('\n=== Running Static Code Analysis ===\n', 'green')
     cppcheck_options = SPACE.join([opt for opt in env['CPPCHECK_OPTIONS']])
     includes = env['CPPCHECK_INC_PATHS']
-    cpp_files = FindSources(source, ['.cpp', '.cc'])
+    cpp_files = utils.FindSources(source, ['.cpp', '.cc'])
     cppcheck_dir = target.Dir('cppcheck')
     splint_dir = target.Dir('splint')
-    c_files = FindSources(source, ['.c'])
+    c_files = utils.FindSources(source, ['.c'])
     headers = includes
     if cpp_files:
-        CheckPath(cppcheck_dir.abspath)
+        utils.CheckPath(cppcheck_dir.abspath)
         cppcheck_rc = _RunCppCheck(cppcheck_dir, cpp_files, includes, 
-            cppcheck_options, env, 
-            exclude_headers=env.get("exclude_headers"))
+            cppcheck_options, env)
     if c_files:
-        CheckPath(splint_dir.abspath)
+        utils.CheckPath(splint_dir.abspath)
         splint_rc = _RunSplint(splint_dir, c_files, includes, env)
     if headers and not (cpp_files or c_files):
-        CheckPath(cppcheck_dir.abspath)
-        cppcheck_rc = _RunCppCheck(cppcheck_dir, FindSources(source, 
-            ['.h', '.hh', '.hpp']), headers, cppcheck_options, env,
-            exclude_headers=env.get("exclude_headers"))
+        utils.CheckPath(cppcheck_dir.abspath)
+        cppcheck_rc = _RunCppCheck(cppcheck_dir, utils.FindSources(source, 
+            ['.h', '.hh', '.hpp']), headers, cppcheck_options, env)
     # Return the output of both builders
     if cppcheck_rc or splint_rc:
         env.cerror('\n\n[ERROR] Failed running Static Analysis\n\n')
@@ -527,8 +524,16 @@ def RunInfo(env, target, source):
     env.Cprint("\n----------- %s -----------\n" % name, "blue")
     env.CprintSameLine([("The Project type is: ", "end"), ("%s \n" % project_type, "green")])
     # Separate sources and headers
-    headers_list = sorted(RemoveDuplicates([x for x in source for y in HEADERS if x.name.endswith(y)]))
-    sources_list = sorted(RemoveDuplicates([x for x in source for y in SOURCES if x.name.endswith(y)]))
+
+    headers_list, sources_list = map(
+        lambda FILTER: sorted(
+            utils.RemoveDuplicates(x 
+                for x in source for y in FILTER 
+                if x.name.endswith(y))
+            ), 
+        [SOURCES, HEADERS]
+    )
+
     # Print headers and sources
     if headers_list:
         env.Cprint("List of headers:", "end")
@@ -545,8 +550,7 @@ def RunInfo(env, target, source):
     return EXIT_SUCCESS
 
 
-def _RunCppCheck(report_dir, files, includes, options, env, exclude_headers=False):
-    CPPCHECK_CONFIG_RESULT = 0
+def _RunCppCheck(report_dir, files, includes, options, env):
     report_file = os.path.join(report_dir.abspath, 'static-analysis-report')
     success = False
     to_include = None
@@ -554,14 +558,9 @@ def _RunCppCheck(report_dir, files, includes, options, env, exclude_headers=Fals
         report_file = report_file+'.xml'
     else:
         report_file = report_file+'.txt'
-    cmd = "cppcheck %s %s" % (options, files)
-    # Check if the cmd can run.
-    if not exclude_headers:
-        to_include = SPACE.join(['-I%s' % x.abspath for x in includes])
-        cmd = "cppcheck %s %s %s" % (options, files, to_include)
-        # XXX: This must be removed when RTC run cppcheck correctly 
-        # without take off the includes paths.
-        CPPCHECK_CONFIG_RESULT = _CheckCppCheckConfig(env, cmd)
+    to_include = SPACE.join(['-I%s' % x.abspath for x in includes])
+    cmd = "cppcheck %s %s %s" % (options, files, to_include)
+    CPPCHECK_CONFIG_RESULT = _CheckCppCheckConfig(env, cmd)
     # Create the suppression list.
     name = '.suppression_list.txt'
     _CreateSuppressionList(name, includes, env)
@@ -577,13 +576,13 @@ def _RunCppCheck(report_dir, files, includes, options, env, exclude_headers=Fals
         )
     success = pipe.wait()
     re = r'unmatchedSuppression|cppcheckError|Unmatched suppression'
-    DeleteLinesInFile(re, report_file)
+    utils.DeleteLinesInFile(re, report_file)
     # Delete the suppression list created
     try:
         os.remove(name)
     except OSError:
         pass
-    return not (CPPCHECK_CONFIG_RESULT == success)
+    return CPPCHECK_CONFIG_RESULT == success
 
 def _CheckCppCheckConfig(env, cmd):
     """

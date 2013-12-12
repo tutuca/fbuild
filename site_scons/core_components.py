@@ -1512,8 +1512,6 @@ class UnitTestComponent(ProgramComponent):
             target = target.File('ReadyToCommitReportFile.txt')
             rtc_builder = self._env.RunReadyToCommit(target, None)
             self._env.AlwaysBuild(rtc_builder)
-            self._env['exclude_headers'] = True
-            project_component._env['exclude_headers'] = True
             self._env['PROJECT_NAME'] = self._project_name
             # Get the builders from which the ready-to-commit target will
             # depend on.
