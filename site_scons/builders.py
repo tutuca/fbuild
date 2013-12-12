@@ -21,7 +21,7 @@
 
 
 """
-    Add description here!
+    This module contains all fudepan-build customized builders.
 """
 
 
@@ -30,12 +30,13 @@ import subprocess
 import os.path
 import shutil
 import os
+import utils
 import re
 from SCons.Defaults import Delete
 from SCons.Builder import Builder
 from SCons.Action import Action
 from core_components import HEADERS_FILTER
-
+from xml.dom import minidom
 from utils import ChainCalls, FindSources, CheckPath, WaitProcessExists, RemoveDuplicates, DeleteLinesInFile
 
 
@@ -48,6 +49,8 @@ EXIT_ERROR = 1
 SPACE = ' '
 # The first element of an iterable object.
 FIRST_ELEMENT = 0
+# This is for RTC target
+CPPCHECK_CONFIG_RESULT = 0
 
 
 def init(env):
@@ -64,11 +67,11 @@ def init(env):
     env.Append(BUILDERS={'RunDoxygen': bldDoxygen})
     env['DEFAULT_DOXYFILE'] = env.File('#/conf/doxygenTemplate').abspath
     #-
-    bldAStyleCheck = Builder(action=Action(AStyleCheck, PrintDummy))
-    env.Append(BUILDERS={'RunAStyleCheck': bldAStyleCheck})
+    # bldAStyleCheck = Builder(action=Action(AStyleCheck, PrintDummy))
+    # env.Append(BUILDERS={'RunAStyleCheck': bldAStyleCheck})
     #-
-    bldAStyle = Builder(action=Action(AStyle, PrintDummy))
-    env.Append(BUILDERS={'RunAStyle': bldAStyle})
+    # bldAStyle = Builder(action=Action(AStyle, PrintDummy))
+    # env.Append(BUILDERS={'RunAStyle': bldAStyle})
     #-
     bldPdfLatex = Builder(action=Action(RunPdfLatex, PrintDummy))
     env.Append(BUILDERS={'RunPdfLatex':  bldPdfLatex})
@@ -99,7 +102,7 @@ def init(env):
     #-
     bldInfo = Builder(action=Action(RunInfo, PrintDummy))
     env.Append(BUILDERS={'RunInfo': bldInfo})
-	#-
+    #-
     bldStaticAnalysis = Builder(action=Action(RunStaticAnalysis, PrintDummy))
     env.Append(BUILDERS={'RunStaticAnalysis': bldStaticAnalysis})
     #-
@@ -171,7 +174,7 @@ def InitLcov(env, target, source):
         'output_dir': env.Dir('INSTALL_METRICS_DIR'),
         'project_dir': env['PROJECT_DIR']
     }
-    result = ChainCalls(env, [
+    result = utils.ChainCalls(env, [
         'lcov --zerocounters --directory %(project_dir)s -b .' % data,
         'lcov --capture --initial --directory %(project_dir)s -b . --output-file %(coverage_file)s' % data,
     ], silent)
@@ -202,7 +205,7 @@ def RunLcov(env, target, source):
         cmd = 'lcov --remove %(coverage_file)s "*%(project_dep)s*" -o %(coverage_file)s' % data
         commands_list.append(cmd)
     commands_list.append('genhtml --highlight --legend --output-directory %(output_dir)s %(coverage_file)s' % data)
-    result = ChainCalls(env, commands_list, env.GetOption('verbose'))
+    result = utils.ChainCalls(env, commands_list, env.GetOption('verbose'))
     if result:
         env.cerror('\n\n[ERROR] Failed running Lcov, error: %s\n\n' % result)
     else:
@@ -244,74 +247,6 @@ def RunDoxygen(env, target, source):
         doxygen_results_proc = subprocess.Popen("cat %s" % output_file, shell=True)
         doxygen_results_proc.wait()
     os.remove(projectDoxyFile)
-    return EXIT_SUCCESS
-
-
-def AStyleCheck(env, target, source):
-    # Print message on the screen.
-    env.Cprint('\n=== Running ASTYLE-CHECK ===\n', 'green')
-    # Get the report file.
-    report_file = target[0].abspath
-    # Get the output directory.
-    output_directory = os.path.split(report_file)[0]
-    # Check if the directory exists.
-    if not os.path.exists(output_directory):
-        os.makedirs(output_directory)
-    # Check if some file need astyle.
-    check_astyle_result = _CheckAstyle(env, source, output_directory)
-    # Check if _CheckAstyle() fails.
-    if check_astyle_result is None:
-        env.cerror('\n\n[ERROR] Failed running Check Astyle\n\n')
-        return EXIT_SUCCESS
-    # Open the report file.
-    try:
-        report = open(report_file, 'w')
-    except IOError:
-        env.Cprint('No such file or directory:', report_file)
-        return EXIT_SUCCESS
-    else:
-        # If we can open it we truncate it.
-        report.truncate(0)
-    # If some file needs astyle we print info.
-    if check_astyle_result['need_astyle']:
-        # Print a warning message.
-        env.Cprint('[WARNING] The following files need astyle:', 'red')
-        # Print what need to be astyled.
-        for f, info in check_astyle_result['need_astyle_list']:
-            # Write into hte report file.
-            report.write(info + '\n\n')
-            # Print on the screen.
-            env.Cprint('====> %s' % f, 'red')
-            env.Cprint(info, 'yellow')
-    else:
-        env.Cprint('[OK] No file needs astyle.', 'green')
-    # Close the report file.
-    report.close()
-    return EXIT_SUCCESS
-
-
-def AStyle(env, target, source):
-    # Print message on the screen.
-    env.Cprint('\n=== Running ASTYLE ===\n', 'green')
-    # Get the project directory.
-    project_dir = target[0].abspath
-    # Generate the list of files to apply astyle.
-    #   This is because the files in 'source' point to the build/ directory
-    #   instead of the projects/ directory.
-    build_dir = env['BUILD_DIR']
-    ws_dir = env['WS_DIR']
-    file_list = SPACE.join(
-        [f.abspath.replace(build_dir, ws_dir)
-            for f in source
-            if "tests/ref/" not in f.abspath])
-    # Create the command to be executed.
-    cmd = "astyle -k1 --options=none --convert-tabs -bSKpUH %s" % file_list
-    # Run astyle.
-    astyle_proc = subprocess.Popen(cmd, shell=True)
-    if astyle_proc.wait():
-        env.cerror('[astyle] ERROR running astyle on: %s' % project_dir)
-    else:
-        env.Cprint('[astyle] OK on: %s' % project_dir, 'green')
     return EXIT_SUCCESS
 
 
@@ -374,7 +309,7 @@ def _RunValgrindWithMocko(env, test_file, valgrind_proc):
     if env.GetOption('verbose'):
         env.Cprint('>> %s' % gdb_cmd, 'end')
     # Wait until valgrind start.
-    WaitProcessExists(valgrind_proc.pid)
+    utils.WaitProcessExists(valgrind_proc.pid)
     # Execute the test with gdb.
     gdb_proc = subprocess.Popen(gdb_cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     # Read standard output and error, and wait until the test terminate.
@@ -487,21 +422,21 @@ def RunStaticAnalysis(env, target, source):
     env.Cprint('\n=== Running Static Code Analysis ===\n', 'green')
     cppcheck_options = SPACE.join([opt for opt in env['CPPCHECK_OPTIONS']])
     includes = env['INC_PATHS']
-    cpp_files = FindSources(source, ['.cpp', '.cc'])
+    cpp_files = utils.FindSources(source, ['.cpp', '.cc'])
     cppcheck_dir = target.Dir('cppcheck')
     splint_dir = target.Dir('splint')
-    c_files = FindSources(source, ['.c'])
+    c_files = utils.FindSources(source, ['.c'])
     headers = includes
     if cpp_files:
-        CheckPath(cppcheck_dir.abspath)
+        utils.CheckPath(cppcheck_dir.abspath)
         cppcheck_rc = _RunCppCheck(cppcheck_dir, cpp_files, includes, 
             cppcheck_options, env)
     if c_files:
-        CheckPath(splint_dir.abspath)
+        utils.CheckPath(splint_dir.abspath)
         splint_rc = _RunSplint(splint_dir, c_files, includes, env)
     if headers and not (cpp_files or c_files):
-        CheckPath(cppcheck_dir.abspath)
-        cppcheck_rc = _RunCppCheck(cppcheck_dir, FindSources(source, 
+        utils.CheckPath(cppcheck_dir.abspath)
+        cppcheck_rc = _RunCppCheck(cppcheck_dir, utils.FindSources(source, 
             ['.h', '.hh', '.hpp']), headers, cppcheck_options, env)
     # Return the output of both builders
     if cppcheck_rc or splint_rc:
@@ -600,7 +535,7 @@ def RunReadyToCommit(env, target, source):
     if _RTCCheckTests(env):
         env.Cprint('TESTS    : [OK]', 'green')
     else:
-        env.Cprint('TESTE    : [ERROR]', 'red')
+        env.Cprint('TESTS    : [ERROR]', 'red')
     # Check for valgrind.
     if _RTCCheckValgrind(env):
         env.Cprint('VALGRIND : [OK]', 'green')
@@ -618,8 +553,16 @@ def RunInfo(env, target, source):
     env.Cprint("\n----------- %s -----------\n" % name, "blue")
     env.CprintSameLine([("The Project type is: ", "end"), ("%s \n" % project_type, "green")])
     # Separate sources and headers
-    headers_list = sorted(RemoveDuplicates([x for x in source for y in HEADERS if x.name.endswith(y)]))
-    sources_list = sorted(RemoveDuplicates([x for x in source for y in SOURCES if x.name.endswith(y)]))
+
+    headers_list, sources_list = map(
+        lambda FILTER: sorted(
+            utils.RemoveDuplicates(x 
+                for x in source for y in FILTER 
+                if x.name.endswith(y))
+            ), 
+        [SOURCES, HEADERS]
+    )
+
     # Print headers and sources
     if headers_list:
         env.Cprint("List of headers:", "end")
@@ -639,23 +582,20 @@ def RunInfo(env, target, source):
 def _RunCppCheck(report_dir, files, includes, options, env):
     report_file = os.path.join(report_dir.abspath, 'static-analysis-report')
     success = False
-    includes.append(env.Dir('/usr/include'))
-    includes.append(env.Dir('/usr/local/include'))
-    to_include = SPACE.join(['-I%s' % x.abspath for x in includes])
+    to_include = None
     if 'xml' in options:
         report_file = report_file+'.xml'
-        cmd = "cppcheck %s %s %s" % (options, files, to_include)
     else:
         report_file = report_file+'.txt'
-        cmd = "cppcheck %s %s %s" % (options, files, to_include)
-    if env.GetOption('verbose'):
-        env.Cprint('>>> %s' % cmd, 'end')
-    # Check if the cmd can run.
-    result = _CheckCppCheckConfig(env, cmd)
+    to_include = SPACE.join(['-I%s' % x.abspath for x in includes])
+    cmd = "cppcheck %s %s %s" % (options, files, to_include)
+    CPPCHECK_CONFIG_RESULT = _CheckCppCheckConfig(env, cmd)
     # Create the suppression list.
     name = '.suppression_list.txt'
     _CreateSuppressionList(name, includes, env)
     cmd = '%s --suppressions %s' % (cmd, name)
+    if env.GetOption('verbose'):
+        env.Cprint('>>> %s' % cmd, 'end')
     env.Cprint('Running...', 'green')
     with open(report_file, 'w+') as rf:
         pipe = subprocess.Popen(
@@ -664,15 +604,14 @@ def _RunCppCheck(report_dir, files, includes, options, env):
             stderr=rf
         )
     success = pipe.wait()
-    if result == EXIT_SUCCESS: result = success
-    re = ur'unmatchedSuppression|cppcheckError|Unmatched suppression'
-    DeleteLinesInFile(re, report_file)
+    re = r'unmatchedSuppression|cppcheckError|Unmatched suppression'
+    utils.DeleteLinesInFile(re, report_file)
     # Delete the suppression list created
     try:
         os.remove(name)
     except OSError:
         pass
-    return result
+    return CPPCHECK_CONFIG_RESULT == success
 
 def _CheckCppCheckConfig(env, cmd):
     """
@@ -752,50 +691,6 @@ def _RunSplint(report_dir, files, includes, env):
     splint_proc = subprocess.Popen(cmd, shell=True)
     return splint_proc.wait()
 
-def _CheckAstyle(env, source, output_directory):
-    # Create a temporary directory.
-    tmp_dir = os.path.join(output_directory, 'tmp')
-    if not os.path.exists(tmp_dir):
-        os.makedirs(tmp_dir)
-    # The list of copied files.
-    files_list = []
-    # Copy all sources into the temporary directory.
-    for file in source:
-        if "tests/ref/" not in file.abspath:  # TODO: Remove this line.
-            shutil.copy(file.abspath, tmp_dir)
-            f = env.Dir(tmp_dir).File(os.path.split(file.abspath)[1])
-            files_list.append(f)
-    files_str = SPACE.join([x.abspath for x in files_list])
-    # This variable holds if some file needs astyle.
-    need_astyle = False
-    # A list for the files that needs astyle.
-    need_astyle_list = []
-    # Create the command to be executed.
-    cmd = 'astyle -k1 --options=none --convert-tabs -bSKpUH %s' % files_str
-    # To see if a file needs astyle we first apply astyle to the file and
-    # check if it suffer some change.
-    astyle_proc = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE)
-    astyle_proc.stdout.read()
-    if astyle_proc.wait():
-        # If astyle fails, we fail.
-        return None
-    # Check if astyle did some modifications.
-    for file in files_list:
-        # If the '.orig' file exists for the file then it was modify by astyle.
-        if os.path.exists('%s.orig' % file.abspath):
-            # Print the differences between files.
-            cmd = 'diff -Nau %s.orig %s' % (file.abspath, file.abspath)
-            diff = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
-            diff_stdout = diff.stdout.read()
-            diff.wait()
-            need_astyle_list.append((os.path.split(file.abspath)[1], diff_stdout))
-            need_astyle = True
-    # Remove the temporary directory.
-    os.system('rm -rf %s' % tmp_dir)
-    # Return a dictionary.
-    return {'need_astyle': need_astyle, 'need_astyle_list': need_astyle_list}
-
-
 def _RTCCheckAstyle(env):
     # Path to the report file.
     report_file = os.path.join(env['INSTALL_REPORTS_DIR'], 'astyle-check')
@@ -831,7 +726,7 @@ def _RTCCheckCppcheck(env):
     errors = errors_proc.wait()
     warnings = warnings_proc.wait()
     # grep returns 1 if the line is not found
-    return errors and warnings
+    return not (errors and warnings and CPPCHECK_CONFIG_RESULT)
 
 
 def _RTCCheckTests(env):
@@ -839,20 +734,23 @@ def _RTCCheckTests(env):
     report_file = os.path.join(env['INSTALL_REPORTS_DIR'], 'test')
     report_file = os.path.join(report_file, env['PROJECT_NAME'])
     report_file = os.path.join(report_file, 'test-report.xml')
+    result = os.path.exists(report_file)
     # Commands to be executed.
     cmd_failures = 'grep "<testsuites" %s | grep -v "failures=\\"0\\""' % report_file
     cmd_errors = 'grep "<testsuites" %s | grep -v "errors=\\"0\\""' % report_file
     # Execute the commands.
-    failures_proc = subprocess.Popen(cmd_failures, shell=True, stdout=subprocess.PIPE)
-    errors_proc = subprocess.Popen(cmd_errors, shell=True, stdout=subprocess.PIPE)
-    # Read the output of the processes.
-    failures_proc.stdout.read()
-    errors_proc.stdout.read()
-    # Wait until the processes terminate.
-    failures = failures_proc.wait()
-    errors = errors_proc.wait()
-    # grep returns 1 if the line is not found
-    return failures and errors
+    if result:
+        failures_proc = subprocess.Popen(cmd_failures, shell=True, stdout=subprocess.PIPE)
+        errors_proc = subprocess.Popen(cmd_errors, shell=True, stdout=subprocess.PIPE)
+        # Read the output of the processes.
+        failures_proc.stdout.read()
+        errors_proc.stdout.read()
+        # Wait until the processes terminate.
+        failures = failures_proc.wait()
+        errors = errors_proc.wait()
+        # grep returns 1 if the line is not found
+        result = bool(failures and errors)
+    return result
 
 
 def _RTCCheckValgrind(env):
@@ -860,15 +758,15 @@ def _RTCCheckValgrind(env):
     report_file = os.path.join(env['INSTALL_REPORTS_DIR'], 'valgrind')
     report_file = os.path.join(report_file, env['PROJECT_NAME'])
     report_file = os.path.join(report_file, 'valgrind-report.xml')
-    # Command to be executed.
-    cmd = "grep '<error>' %s " % report_file
-    # Execute the command.
-    valgrind_proc = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE)
-    # Read the output of the process.
-    valgrind_proc.stdout.read()
-    # Wait until process terminates and return the status.
-    # grep returns 1 if the line is not found
-    return valgrind_proc.wait()
+    # Open the report
+    xml_report = minidom.parse(report_file)
+    # Take the tag <errorcounts>.
+    element = xml_report.getElementsByTagName('errorcounts')[FIRST_ELEMENT]
+    # Take the unicode element.
+    element = element.childNodes[FIRST_ELEMENT]
+    element = element.nodeValue
+    # If the element is empty, there aren't valgrind errors.
+    return not element.strip()
 
 
 def _ExecuteNamecheck(env, files, plugin, conf, includes):

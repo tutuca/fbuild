@@ -1533,18 +1533,18 @@ class UnitTestComponent(ProgramComponent):
             self._env.Depends(rtc_builder, cppcheck)
             self._env.Depends(rtc_builder, run_test)
             self._env.Depends(rtc_builder, valgrind)
-            # Create the alias.
-            self._env.Alias(
-                '%s:ready-to-commit' % self._project_name,
-                rtc_builder,
-                "Check if the project is ready to be commited."
-            )
-            # Create a shorter alias.
-            self._env.Alias(
-                '%s:rtc' % self._project_name,
-                rtc_builder,
-                "Alias of the target: ready-to-commit."
-            )
+        # Create the alias.
+        self._env.Alias(
+            '%s:ready-to-commit' % self._project_name,
+            rtc_builder,
+            "Check if the project is ready to be commited."
+        )
+        # Create a shorter alias.
+        self._env.Alias(
+            '%s:rtc' % self._project_name,
+            rtc_builder,
+            "Alias of the target: ready-to-commit."
+        )
         self._builders['ready-to-commit'] = rtc_builder
         return rtc_builder
 

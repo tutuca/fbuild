@@ -118,6 +118,10 @@ def init(env, vars):
         SPLINT_FLAGS = ''
     )
     vars.Update(env)
+    
+    if env.GetOption('exclude_headers'):
+        env['exclude_headers'] = True
+
     if env.GetOption('verbose'):
         env.cdebug('Install information:')
         env.cdebug('    bin dir    : ' + env['INSTALL_BIN_DIR'])
