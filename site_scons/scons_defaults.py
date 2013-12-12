@@ -111,7 +111,17 @@ def init(env, vars):
             os.path.join(REPORT_DIR, "metrics"),
             PathVariable.PathIsDirCreate)
         )
+    env.SetDefault(
+        CPPCHECK_SUPPRESSION = ''
+        )
+    env.SetDefault(
+        SPLINT_FLAGS = ''
+    )
     vars.Update(env)
+    
+    if env.GetOption('exclude_headers'):
+        env['exclude_headers'] = True
+
     if env.GetOption('verbose'):
         env.cdebug('Install information:')
         env.cdebug('    bin dir    : ' + env['INSTALL_BIN_DIR'])

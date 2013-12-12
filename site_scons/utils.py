@@ -29,6 +29,7 @@ import subprocess
 import fnmatch
 import sys
 import os
+import re
 from distutils.dir_util import mkpath
 from SCons.Node.FS import Dir
 import fbuild_exceptions
@@ -41,6 +42,17 @@ DISRTO_ARCH = 'ARCH'
 _DISRTO_FILE = '/etc/issue'
 # Path to the process file system.
 _PROC_DIR = '/proc/%d'
+
+
+
+def DeleteLinesInFile(reg_exp, file_to_check):
+    new_file = ''
+    with open(file_to_check, 'r') as f:
+        for line in f.readlines():
+            if not re.search(reg_exp, line):
+                new_file += line
+    with open(file_to_check, 'w+') as f:
+        f.write(new_file)
 
 
 def FindFiles(env, fromDir, filters=None):
@@ -154,22 +166,16 @@ def DirsFlatten(env, path):
 
 
 def ChainCalls(env, cmds, silent=True):
-    if cmds:
-        cmd = cmds[0]
-        with open(os.devnull, "w") as fnull:
-            stdout = fnull if silent else None
-            if silent:
-                print '>>', cmd
-            #errors always shows
-            cmd_proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
-            cmd_proc.stdout.read()
-        if cmd_proc.wait():
-            env.cerror('error executing: %s' % cmd)
-            return cmd_proc.wait()
-        else:
-            return ChainCalls(env, cmds[1:], silent)
-    else:
-        return 0
+    for cmd in cmds:
+        if silent:
+            env.Cprint(cmd, 'end')
+        #errors always shows
+        cmd_proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
+        cmd_proc.stdout.read()
+        result = cmd_proc.wait()
+        if result:
+            env.cerror('Error executing command: %s' % cmd)
+        return result
 
 
 def GetDistro():
