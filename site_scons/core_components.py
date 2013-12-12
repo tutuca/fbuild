@@ -540,10 +540,10 @@ class HeaderOnlyComponent(Component):
         # Check if the component was already processed.
         if self._builders['install'] is not None:
             return self._builders['install']
+        # Create targets.
+        self._SetTargets()
         # Create the installer.
         installer = self._CreateInstallerBuilder([])
-        # Create targets.
-        self._SetTargets(installer)
         # Create jenkins output
         self._CreateJenkinsTarget(installer)
         # Create the alias group.
@@ -679,7 +679,7 @@ class HeaderOnlyComponent(Component):
         target = self._env.Dir(self._env['INSTALL_REPORTS_DIR'])
         target = target.Dir('static-analysis').Dir(self.name)
         # Pass information into env.
-        self._env['INC_PATHS'] = includes
+        self._env['CPPCHECK_INC_PATHS'] = includes
         # Create an instance of the RunStaticAnalysis() builder.
         analysis_builder = self._env.RunStaticAnalysis(target, sources)
         # The builder must depend of the project dependencies.
@@ -797,13 +797,16 @@ class HeaderOnlyComponent(Component):
         asan = (utils.WasTargetInvoked('%s:asan' % name) or
                 utils.WasTargetInvoked('all:asan'))
         namecheck = utils.WasTargetInvoked('%s:namecheck' % name)
+        test = (utils.WasTargetInvoked('%s:test' % name) or
+                utils.WasTargetInvoked('all:test'))
         # Create the dictionary of flags.
         result = {
             'jenkins': jenkins,
             'coverage': coverage,
             'ready-to-commit': rtc,
             'asan': asan,
-            'namecheck': namecheck
+            'namecheck': namecheck,
+            'test': test
         }
         # Check for needed reports.
         self._env.NEED_COVERAGE = jenkins or coverage
@@ -1128,8 +1131,6 @@ class ObjectComponent(SourcedComponent):
         self._CreateObjectFiles()
         # Create the installer.
         installer = self._CreateInstallerBuilder(self._objects)
-        # Create the list of the 'sources' files.
-        self._SetTargets(installer)
         # Create jenkins output
         self._CreateJenkinsTarget(installer)
         # Create the group aliases.
@@ -1195,11 +1196,11 @@ class StaticLibraryComponent(ObjectComponent):
             return self._builders['install']
         # The target is the name of library to be created.
         target = os.path.join(self._dir.abspath, self.name)
+        self._SetTargets()
         # Create a static library builder.
         slib_builder = self._CreateStaticLibraryBuilder(target)
         # Create an installer builders.
         installer = self._CreateInstallerBuilder([slib_builder])
-        self._SetTargets(installer)
         # Create jenkins output
         self._CreateJenkinsTarget(installer)
         # Create the group aliases.
@@ -1322,13 +1323,28 @@ class ProgramComponent(ObjectComponent):
     #
 
     def _CreateProgramBuilder(self, target, sources=None):
+        flags = self._CheckForFlags()
         sources = sources if sources is not None else []
+        if hasattr(self, '_project_name'):
+            name = self._project_name
+        else:
+            name = self.name
         # Get include paths.
         includes = self.GetIncludePaths()
         # Get the libraries to link and their directories.
         (libs, libpaths) = self.GetLibs()
         # Get the objects files.
         sources.extend(self.GetObjectsFiles())
+        # Add the objects from the program to the tests.
+        if name in self._dependencies:
+            self_comp = self._component_graph.get(name)
+            # Only do this if the project that the tests depend is a Program.
+            if isinstance(self_comp, ProgramComponent):
+                # Suppress the main from the Program to use the main from the tests.
+                # Set the flag only if the target :test was invoked.
+                if flags['test']:
+                    self_comp._env.Append(CXXFLAGS='-Dmain=principalmain')
+                    sources.extend(self_comp.GetObjectsFiles())
         # Create an instance of the Program() builder.
         program_builder = self._env.Program(
             target,
