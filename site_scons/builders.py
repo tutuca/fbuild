@@ -560,7 +560,7 @@ def _RunCppCheck(report_dir, files, includes, options, env):
         report_file = report_file+'.txt'
     to_include = SPACE.join(['-I%s' % x.abspath for x in includes])
     cmd = "cppcheck %s %s %s" % (options, files, to_include)
-    CPPCHECK_CONFIG_RESULT = _CheckCppCheckConfig(env, cmd)
+    env['CPPCHECK_CONFIG_RESULT'] = _CheckCppCheckConfig(env, cmd)
     # Create the suppression list.
     name = '.suppression_list.txt'
     _CreateSuppressionList(name, includes, env)
@@ -582,7 +582,7 @@ def _RunCppCheck(report_dir, files, includes, options, env):
         os.remove(name)
     except OSError:
         pass
-    return CPPCHECK_CONFIG_RESULT == success
+    return env['CPPCHECK_CONFIG_RESULT'] == success
 
 def _CheckCppCheckConfig(env, cmd):
     """
@@ -698,7 +698,7 @@ def _RTCCheckCppcheck(env):
     errors = errors_proc.wait()
     warnings = warnings_proc.wait()
     # grep returns 1 if the line is not found
-    return not (errors and warnings and CPPCHECK_CONFIG_RESULT)
+    return errors and warnings and not env['CPPCHECK_CONFIG_RESULT']
 
 
 def _RTCCheckTests(env):
