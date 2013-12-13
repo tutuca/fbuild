@@ -96,7 +96,6 @@ def PathGenerator(nodes, sourceDir):
     This method separate the source that will go to the source directory
     and the sources that will not go there.
     """
-    forsrc = []
     source_path = sourceDir.abspath
     element = ()
     for n in nodes:
@@ -166,16 +165,18 @@ def DirsFlatten(env, path):
 
 
 def ChainCalls(env, cmds, silent=True):
+    result = []
     for cmd in cmds:
         if silent:
             env.Cprint(cmd, 'end')
         #errors always shows
         cmd_proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
         cmd_proc.stdout.read()
-        result = cmd_proc.wait()
-        if result:
-            env.cerror('Error executing command: %s' % cmd)
-        return result
+        result.append(cmd_proc.wait())
+    result = any(result)
+    if result:
+        env.cerror('Error executing command: %s' % cmd)
+    return result
 
 
 def GetDistro():

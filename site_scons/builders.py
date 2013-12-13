@@ -208,6 +208,8 @@ def RunLcov(env, target, source):
     result = utils.ChainCalls(env, commands_list, env.GetOption('verbose'))
     if result:
         env.cerror('\n\n[ERROR] Failed running Lcov, error: %s\n\n' % result)
+    elif not os.path.exists(indexFile):
+        env.cerror('\n\n[ERROR] Failed to create report file.\n\n')
     else:
         env.Cprint('lcov report in: %s' % indexFile, 'green')
     return EXIT_SUCCESS
