@@ -165,17 +165,17 @@ def DirsFlatten(env, path):
 
 
 def ChainCalls(env, cmds, silent=True):
-    result = []
+    result = os.EX_OK
     for cmd in cmds:
         if silent:
             env.Cprint(cmd, 'end')
         #errors always shows
         cmd_proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
         cmd_proc.stdout.read()
-        result.append(cmd_proc.wait())
-    result = any(result)
-    if result:
-        env.cerror('Error executing command: %s' % cmd)
+        errcode = cmd_proc.wait()
+        if errcode:
+            env.cerror('Error executing command: %s %s' % cmd, errcode)
+            result = 1
     return result
 
 
